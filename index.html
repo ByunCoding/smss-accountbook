@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMSS 가계부 대시보드</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        header { text-align: center; color: white; margin-bottom: 30px; }
+        header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        header p { opacity: 0.9; }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .card h3 {
+            color: #667eea;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        .card .value { font-size: 2rem; font-weight: bold; color: #333; }
+        .card .value.negative { color: #e74c3c; }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .chart-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .chart-card h3 { color: #333; margin-bottom: 20px; font-size: 1.2rem; }
+        .chart-container { position: relative; height: 350px; }
+        .filter-section {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .filter-section h3 { color: #333; margin-bottom: 15px; }
+        .filters { display: flex; gap: 15px; flex-wrap: wrap; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 0.85rem; color: #666; }
+        .filter-group select, .filter-group input {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .filter-group select:focus, .filter-group input:focus { border-color: #667eea; }
+        .expense-table {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+        .expense-table h3 { color: #333; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        th { background: #f8f9fa; font-weight: 600; color: #667eea; }
+        tr:hover { background: #f8f9fa; }
+        .amount { font-weight: 600; color: #e74c3c; }
+        .category-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .input-form {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .input-form h3 { color: #333; margin-bottom: 20px; }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label { font-size: 0.85rem; color: #666; font-weight: 500; }
+        .form-group input, .form-group select {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: #667eea; }
+        .btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+        .btn-danger:hover { box-shadow: 0 5px 20px rgba(231, 76, 60, 0.4); }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .tab.active { background: white; color: #667eea; }
+        .tab:hover:not(.active) { background: rgba(255,255,255,0.3); }
+        .hidden { display: none; }
+        .stats-row { display: flex; gap: 20px; margin-top: 20px; flex-wrap: wrap; }
+        .stat-item {
+            flex: 1;
+            min-width: 150px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-item .label { font-size: 0.85rem; color: #666; margin-bottom: 5px; }
+        .stat-item .value { font-size: 1.3rem; font-weight: 600; color: #333; }
+        .success-msg { color: #27ae60; font-weight: 500; margin-top: 15px; }
+        .error-msg { color: #e74c3c; font-weight: 500; margin-top: 15px; }
+        .loading { opacity: 0.6; pointer-events: none; }
+        @media (max-width: 768px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            header h1 { font-size: 1.8rem; }
+            .card .value { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SMSS 가계부 대시보드</h1>
+            <p id="lastUpdated">마지막 업데이트: 로딩 중...</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('overview')">전체 현황</button>
+            <button class="tab" onclick="showTab('details')">상세 내역</button>
+            <button class="tab" onclick="showTab('input')">지출 입력</button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overview-tab">
+            <div class="summary-cards">
+                <div class="card">
+                    <h3>총 지출</h3>
+                    <div class="value negative" id="totalExpense">-</div>
+                </div>
+                <div class="card">
+                    <h3>총 거래 횟수</h3>
+                    <div class="value" id="totalTransactions">-</div>
+                </div>
+                <div class="card">
+                    <h3>일 평균 지출</h3>
+                    <div class="value" id="avgDaily">-</div>
+                </div>
+                <div class="card">
+                    <h3>이번 달 지출</h3>
+                    <div class="value negative" id="currentMonthExpense">-</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>카테고리별 지출</h3>
+                    <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h3>결제수단별 지출</h3>
+                    <div class="chart-container"><canvas id="paymentChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>월별 지출 추이</h3>
+                    <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h3>카테고리별 월별 지출</h3>
+                    <div class="chart-container"><canvas id="categoryMonthlyChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h3>TOP 10 지출 카테고리</h3>
+                <div class="stats-row" id="topCategories"></div>
+            </div>
+        </div>
+
+        <!-- Details Tab -->
+        <div id="details-tab" class="hidden">
+            <div class="filter-section">
+                <h3>필터</h3>
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>월 선택</label>
+                        <select id="filterMonth"><option value="">전체</option></select>
+                    </div>
+                    <div class="filter-group">
+                        <label>카테고리</label>
+                        <select id="filterCategory"><option value="">전체</option></select>
+                    </div>
+                    <div class="filter-group">
+                        <label>결제수단</label>
+                        <select id="filterPayment"><option value="">전체</option></select>
+                    </div>
+                    <div class="filter-group">
+                        <label>검색</label>
+                        <input type="text" id="filterSearch" placeholder="사용내역 검색...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="expense-table">
+                <h3>지출 내역 <span id="filteredCount"></span></h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>날짜</th>
+                            <th>카테고리</th>
+                            <th>사용내역</th>
+                            <th>금액</th>
+                            <th>결제수단</th>
+                            <th>삭제</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Input Tab -->
+        <div id="input-tab" class="hidden">
+            <div class="input-form">
+                <h3>새 지출 입력</h3>
+                <form id="expenseForm" class="form-grid">
+                    <div class="form-group">
+                        <label>날짜</label>
+                        <input type="date" id="inputDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>카테고리</label>
+                        <select id="inputCategory" required>
+                            <option value="">선택하세요</option>
+                            <option value="식비">식비</option>
+                            <option value="외식">외식</option>
+                            <option value="카페">카페</option>
+                            <option value="생활비">생활비</option>
+                            <option value="교통비">교통비</option>
+                            <option value="차량유지비">차량유지비</option>
+                            <option value="쇼핑">쇼핑</option>
+                            <option value="병원비">병원비</option>
+                            <option value="양육비">양육비</option>
+                            <option value="육아비">육아비</option>
+                            <option value="여행비">여행비</option>
+                            <option value="경조사비">경조사비</option>
+                            <option value="자기계발비">자기계발비</option>
+                            <option value="관리비">관리비</option>
+                            <option value="건강식품">건강식품</option>
+                            <option value="약속">약속</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>사용내역</label>
+                        <input type="text" id="inputDescription" placeholder="예: 마트 장보기" required>
+                    </div>
+                    <div class="form-group">
+                        <label>금액</label>
+                        <input type="number" id="inputAmount" placeholder="50000" required>
+                    </div>
+                    <div class="form-group">
+                        <label>결제수단</label>
+                        <select id="inputPayment" required>
+                            <option value="">선택하세요</option>
+                            <option value="현금">현금</option>
+                            <option value="현대카드_상민">현대카드_상민</option>
+                            <option value="현대카드_시리">현대카드_시리</option>
+                            <option value="국민카드">국민카드</option>
+                            <option value="쿠팡와우카드">쿠팡와우카드</option>
+                            <option value="삼성카드">삼성카드</option>
+                            <option value="국민행복카드">국민행복카드</option>
+                            <option value="계좌이체">계좌이체</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="justify-content: flex-end;">
+                        <button type="submit" class="btn" id="submitBtn">저장하기</button>
+                    </div>
+                </form>
+                <div id="inputResult"></div>
+            </div>
+
+            <div class="card">
+                <h3>최근 입력된 내역 (최근 20개)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>날짜</th>
+                            <th>카테고리</th>
+                            <th>사용내역</th>
+                            <th>금액</th>
+                            <th>결제수단</th>
+                            <th>삭제</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentInputs"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let expenseData = null;
+        let charts = {};
+
+        const categoryColors = {
+            '식비': '#FF6384', '외식': '#36A2EB', '카페': '#FFCE56', '생활비': '#4BC0C0',
+            '교통비': '#9966FF', '차량유지비': '#FF9F40', '쇼핑': '#FF6384', '병원비': '#C9CBCF',
+            '양육비': '#7BC8A4', '육아비': '#7BC8A4', '여행비': '#E7E9ED', '경조사비': '#4D5360',
+            '자기계발비': '#949FB1', '관리비': '#D4E157', '건강식품': '#81D4FA', '약속': '#FFAB91', '기타': '#B0BEC5'
+        };
+
+        async function loadData() {
+            try {
+                const response = await fetch('/data.json');
+                expenseData = await response.json();
+                initializeDashboard();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('lastUpdated').textContent = '데이터 로딩 실패';
+            }
+        }
+
+        function initializeDashboard() {
+            document.getElementById('lastUpdated').textContent = `마지막 업데이트: ${expenseData.last_updated}`;
+            updateSummaryCards();
+            destroyCharts();
+            createCharts();
+            populateFilters();
+            renderExpenseTable();
+            renderTopCategories();
+            renderRecentInputs();
+            setTodayDate();
+        }
+
+        function destroyCharts() {
+            Object.values(charts).forEach(chart => chart?.destroy());
+            charts = {};
+        }
+
+        function updateSummaryCards() {
+            const summary = expenseData.summary;
+            document.getElementById('totalExpense').textContent = formatCurrency(summary.total_expenses);
+            document.getElementById('totalTransactions').textContent = summary.total_transactions.toLocaleString() + '건';
+
+            const uniqueDates = [...new Set(expenseData.expenses.map(e => e.date))];
+            const avgDaily = uniqueDates.length > 0 ? summary.total_expenses / uniqueDates.length : 0;
+            document.getElementById('avgDaily').textContent = formatCurrency(avgDaily);
+
+            const now = new Date();
+            const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const currentMonthTotal = summary.monthly_totals[currentMonthKey]?.total || 0;
+            document.getElementById('currentMonthExpense').textContent = formatCurrency(currentMonthTotal);
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(amount);
+        }
+
+        function createCharts() {
+            if (Object.keys(expenseData.summary.category_breakdown).length === 0) return;
+            createCategoryChart();
+            createPaymentChart();
+            createMonthlyChart();
+            createCategoryMonthlyChart();
+        }
+
+        function createCategoryChart() {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            const data = expenseData.summary.category_breakdown;
+            const sortedCategories = Object.entries(data).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            charts.category = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: sortedCategories.map(([k]) => k),
+                    datasets: [{
+                        data: sortedCategories.map(([, v]) => v),
+                        backgroundColor: sortedCategories.map(([k]) => categoryColors[k] || '#B0BEC5'),
+                        borderWidth: 2, borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' },
+                        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatCurrency(ctx.raw)}` } }
+                    }
+                }
+            });
+        }
+
+        function createPaymentChart() {
+            const ctx = document.getElementById('paymentChart').getContext('2d');
+            const data = expenseData.summary.payment_method_breakdown;
+            const sortedPayments = Object.entries(data).sort((a, b) => b[1] - a[1]);
+            const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'];
+            charts.payment = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: sortedPayments.map(([k]) => k),
+                    datasets: [{ data: sortedPayments.map(([, v]) => v), backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' },
+                        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatCurrency(ctx.raw)}` } }
+                    }
+                }
+            });
+        }
+
+        function createMonthlyChart() {
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            const data = expenseData.summary.monthly_totals;
+            const sortedMonths = Object.entries(data).sort((a, b) => a[0].localeCompare(b[0]));
+            charts.monthly = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedMonths.map(([k]) => k),
+                    datasets: [{
+                        label: '월별 지출', data: sortedMonths.map(([, v]) => v.total),
+                        backgroundColor: 'rgba(102, 126, 234, 0.7)', borderColor: '#667eea', borderWidth: 2, borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => formatCurrency(ctx.raw) } } },
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => (v / 10000).toFixed(0) + '만' } } }
+                }
+            });
+        }
+
+        function createCategoryMonthlyChart() {
+            const ctx = document.getElementById('categoryMonthlyChart').getContext('2d');
+            const monthlyData = expenseData.summary.monthly_totals;
+            const sortedMonths = Object.keys(monthlyData).sort();
+            const topCategories = Object.entries(expenseData.summary.category_breakdown).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
+            const datasets = topCategories.map((category, idx) => ({
+                label: category,
+                data: sortedMonths.map(month => monthlyData[month]?.categories[category] || 0),
+                backgroundColor: categoryColors[category] || `hsl(${idx * 50}, 70%, 60%)`,
+                borderColor: categoryColors[category] || `hsl(${idx * 50}, 70%, 50%)`,
+                borderWidth: 2, tension: 0.3
+            }));
+            charts.categoryMonthly = new Chart(ctx, {
+                type: 'line',
+                data: { labels: sortedMonths, datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatCurrency(ctx.raw)}` } } },
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => (v / 10000).toFixed(0) + '만' } } }
+                }
+            });
+        }
+
+        function populateFilters() {
+            const months = [...new Set(Object.keys(expenseData.summary.monthly_totals))].sort().reverse();
+            const categories = Object.keys(expenseData.summary.category_breakdown).sort();
+            const payments = Object.keys(expenseData.summary.payment_method_breakdown).sort();
+
+            const monthSelect = document.getElementById('filterMonth');
+            monthSelect.innerHTML = '<option value="">전체</option>';
+            months.forEach(m => { monthSelect.innerHTML += `<option value="${m}">${m}</option>`; });
+
+            const categorySelect = document.getElementById('filterCategory');
+            categorySelect.innerHTML = '<option value="">전체</option>';
+            categories.forEach(c => { categorySelect.innerHTML += `<option value="${c}">${c}</option>`; });
+
+            const paymentSelect = document.getElementById('filterPayment');
+            paymentSelect.innerHTML = '<option value="">전체</option>';
+            payments.forEach(p => { paymentSelect.innerHTML += `<option value="${p}">${p}</option>`; });
+
+            monthSelect.onchange = renderExpenseTable;
+            categorySelect.onchange = renderExpenseTable;
+            paymentSelect.onchange = renderExpenseTable;
+            document.getElementById('filterSearch').oninput = renderExpenseTable;
+        }
+
+        function renderExpenseTable() {
+            const month = document.getElementById('filterMonth').value;
+            const category = document.getElementById('filterCategory').value;
+            const payment = document.getElementById('filterPayment').value;
+            const search = document.getElementById('filterSearch').value.toLowerCase();
+
+            let filtered = [...expenseData.expenses];
+
+            if (month) filtered = filtered.filter(e => `${e.year}-${String(e.month).padStart(2, '0')}` === month);
+            if (category) filtered = filtered.filter(e => e.category === category);
+            if (payment) filtered = filtered.filter(e => e.payment_method === payment);
+            if (search) filtered = filtered.filter(e => (e.description || '').toLowerCase().includes(search));
+
+            filtered.sort((a, b) => b.date.localeCompare(a.date));
+
+            const tbody = document.getElementById('expenseTableBody');
+            tbody.innerHTML = filtered.slice(0, 100).map(e => `
+                <tr>
+                    <td>${e.date}</td>
+                    <td><span class="category-tag" style="background: ${categoryColors[e.category] || '#B0BEC5'}20; color: ${categoryColors[e.category] || '#666'}">${e.category}</span></td>
+                    <td>${e.description || '-'}</td>
+                    <td class="amount">${formatCurrency(e.amount)}</td>
+                    <td>${e.payment_method}</td>
+                    <td>${e.id ? `<button class="btn btn-danger" onclick="deleteExpense('${e.id}')">삭제</button>` : '-'}</td>
+                </tr>
+            `).join('');
+
+            const total = filtered.reduce((sum, e) => sum + e.amount, 0);
+            document.getElementById('filteredCount').textContent = `(${filtered.length}건, 합계: ${formatCurrency(total)})`;
+        }
+
+        function renderRecentInputs() {
+            const recent = expenseData.expenses.filter(e => e.id).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, 20);
+            const tbody = document.getElementById('recentInputs');
+            tbody.innerHTML = recent.map(e => `
+                <tr>
+                    <td>${e.date}</td>
+                    <td><span class="category-tag" style="background: ${categoryColors[e.category] || '#B0BEC5'}20">${e.category}</span></td>
+                    <td>${e.description || '-'}</td>
+                    <td class="amount">${formatCurrency(e.amount)}</td>
+                    <td>${e.payment_method}</td>
+                    <td><button class="btn btn-danger" onclick="deleteExpense('${e.id}')">삭제</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderTopCategories() {
+            const categories = Object.entries(expenseData.summary.category_breakdown).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            document.getElementById('topCategories').innerHTML = categories.map(([category, amount]) => `
+                <div class="stat-item">
+                    <div class="label">${category}</div>
+                    <div class="value" style="color: ${categoryColors[category] || '#333'}">${formatCurrency(amount)}</div>
+                </div>
+            `).join('');
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
+            document.getElementById('overview-tab').classList.add('hidden');
+            document.getElementById('details-tab').classList.add('hidden');
+            document.getElementById('input-tab').classList.add('hidden');
+            document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+        }
+
+        function setTodayDate() {
+            document.getElementById('inputDate').value = new Date().toISOString().split('T')[0];
+        }
+
+        async function deleteExpense(id) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+
+            try {
+                const response = await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) {
+                    await loadData();
+                }
+            } catch (error) {
+                alert('삭제 실패: ' + error.message);
+            }
+        }
+
+        document.getElementById('expenseForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const resultDiv = document.getElementById('inputResult');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '저장 중...';
+
+            const expense = {
+                date: document.getElementById('inputDate').value,
+                category: document.getElementById('inputCategory').value,
+                description: document.getElementById('inputDescription').value,
+                amount: parseFloat(document.getElementById('inputAmount').value),
+                payment_method: document.getElementById('inputPayment').value
+            };
+
+            try {
+                const response = await fetch('/api/expenses', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(expense)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    resultDiv.className = 'success-msg';
+                    resultDiv.textContent = `저장 완료: ${expense.date} - ${expense.category} - ${formatCurrency(expense.amount)}`;
+                    document.getElementById('inputDescription').value = '';
+                    document.getElementById('inputAmount').value = '';
+                    await loadData();
+                } else {
+                    throw new Error('저장 실패');
+                }
+            } catch (error) {
+                resultDiv.className = 'error-msg';
+                resultDiv.textContent = '저장 실패: ' + error.message;
+            }
+
+            submitBtn.disabled = false;
+            submitBtn.textContent = '저장하기';
+            setTimeout(() => { resultDiv.textContent = ''; }, 3000);
+        });
+
+        loadData();
+    </script>
+</body>
+</html>
