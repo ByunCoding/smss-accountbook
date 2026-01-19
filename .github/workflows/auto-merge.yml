@@ -1,0 +1,53 @@
+name: Auto Merge Claude PRs
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - master
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: startsWith(github.head_ref, 'claude/')
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auto Merge PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // PR 정보 가져오기
+            const pr = context.payload.pull_request;
+
+            console.log(`Auto-merging PR #${pr.number}: ${pr.title}`);
+            console.log(`Branch: ${pr.head.ref} -> ${pr.base.ref}`);
+
+            // 잠시 대기 (CI 체크가 있을 경우를 위해)
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            // PR 머지
+            try {
+              await github.rest.pulls.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                merge_method: 'squash'
+              });
+              console.log('PR merged successfully!');
+            } catch (error) {
+              console.log('Merge failed:', error.message);
+              // 머지 실패 시 코멘트 남기기
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: `⚠️ 자동 머지 실패: ${error.message}\n\n수동으로 머지해주세요.`
+              });
+            }
