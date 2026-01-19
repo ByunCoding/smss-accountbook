@@ -75,11 +75,15 @@ def index():
 
 @app.route('/data.json')
 def get_data():
-    return jsonify(load_data())
+    data = load_data()
+    data = recalculate_summary(data)
+    return jsonify(data)
 
 @app.route('/api/expenses', methods=['GET'])
 def get_expenses():
-    return jsonify(load_data())
+    data = load_data()
+    data = recalculate_summary(data)
+    return jsonify(data)
 
 @app.route('/api/expenses', methods=['POST'])
 def add_expense():
