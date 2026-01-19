@@ -1,15 +1,13 @@
-name: Auto Merge Claude PRs
+name: Auto Create PR and Merge
 
 on:
-  pull_request:
-    types: [opened, synchronize]
+  push:
     branches:
-      - master
+      - 'claude/**'
 
 jobs:
-  auto-merge:
+  create-pr-and-merge:
     runs-on: ubuntu-latest
-    if: startsWith(github.head_ref, 'claude/')
 
     permissions:
       contents: write
@@ -19,18 +17,42 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Auto Merge PR
+      - name: Create PR and Enable Auto-Merge
         uses: actions/github-script@v7
         with:
           script: |
-            // PR 정보 가져오기
-            const pr = context.payload.pull_request;
+            const branch = context.ref.replace('refs/heads/', '');
+            console.log(`Branch pushed: ${branch}`);
 
-            console.log(`Auto-merging PR #${pr.number}: ${pr.title}`);
-            console.log(`Branch: ${pr.head.ref} -> ${pr.base.ref}`);
+            // 이미 열린 PR이 있는지 확인
+            const { data: existingPRs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${branch}`,
+              base: 'master',
+              state: 'open'
+            });
 
-            // 잠시 대기 (CI 체크가 있을 경우를 위해)
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            let pr;
+            if (existingPRs.length > 0) {
+              pr = existingPRs[0];
+              console.log(`Using existing PR #${pr.number}`);
+            } else {
+              // 새 PR 생성
+              const { data: newPR } = await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Auto: ${branch}`,
+                body: '자동 생성된 PR입니다.',
+                head: branch,
+                base: 'master'
+              });
+              pr = newPR;
+              console.log(`Created new PR #${pr.number}`);
+            }
+
+            // 잠시 대기
+            await new Promise(resolve => setTimeout(resolve, 3000));
 
             // PR 머지
             try {
@@ -42,12 +64,25 @@ jobs:
               });
               console.log('PR merged successfully!');
             } catch (error) {
-              console.log('Merge failed:', error.message);
-              // 머지 실패 시 코멘트 남기기
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: pr.number,
-                body: `⚠️ 자동 머지 실패: ${error.message}\n\n수동으로 머지해주세요.`
-              });
+              console.log('Merge failed, trying auto-merge:', error.message);
+              // auto-merge 활성화 시도
+              try {
+                await github.graphql(`
+                  mutation($pullRequestId: ID!) {
+                    enablePullRequestAutoMerge(input: {
+                      pullRequestId: $pullRequestId,
+                      mergeMethod: SQUASH
+                    }) {
+                      pullRequest {
+                        autoMergeRequest {
+                          enabledAt
+                        }
+                      }
+                    }
+                  }
+                `, { pullRequestId: pr.node_id });
+                console.log('Auto-merge enabled!');
+              } catch (e) {
+                console.log('Auto-merge enable failed:', e.message);
+              }
             }
