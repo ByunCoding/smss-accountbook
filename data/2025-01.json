@@ -1,0 +1,57 @@
+[
+  {
+    "date": "2025-01-01",
+    "year": 2025,
+    "month": 1,
+    "category": "기타",
+    "description": "카페",
+    "amount": 30000.0,
+    "payment_method": "현금",
+    "sheet": "1",
+    "id": "legacy_000000"
+  },
+  {
+    "date": "2025-01-02",
+    "year": 2025,
+    "month": 1,
+    "category": "교통비",
+    "description": "추가 주유비",
+    "amount": 50000.0,
+    "payment_method": "현금",
+    "sheet": "1",
+    "id": "legacy_000001"
+  },
+  {
+    "date": "2025-01-03",
+    "year": 2025,
+    "month": 1,
+    "category": "양육비",
+    "description": "육아용품",
+    "amount": 100000.0,
+    "payment_method": "카드 1",
+    "sheet": "1",
+    "id": "legacy_000002"
+  },
+  {
+    "date": "2025-01-04",
+    "year": 2025,
+    "month": 1,
+    "category": "자기계발비",
+    "description": "헬스장",
+    "amount": 30000.0,
+    "payment_method": "카드 2",
+    "sheet": "1",
+    "id": "legacy_000003"
+  },
+  {
+    "date": "2025-01-05",
+    "year": 2025,
+    "month": 1,
+    "category": "식비",
+    "description": "",
+    "amount": 50000.0,
+    "payment_method": "미지정",
+    "sheet": "1",
+    "id": "legacy_000004"
+  }
+]
