@@ -317,5 +317,49 @@
     "payment_method": "현대카드_상민",
     "sheet": "26.1",
     "id": "legacy_000688"
+  },
+  {
+    "date": "2026-01-14",
+    "year": 2026,
+    "month": 1,
+    "category": "차량유지비",
+    "description": "택시비",
+    "amount": 7800.0,
+    "payment_method": "현대카드_시리",
+    "sheet": "26.1",
+    "id": "legacy_000689"
+  },
+  {
+    "date": "2026-01-14",
+    "year": 2026,
+    "month": 1,
+    "category": "외식",
+    "description": "롯백_음료수",
+    "amount": 2700.0,
+    "payment_method": "현대카드_상민",
+    "sheet": "26.1",
+    "id": "legacy_000690"
+  },
+  {
+    "date": "2026-01-14",
+    "year": 2026,
+    "month": 1,
+    "category": "약속",
+    "description": "이모, 할머니 집들이 선물_빵",
+    "amount": 16100.0,
+    "payment_method": "현대카드_상민",
+    "sheet": "26.1",
+    "id": "legacy_000691"
+  },
+  {
+    "date": "2026-01-14",
+    "year": 2026,
+    "month": 1,
+    "category": "병원비",
+    "description": "치과",
+    "amount": 80000.0,
+    "payment_method": "현대카드_상민",
+    "sheet": "26.1",
+    "id": "legacy_000692"
   }
 ]
