@@ -848,12 +848,11 @@
             '2025-12': 656326365,
             '2026-01': 989766285
         };
+        const MONTHLY_SHEET_GID = 0; // MONTHLY 탭 gid
 
-        // 월 수입 설정 (수동 입력 또는 Google Sheets에서 가져오기)
-        const MONTHLY_INCOME = {
-            '2025-12': 3500000,
-            '2026-01': 3500000
-        };
+        // 구글 시트에서 가져온 데이터 (동적으로 채워짐)
+        let MONTHLY_INCOME = {};
+        let FIXED_EXPENSES = {}; // { '2026-01': { '시리': {...}, '상민': {...}, total: 0 } }
 
         // 카테고리별 월 예산
         const CATEGORY_BUDGETS = {
@@ -872,7 +871,7 @@
             '교통비': 50000
         };
 
-        // 고정비 카테고리 정의
+        // 고정비로 분류할 카테고리 (지출 내역 시트 기준)
         const FIXED_CATEGORIES = ['관리비', '대출이자', '보험료', '통신비', '구독료', '교육비'];
 
         // 카테고리 색상
@@ -890,6 +889,10 @@
         async function loadData() {
             try {
                 document.getElementById('lastUpdated').textContent = '데이터 로딩 중...';
+
+                // 먼저 MONTHLY 시트에서 수입/고정비 데이터 로드
+                await loadMonthlySheet();
+
                 const jsonMonths = ['2025-01', '2025-05', '2025-06', '2025-07', '2025-08', '2025-09', '2025-10', '2025-11'];
                 const allExpenses = [];
 
@@ -982,6 +985,112 @@
             return result;
         }
 
+        // MONTHLY 시트에서 수입과 고정비 데이터 로드
+        async function loadMonthlySheet() {
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${MONTHLY_SHEET_GID}`;
+                const response = await fetch(url);
+                const csvText = await response.text();
+                parseMonthlyData(csvText);
+            } catch (e) {
+                console.warn('Failed to load MONTHLY sheet:', e);
+                // 폴백: 기본값 사용
+                MONTHLY_INCOME = { '2025-12': 3500000, '2026-01': 3500000 };
+            }
+        }
+
+        function parseMonthlyData(csvText) {
+            const lines = csvText.split('\n');
+            // 컬럼 인덱스: 3=1월, 4=2월, ..., 14=12월
+            // 2026년 1월은 아직 없으므로 2025년 데이터만 파싱
+            const monthColumns = { 1: 3, 2: 4, 3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 13, 12: 14 };
+
+            let currentPerson = '';
+            const fixedExpenseItems = { '시리': {}, '상민': {} };
+            const monthlyTotals = {};
+
+            for (let i = 0; i < lines.length; i++) {
+                const cols = parseCSVLine(lines[i]);
+                const firstCol = cols[0]?.trim();
+                const secondCol = cols[1]?.trim();
+                const thirdCol = cols[2]?.trim();
+
+                // 수입 합계 파싱
+                if (firstCol === '수입 합계') {
+                    for (let m = 1; m <= 12; m++) {
+                        const val = parseNumber(cols[monthColumns[m]]);
+                        if (val > 0) {
+                            MONTHLY_INCOME[`2025-${String(m).padStart(2, '0')}`] = val;
+                        }
+                    }
+                }
+
+                // 고정비 항목 파싱
+                if (firstCol === '시리_지출') currentPerson = '시리';
+                else if (firstCol === '상민_지출') currentPerson = '상민';
+                else if (firstCol === '고정지출 합계') {
+                    for (let m = 1; m <= 12; m++) {
+                        const val = parseNumber(cols[monthColumns[m]]);
+                        if (val > 0) {
+                            const monthKey = `2025-${String(m).padStart(2, '0')}`;
+                            if (!FIXED_EXPENSES[monthKey]) {
+                                FIXED_EXPENSES[monthKey] = { 시리: {}, 상민: {}, total: 0, items: [] };
+                            }
+                            FIXED_EXPENSES[monthKey].total = val;
+                        }
+                    }
+                    currentPerson = '';
+                }
+
+                // 고정비 세부 항목
+                if (currentPerson && secondCol === '고정비' && thirdCol) {
+                    for (let m = 1; m <= 12; m++) {
+                        const val = parseNumber(cols[monthColumns[m]]);
+                        if (val > 0) {
+                            const monthKey = `2025-${String(m).padStart(2, '0')}`;
+                            if (!FIXED_EXPENSES[monthKey]) {
+                                FIXED_EXPENSES[monthKey] = { 시리: {}, 상민: {}, total: 0, items: [] };
+                            }
+                            if (!FIXED_EXPENSES[monthKey][currentPerson]) {
+                                FIXED_EXPENSES[monthKey][currentPerson] = {};
+                            }
+                            FIXED_EXPENSES[monthKey][currentPerson][thirdCol] = val;
+
+                            // items 배열에도 추가
+                            const existingItem = FIXED_EXPENSES[monthKey].items.find(
+                                item => item.name === thirdCol && item.person === currentPerson
+                            );
+                            if (!existingItem) {
+                                FIXED_EXPENSES[monthKey].items.push({
+                                    name: thirdCol,
+                                    person: currentPerson,
+                                    amount: val
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2026년 1월 데이터는 2025년 12월 기준으로 복사 (또는 최신 데이터 기준)
+            if (FIXED_EXPENSES['2025-12']) {
+                FIXED_EXPENSES['2026-01'] = JSON.parse(JSON.stringify(FIXED_EXPENSES['2025-12']));
+            }
+            if (!MONTHLY_INCOME['2026-01'] && MONTHLY_INCOME['2025-12']) {
+                MONTHLY_INCOME['2026-01'] = MONTHLY_INCOME['2025-12'];
+            }
+
+            console.log('Loaded MONTHLY_INCOME:', MONTHLY_INCOME);
+            console.log('Loaded FIXED_EXPENSES:', FIXED_EXPENSES);
+        }
+
+        function parseNumber(str) {
+            if (!str) return 0;
+            const cleaned = str.replace(/[",₩\s()]/g, '').replace(/\(/g, '-');
+            const num = parseFloat(cleaned);
+            return isNaN(num) ? 0 : Math.abs(num);
+        }
+
         function calculateSummary() {
             const expenses = expenseData.expenses;
             const categoryBreakdown = {};
@@ -1038,18 +1147,25 @@
             const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             const lastKey = `${now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()}-${String(now.getMonth() === 0 ? 12 : now.getMonth()).padStart(2, '0')}`;
 
-            const current = expenseData.summary.monthly_totals[currentKey] || { total: 0 };
-            const last = expenseData.summary.monthly_totals[lastKey] || { total: 0 };
+            const currentVariable = expenseData.summary.monthly_totals[currentKey] || { total: 0 };
+            const lastVariable = expenseData.summary.monthly_totals[lastKey] || { total: 0 };
+
+            // 고정비 포함 총 지출 계산
+            const currentFixed = FIXED_EXPENSES[currentKey]?.total || 0;
+            const lastFixed = FIXED_EXPENSES[lastKey]?.total || 0;
+
+            const currentTotal = currentVariable.total + currentFixed;
+            const lastTotal = lastVariable.total + lastFixed;
 
             const currentExpenses = expenseData.expenses.filter(e => `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey);
 
-            document.getElementById('currentMonthExpense').textContent = formatCurrency(current.total);
-            document.getElementById('currentMonthCount').textContent = `${currentExpenses.length}건의 지출`;
+            document.getElementById('currentMonthExpense').textContent = formatCurrency(currentTotal);
+            document.getElementById('currentMonthCount').textContent = `변동비 ${currentExpenses.length}건 + 고정비`;
 
             const changeEl = document.getElementById('monthChange');
-            if (last.total > 0) {
-                const diff = current.total - last.total;
-                const percent = ((diff / last.total) * 100).toFixed(1);
+            if (lastTotal > 0) {
+                const diff = currentTotal - lastTotal;
+                const percent = ((diff / lastTotal) * 100).toFixed(1);
                 const isUp = diff > 0;
                 changeEl.className = `change ${isUp ? 'up' : 'down'}`;
                 changeEl.innerHTML = `<i class="ri-arrow-${isUp ? 'up' : 'down'}-s-fill"></i><span>${isUp ? '+' : ''}${percent}% 전월대비</span>`;
@@ -1057,16 +1173,18 @@
                 changeEl.innerHTML = '<span>전월 데이터 없음</span>';
             }
 
-            // 저축률
+            // 저축률 (수입은 구글 시트에서 가져온 값 사용)
             const income = MONTHLY_INCOME[currentKey] || 3500000;
-            const savings = income - current.total;
+            const savings = income - currentTotal;
             const savingsRate = income > 0 ? Math.max(0, (savings / income) * 100) : 0;
 
             document.getElementById('savingsRate').textContent = `${savingsRate.toFixed(0)}%`;
-            document.getElementById('savingsAmount').textContent = `저축: ${formatCurrency(Math.max(0, savings))}`;
+            document.getElementById('savingsAmount').textContent = savings >= 0
+                ? `저축: ${formatCurrency(savings)}`
+                : `적자: ${formatCurrency(Math.abs(savings))}`;
 
             const circumference = 87.96;
-            const offset = circumference - (savingsRate / 100) * circumference;
+            const offset = circumference - (Math.min(savingsRate, 100) / 100) * circumference;
             document.getElementById('savingsProgress').style.strokeDashoffset = offset;
         }
 
@@ -1077,28 +1195,46 @@
             const currentData = expenseData.summary.monthly_totals[currentKey] || { total: 0, fixed: 0, variable: 0 };
             const currentExpenses = expenseData.expenses.filter(e => `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey);
 
-            const fixed = currentData.fixed || 0;
-            const variable = currentData.variable || 0;
-            const total = currentData.total || 1;
+            // 구글 시트에서 가져온 고정비 데이터 사용
+            const sheetFixed = FIXED_EXPENSES[currentKey];
+            const fixedFromSheet = sheetFixed?.total || 0;
 
-            document.getElementById('fixedExpense').textContent = formatCurrency(fixed);
-            document.getElementById('fixedPercent').textContent = `전체의 ${((fixed / total) * 100).toFixed(1)}%`;
+            // 변동비 = 이번 달 총 지출 (지출 내역 시트) - 실제 고정비는 별도 계산
+            const totalFromExpenses = currentData.total || 0;
+            const variable = totalFromExpenses; // 지출 내역은 모두 변동비로 간주
+
+            // 전체 지출 = 고정비(MONTHLY 시트) + 변동비(지출 내역 시트)
+            const totalAll = fixedFromSheet + variable;
+
+            document.getElementById('fixedExpense').textContent = formatCurrency(fixedFromSheet);
+            document.getElementById('fixedPercent').textContent = totalAll > 0
+                ? `전체의 ${((fixedFromSheet / totalAll) * 100).toFixed(1)}%`
+                : '전체의 0%';
 
             document.getElementById('variableExpense').textContent = formatCurrency(variable);
-            document.getElementById('variablePercent').textContent = `전체의 ${((variable / total) * 100).toFixed(1)}%`;
+            document.getElementById('variablePercent').textContent = totalAll > 0
+                ? `전체의 ${((variable / totalAll) * 100).toFixed(1)}%`
+                : '전체의 0%';
 
-            // 고정비 항목
-            const fixedByCategory = {};
+            // 고정비 항목 (구글 시트 MONTHLY 탭에서)
+            if (sheetFixed && sheetFixed.items && sheetFixed.items.length > 0) {
+                const sortedItems = [...sheetFixed.items].sort((a, b) => b.amount - a.amount);
+                document.getElementById('fixedItems').innerHTML = sortedItems.slice(0, 7)
+                    .map(item => `
+                        <div class="expense-type-item">
+                            <span class="name">${item.name} <small style="color: var(--gray-400);">(${item.person})</small></span>
+                            <span class="value">${formatCurrency(item.amount)}</span>
+                        </div>
+                    `).join('');
+            } else {
+                document.getElementById('fixedItems').innerHTML = '<div class="no-data">고정비 데이터 없음</div>';
+            }
+
+            // 변동비 항목 (지출 내역 시트에서 카테고리별)
             const variableByCategory = {};
             currentExpenses.forEach(e => {
-                if (e.isFixed) fixedByCategory[e.category] = (fixedByCategory[e.category] || 0) + e.amount;
-                else variableByCategory[e.category] = (variableByCategory[e.category] || 0) + e.amount;
+                variableByCategory[e.category] = (variableByCategory[e.category] || 0) + e.amount;
             });
-
-            document.getElementById('fixedItems').innerHTML = Object.entries(fixedByCategory)
-                .sort((a, b) => b[1] - a[1]).slice(0, 5)
-                .map(([cat, amt]) => `<div class="expense-type-item"><span class="name">${cat}</span><span class="value">${formatCurrency(amt)}</span></div>`)
-                .join('') || '<div class="no-data">고정비 없음</div>';
 
             document.getElementById('variableItems').innerHTML = Object.entries(variableByCategory)
                 .sort((a, b) => b[1] - a[1]).slice(0, 5)
