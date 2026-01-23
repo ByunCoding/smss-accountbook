@@ -657,6 +657,135 @@
             font-size: 0.9rem;
         }
 
+        /* 인사이트 섹션 */
+        .insights-container {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .insight-card {
+            flex: 1;
+            min-width: 280px;
+            background: white;
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            border-left: 4px solid var(--gray-300);
+        }
+
+        .insight-card.warning {
+            border-left-color: var(--warning);
+            background: linear-gradient(135deg, #FFFBEB 0%, white 100%);
+        }
+
+        .insight-card.danger {
+            border-left-color: var(--expense);
+            background: linear-gradient(135deg, #FEF2F2 0%, white 100%);
+        }
+
+        .insight-card.success {
+            border-left-color: var(--income);
+            background: linear-gradient(135deg, #ECFDF5 0%, white 100%);
+        }
+
+        .insight-card.info {
+            border-left-color: var(--accent);
+            background: linear-gradient(135deg, #EFF6FF 0%, white 100%);
+        }
+
+        .insight-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .insight-card.warning .insight-icon {
+            background: var(--warning-light);
+            color: var(--warning);
+        }
+
+        .insight-card.danger .insight-icon {
+            background: var(--expense-light);
+            color: var(--expense);
+        }
+
+        .insight-card.success .insight-icon {
+            background: var(--income-light);
+            color: var(--income);
+        }
+
+        .insight-card.info .insight-icon {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+
+        .insight-content {
+            flex: 1;
+        }
+
+        .insight-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .insight-desc {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            line-height: 1.5;
+        }
+
+        .insight-action {
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-top: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .insight-card.warning .insight-action { color: var(--warning); }
+        .insight-card.danger .insight-action { color: var(--expense); }
+        .insight-card.success .insight-action { color: var(--income); }
+        .insight-card.info .insight-action { color: var(--accent); }
+
+        /* 트렌드 뱃지 */
+        .trend-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .trend-badge.up {
+            background: var(--expense-light);
+            color: var(--expense);
+        }
+
+        .trend-badge.down {
+            background: var(--income-light);
+            color: var(--income);
+        }
+
+        .trend-badge.stable {
+            background: var(--gray-100);
+            color: var(--gray-500);
+        }
+
         /* 반응형 */
         @media (max-width: 1200px) {
             .key-metrics { grid-template-columns: 1fr 1fr; }
@@ -741,6 +870,9 @@
                         <div class="sub" id="yoyDetail">비교 데이터 없음</div>
                     </div>
                 </div>
+
+                <!-- 인사이트 -->
+                <div class="insights-container" id="insightsContainer"></div>
 
                 <!-- 고정비/변동비 분리 -->
                 <div class="section">
@@ -1198,6 +1330,7 @@
             document.getElementById('lastUpdated').textContent = `${expenseData.expenses.length}건 로드됨`;
 
             updateKeyMetrics();
+            generateInsights();
             updateExpenseSplit();
             updatePaymentMethods();
             updateCategoryComparison();
@@ -1370,6 +1503,185 @@
             }).join('') || '<div class="no-data">결제 내역 없음</div>';
 
             document.getElementById('paymentMethodCount').textContent = `${sorted.length}개 결제수단`;
+        }
+
+        // ===== 인사이트 생성 =====
+        function generateInsights() {
+            const insights = [];
+            const now = new Date();
+            const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+            // 최근 3개월 키 생성
+            const recentMonths = [];
+            for (let i = 0; i < 3; i++) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                recentMonths.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+            }
+
+            const monthlyTotals = expenseData.summary.monthly_totals;
+            const currentData = monthlyTotals[currentKey];
+
+            if (!currentData) {
+                document.getElementById('insightsContainer').innerHTML = '';
+                return;
+            }
+
+            // 1. 연속 증가하는 카테고리 찾기
+            const categoryTrends = {};
+            Object.keys(currentData.categories || {}).forEach(cat => {
+                let increases = 0;
+                for (let i = 0; i < recentMonths.length - 1; i++) {
+                    const curr = monthlyTotals[recentMonths[i]]?.categories?.[cat] || 0;
+                    const prev = monthlyTotals[recentMonths[i + 1]]?.categories?.[cat] || 0;
+                    if (curr > prev && prev > 0) increases++;
+                }
+                if (increases >= 2) categoryTrends[cat] = increases;
+            });
+
+            // 연속 증가 카테고리 인사이트
+            Object.entries(categoryTrends).forEach(([cat, months]) => {
+                const currentAmt = currentData.categories[cat];
+                insights.push({
+                    type: 'warning',
+                    icon: 'ri-arrow-up-double-fill',
+                    title: `${cat} ${months + 1}개월 연속 증가`,
+                    desc: `이번 달 ${formatCurrency(currentAmt)} 지출. 지출 패턴을 점검해보세요.`,
+                    action: '상세 내역 확인 →'
+                });
+            });
+
+            // 2. 예산 초과 카테고리
+            Object.entries(CATEGORY_BUDGETS).forEach(([cat, budget]) => {
+                const spent = currentData.categories?.[cat] || 0;
+                const percent = (spent / budget) * 100;
+                if (percent >= 100) {
+                    insights.push({
+                        type: 'danger',
+                        icon: 'ri-error-warning-fill',
+                        title: `${cat} 예산 초과`,
+                        desc: `예산 ${formatCurrency(budget)} 대비 ${formatCurrency(spent)} 지출 (${percent.toFixed(0)}%)`,
+                        action: '예산 조정 필요'
+                    });
+                } else if (percent >= 80) {
+                    insights.push({
+                        type: 'warning',
+                        icon: 'ri-alarm-warning-fill',
+                        title: `${cat} 예산 80% 도달`,
+                        desc: `남은 예산 ${formatCurrency(budget - spent)}. 신중하게 지출하세요.`,
+                        action: '남은 기간 고려'
+                    });
+                }
+            });
+
+            // 3. 저축률 인사이트
+            const income = MONTHLY_INCOME[currentKey] || 3500000;
+            const fixedExpense = FIXED_EXPENSES[currentKey]?.total || 0;
+            const totalExpense = (currentData.total || 0) + fixedExpense;
+            const savingsRate = ((income - totalExpense) / income) * 100;
+
+            if (savingsRate >= 30) {
+                insights.push({
+                    type: 'success',
+                    icon: 'ri-trophy-fill',
+                    title: '훌륭한 저축률!',
+                    desc: `이번 달 저축률 ${savingsRate.toFixed(0)}%. 목표를 잘 달성하고 있습니다.`,
+                    action: '계속 유지하세요'
+                });
+            } else if (savingsRate < 10 && savingsRate >= 0) {
+                insights.push({
+                    type: 'warning',
+                    icon: 'ri-funds-fill',
+                    title: '저축률 주의',
+                    desc: `저축률 ${savingsRate.toFixed(0)}%. 변동비 지출을 줄여보세요.`,
+                    action: '지출 점검 필요'
+                });
+            } else if (savingsRate < 0) {
+                insights.push({
+                    type: 'danger',
+                    icon: 'ri-error-warning-fill',
+                    title: '적자 발생',
+                    desc: `수입 대비 ${formatCurrency(Math.abs(income - totalExpense))} 초과 지출`,
+                    action: '긴급 점검 필요'
+                });
+            }
+
+            // 4. 전월 대비 큰 변화
+            const lastKey = `${now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()}-${String(now.getMonth() === 0 ? 12 : now.getMonth()).padStart(2, '0')}`;
+            const lastData = monthlyTotals[lastKey];
+
+            if (lastData) {
+                Object.entries(currentData.categories || {}).forEach(([cat, amt]) => {
+                    const lastAmt = lastData.categories?.[cat] || 0;
+                    if (lastAmt > 0) {
+                        const change = ((amt - lastAmt) / lastAmt) * 100;
+                        if (change >= 50 && amt >= 100000) {
+                            insights.push({
+                                type: 'info',
+                                icon: 'ri-line-chart-fill',
+                                title: `${cat} 전월 대비 ${change.toFixed(0)}% 증가`,
+                                desc: `${formatCurrency(lastAmt)} → ${formatCurrency(amt)}`,
+                                action: '원인 파악 필요'
+                            });
+                        } else if (change <= -30 && lastAmt >= 100000) {
+                            insights.push({
+                                type: 'success',
+                                icon: 'ri-arrow-down-circle-fill',
+                                title: `${cat} 지출 ${Math.abs(change).toFixed(0)}% 감소`,
+                                desc: `${formatCurrency(lastAmt)} → ${formatCurrency(amt)}. 절약 성공!`,
+                                action: '좋은 습관 유지'
+                            });
+                        }
+                    }
+                });
+            }
+
+            // 5. 남은 일수 대비 예산 상태
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const remainingDays = daysInMonth - now.getDate();
+            const totalBudget = Object.values(CATEGORY_BUDGETS).reduce((sum, b) => sum + b, 0);
+            const budgetUsedPercent = (currentData.total / totalBudget) * 100;
+            const timePassedPercent = ((daysInMonth - remainingDays) / daysInMonth) * 100;
+
+            if (budgetUsedPercent > timePassedPercent + 20) {
+                insights.push({
+                    type: 'warning',
+                    icon: 'ri-time-fill',
+                    title: '지출 속도 주의',
+                    desc: `월 ${timePassedPercent.toFixed(0)}% 경과, 예산 ${budgetUsedPercent.toFixed(0)}% 사용. 남은 ${remainingDays}일 조절 필요.`,
+                    action: '속도 조절 필요'
+                });
+            }
+
+            // 최대 4개만 표시 (중요도 순)
+            const priorityOrder = ['danger', 'warning', 'info', 'success'];
+            insights.sort((a, b) => priorityOrder.indexOf(a.type) - priorityOrder.indexOf(b.type));
+            const topInsights = insights.slice(0, 4);
+
+            // 렌더링
+            const container = document.getElementById('insightsContainer');
+            if (topInsights.length === 0) {
+                container.innerHTML = `
+                    <div class="insight-card success" style="flex: 1;">
+                        <div class="insight-icon"><i class="ri-check-double-fill"></i></div>
+                        <div class="insight-content">
+                            <div class="insight-title">모든 지표가 양호합니다</div>
+                            <div class="insight-desc">특별히 주의할 사항이 없습니다. 현재 지출 패턴을 유지하세요.</div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = topInsights.map(insight => `
+                <div class="insight-card ${insight.type}">
+                    <div class="insight-icon"><i class="${insight.icon}"></i></div>
+                    <div class="insight-content">
+                        <div class="insight-title">${insight.title}</div>
+                        <div class="insight-desc">${insight.desc}</div>
+                        <div class="insight-action"><i class="ri-arrow-right-s-line"></i> ${insight.action}</div>
+                    </div>
+                </div>
+            `).join('');
         }
 
         // ===== 전월 대비 카테고리 분석 =====
