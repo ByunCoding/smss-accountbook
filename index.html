@@ -931,10 +931,10 @@
             const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
             const response = await fetch(url);
             const csvText = await response.text();
-            return parseCSVToExpenses(csvText, monthKey);
+            return parseCSVToExpenses(csvText, monthKey, gid);
         }
 
-        function parseCSVToExpenses(csvText, monthKey) {
+        function parseCSVToExpenses(csvText, monthKey, gid) {
             const lines = csvText.split('\n');
             const expenses = [];
             const [year, month] = monthKey.split('-').map(Number);
