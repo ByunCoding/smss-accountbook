@@ -332,6 +332,51 @@
             padding: 20px;
         }
 
+        .comparison-item.expandable {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .comparison-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .expense-details {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--gray-200);
+        }
+
+        .expense-detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 0.8rem;
+        }
+
+        .expense-detail-item .detail-desc {
+            color: var(--gray-600);
+            max-width: 60%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .expense-detail-item .detail-amount {
+            color: var(--gray-500);
+            font-weight: 500;
+        }
+
+        .expense-detail-more {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            padding-top: 6px;
+        }
+
         @media (max-width: 1024px) {
             .comparison-columns { grid-template-columns: 1fr; }
         }
@@ -758,6 +803,21 @@
         }
 
         function renderCategoryComparison(currentCategories, lastCategories) {
+            const now = new Date();
+            const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+            // 이번 달 지출 내역 (카테고리별로 그룹화)
+            const currentExpensesByCategory = {};
+            expenseData.expenses.forEach(e => {
+                const monthKey = `${e.year}-${String(e.month).padStart(2, '0')}`;
+                if (monthKey === currentMonthKey) {
+                    if (!currentExpensesByCategory[e.category]) {
+                        currentExpensesByCategory[e.category] = [];
+                    }
+                    currentExpensesByCategory[e.category].push(e);
+                }
+            });
+
             const increased = [];
             const decreased = [];
             const newCats = [];
@@ -769,18 +829,19 @@
                 const current = currentCategories[cat] || 0;
                 const last = lastCategories[cat] || 0;
                 const diff = current - last;
+                const items = currentExpensesByCategory[cat] || [];
 
                 if (last === 0 && current > 0) {
                     // 새로 생긴 카테고리
-                    newCats.push({ category: cat, current, diff });
+                    newCats.push({ category: cat, current, diff, items });
                 } else if (diff > 0) {
                     // 증가
                     const percent = last > 0 ? ((diff / last) * 100).toFixed(0) : 0;
-                    increased.push({ category: cat, current, last, diff, percent });
+                    increased.push({ category: cat, current, last, diff, percent, items });
                 } else if (diff < 0) {
                     // 감소
                     const percent = last > 0 ? ((Math.abs(diff) / last) * 100).toFixed(0) : 0;
-                    decreased.push({ category: cat, current, last, diff: Math.abs(diff), percent });
+                    decreased.push({ category: cat, current, last, diff: Math.abs(diff), percent, items });
                 }
             }
 
@@ -789,17 +850,41 @@
             decreased.sort((a, b) => b.diff - a.diff);
             newCats.sort((a, b) => b.current - a.current);
 
+            // 상세 내역 HTML 생성 함수
+            function renderDetails(items) {
+                if (!items || items.length === 0) return '';
+                const sortedItems = [...items].sort((a, b) => b.amount - a.amount);
+                const topItems = sortedItems.slice(0, 3);
+                const remaining = sortedItems.length - 3;
+
+                let html = '<div class="expense-details">';
+                topItems.forEach(item => {
+                    html += `<div class="expense-detail-item">
+                        <span class="detail-desc">${item.description || '내역 없음'}</span>
+                        <span class="detail-amount">${formatCurrency(item.amount)}</span>
+                    </div>`;
+                });
+                if (remaining > 0) {
+                    html += `<div class="expense-detail-more">외 ${remaining}건</div>`;
+                }
+                html += '</div>';
+                return html;
+            }
+
             // 증가한 카테고리 렌더링
             const increasedEl = document.getElementById('increasedCategories');
             if (increased.length > 0) {
                 increasedEl.innerHTML = increased.slice(0, 5).map(item => `
-                    <div class="comparison-item">
-                        <div class="category-name">${item.category}</div>
-                        <div class="change-info">
-                            <div class="change-amount up">+${formatCurrency(item.diff)}</div>
-                            <div class="change-percent">+${item.percent}%</div>
-                            <div class="amounts-detail">${formatCurrency(item.last)} → ${formatCurrency(item.current)}</div>
+                    <div class="comparison-item expandable">
+                        <div class="comparison-main">
+                            <div class="category-name">${item.category}</div>
+                            <div class="change-info">
+                                <div class="change-amount up">+${formatCurrency(item.diff)}</div>
+                                <div class="change-percent">+${item.percent}%</div>
+                                <div class="amounts-detail">${formatCurrency(item.last)} → ${formatCurrency(item.current)}</div>
+                            </div>
                         </div>
+                        ${renderDetails(item.items)}
                     </div>
                 `).join('');
             } else {
@@ -810,13 +895,16 @@
             const decreasedEl = document.getElementById('decreasedCategories');
             if (decreased.length > 0) {
                 decreasedEl.innerHTML = decreased.slice(0, 5).map(item => `
-                    <div class="comparison-item">
-                        <div class="category-name">${item.category}</div>
-                        <div class="change-info">
-                            <div class="change-amount down">-${formatCurrency(item.diff)}</div>
-                            <div class="change-percent">-${item.percent}%</div>
-                            <div class="amounts-detail">${formatCurrency(item.last)} → ${formatCurrency(item.current)}</div>
+                    <div class="comparison-item expandable">
+                        <div class="comparison-main">
+                            <div class="category-name">${item.category}</div>
+                            <div class="change-info">
+                                <div class="change-amount down">-${formatCurrency(item.diff)}</div>
+                                <div class="change-percent">-${item.percent}%</div>
+                                <div class="amounts-detail">${formatCurrency(item.last)} → ${formatCurrency(item.current)}</div>
+                            </div>
                         </div>
+                        ${renderDetails(item.items)}
                     </div>
                 `).join('');
             } else {
@@ -827,12 +915,15 @@
             const newEl = document.getElementById('newCategories');
             if (newCats.length > 0) {
                 newEl.innerHTML = newCats.slice(0, 5).map(item => `
-                    <div class="comparison-item">
-                        <div class="category-name">${item.category}</div>
-                        <div class="change-info">
-                            <div class="change-amount up">${formatCurrency(item.current)}</div>
-                            <div class="change-percent">NEW</div>
+                    <div class="comparison-item expandable">
+                        <div class="comparison-main">
+                            <div class="category-name">${item.category}</div>
+                            <div class="change-info">
+                                <div class="change-amount up">${formatCurrency(item.current)}</div>
+                                <div class="change-percent">NEW</div>
+                            </div>
                         </div>
+                        ${renderDetails(item.items)}
                     </div>
                 `).join('');
             } else {
