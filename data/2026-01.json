@@ -361,5 +361,170 @@
     "payment_method": "현대카드_상민",
     "sheet": "26.1",
     "id": "legacy_000692"
+  },
+  {
+    "date": "2026-01-17",
+    "year": 2026,
+    "month": 1,
+    "category": "쇼핑",
+    "description": "잠옷",
+    "amount": 45800.0,
+    "payment_method": "현대카드_시리",
+    "sheet": "26.1",
+    "id": "legacy_000693"
+  },
+  {
+    "date": "2026-01-17",
+    "year": 2026,
+    "month": 1,
+    "category": "외식",
+    "description": "쿠팡이츠_제주올레국수",
+    "amount": 21300.0,
+    "payment_method": "쿠팡와우카드",
+    "sheet": "26.1",
+    "id": "legacy_000694"
+  },
+  {
+    "date": "2026-01-18",
+    "year": 2026,
+    "month": 1,
+    "category": "육아비",
+    "description": "세면용 수전 필터",
+    "amount": 78000.0,
+    "payment_method": "현금",
+    "sheet": "26.1",
+    "id": "legacy_000695"
+  },
+  {
+    "date": "2026-01-18",
+    "year": 2026,
+    "month": 1,
+    "category": "육아비",
+    "description": "슈너글 욕조",
+    "amount": 37000.0,
+    "payment_method": "현금",
+    "sheet": "26.1",
+    "id": "legacy_000696"
+  },
+  {
+    "date": "2026-01-18",
+    "year": 2026,
+    "month": 1,
+    "category": "외식",
+    "description": "니뽕내뽕",
+    "amount": 23800.0,
+    "payment_method": "현금",
+    "sheet": "26.1",
+    "id": "legacy_000697"
+  },
+  {
+    "date": "2026-01-18",
+    "year": 2026,
+    "month": 1,
+    "category": "외식",
+    "description": "피어커피",
+    "amount": 13100.0,
+    "payment_method": "현금",
+    "sheet": "26.1",
+    "id": "legacy_000698"
+  },
+  {
+    "date": "2026-01-18",
+    "year": 2026,
+    "month": 1,
+    "category": "외식",
+    "description": "커피번",
+    "amount": 3900.0,
+    "payment_method": "현대카드_시리",
+    "sheet": "26.1",
+    "id": "legacy_000699"
+  },
+  {
+    "date": "2026-01-18",
+    "year": 2026,
+    "month": 1,
+    "category": "외식",
+    "description": "물",
+    "amount": 1000.0,
+    "payment_method": "현금",
+    "sheet": "26.1",
+    "id": "legacy_000700"
+  },
+  {
+    "date": "2026-01-19",
+    "year": 2026,
+    "month": 1,
+    "category": "외식",
+    "description": "쿠팡이츠_뽀빠이가든",
+    "amount": 13900.0,
+    "payment_method": "쿠팡와우카드",
+    "sheet": "26.1",
+    "id": "legacy_000701"
+  },
+  {
+    "date": "2026-01-20",
+    "year": 2026,
+    "month": 1,
+    "category": "식비",
+    "description": "롯백_물",
+    "amount": 600.0,
+    "payment_method": "현금",
+    "sheet": "26.1",
+    "id": "legacy_000702"
+  },
+  {
+    "date": "2026-01-20",
+    "year": 2026,
+    "month": 1,
+    "category": "외식",
+    "description": "롯백_츄러스",
+    "amount": 10000.0,
+    "payment_method": "현대카드_시리",
+    "sheet": "26.1",
+    "id": "legacy_000703"
+  },
+  {
+    "date": "2026-01-21",
+    "year": 2026,
+    "month": 1,
+    "category": "쇼핑",
+    "description": "노트북 고속충전기",
+    "amount": 78500.0,
+    "payment_method": "현대카드_상민",
+    "sheet": "26.1",
+    "id": "legacy_000704"
+  },
+  {
+    "date": "2026-01-21",
+    "year": 2026,
+    "month": 1,
+    "category": "카페",
+    "description": "패턴커피",
+    "amount": 9500.0,
+    "payment_method": "현금",
+    "sheet": "26.1",
+    "id": "legacy_000705"
+  },
+  {
+    "date": "2026-01-22",
+    "year": 2026,
+    "month": 1,
+    "category": "외식",
+    "description": "통영 맥도날드",
+    "amount": 9500.0,
+    "payment_method": "현대카드_상민",
+    "sheet": "26.1",
+    "id": "legacy_000706"
+  },
+  {
+    "date": "2026-01-22",
+    "year": 2026,
+    "month": 1,
+    "category": "카페",
+    "description": "통영_하삼동 커피",
+    "amount": 1800.0,
+    "payment_method": "현금",
+    "sheet": "26.1",
+    "id": "legacy_000707"
   }
 ]
