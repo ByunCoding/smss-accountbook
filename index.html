@@ -255,6 +255,86 @@
             align-items: center;
             gap: 8px;
         }
+
+        /* 카테고리 비교 분석 */
+        .comparison-columns {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .comparison-column {
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            padding: 16px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .comparison-column h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .comparison-column.increase h3 { color: var(--expense); }
+        .comparison-column.decrease h3 { color: var(--income); }
+        .comparison-column.new-category h3 { color: var(--primary); }
+
+        .comparison-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .comparison-item:last-child { margin-bottom: 0; }
+
+        .comparison-item .category-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .comparison-item .change-info {
+            text-align: right;
+        }
+
+        .comparison-item .change-amount {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .comparison-item .change-amount.up { color: var(--expense); }
+        .comparison-item .change-amount.down { color: var(--income); }
+
+        .comparison-item .change-percent {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .comparison-item .amounts-detail {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            margin-top: 2px;
+        }
+
+        .no-data {
+            text-align: center;
+            color: var(--gray-400);
+            font-size: 0.85rem;
+            padding: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .comparison-columns { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -293,24 +373,49 @@
             <div id="overview-tab">
                 <div class="summary-grid">
                     <div class="summary-card highlight">
-                        <div class="label"><i class="ri-money-dollar-circle-fill"></i> 총 지출</div>
-                        <div class="value" id="totalExpense">-</div>
-                        <div class="sub-info" id="totalTransactions">-</div>
+                        <div class="label"><i class="ri-calendar-check-fill"></i> <span id="currentMonthName">이번 달</span> 지출</div>
+                        <div class="value" id="currentMonthExpense">-</div>
+                        <div class="sub-info" id="currentMonthCount">-</div>
                     </div>
                     <div class="summary-card">
-                        <div class="label"><i class="ri-calendar-check-fill"></i> <span id="currentMonthName">이번 달</span></div>
-                        <div class="value expense" id="currentMonthExpense">-</div>
-                        <div class="sub-info">이번 달 지출</div>
+                        <div class="label"><i class="ri-calendar-2-fill"></i> <span id="lastMonthName">지난 달</span></div>
+                        <div class="value" id="lastMonthExpense">-</div>
+                        <div class="sub-info" id="lastMonthCount">-</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="label"><i class="ri-arrow-up-down-fill"></i> 전월 대비</div>
+                        <div class="value" id="monthComparison">-</div>
+                        <div class="sub-info" id="comparisonDetail">-</div>
                     </div>
                     <div class="summary-card">
                         <div class="label"><i class="ri-bar-chart-fill"></i> 일 평균</div>
                         <div class="value" id="avgDaily">-</div>
-                        <div class="sub-info">하루 평균 지출</div>
+                        <div class="sub-info" id="avgCompare">-</div>
                     </div>
-                    <div class="summary-card">
-                        <div class="label"><i class="ri-arrow-up-down-fill"></i> 지난달 대비</div>
-                        <div class="value" id="monthComparison">-</div>
-                        <div class="sub-info" id="comparisonDetail">-</div>
+                </div>
+
+                <!-- 전월 대비 카테고리 분석 -->
+                <div class="section" style="margin-bottom: 20px;">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-exchange-fill"></i> 전월 대비 카테고리 분석</h2>
+                    </div>
+                    <div class="section-body">
+                        <div class="category-comparison" id="categoryComparison">
+                            <div class="comparison-columns">
+                                <div class="comparison-column increase">
+                                    <h3><i class="ri-arrow-up-circle-fill"></i> 증가한 카테고리</h3>
+                                    <div id="increasedCategories"></div>
+                                </div>
+                                <div class="comparison-column decrease">
+                                    <h3><i class="ri-arrow-down-circle-fill"></i> 감소한 카테고리</h3>
+                                    <div id="decreasedCategories"></div>
+                                </div>
+                                <div class="comparison-column new-category">
+                                    <h3><i class="ri-add-circle-fill"></i> 새로 생긴 지출</h3>
+                                    <div id="newCategories"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -597,32 +702,141 @@
 
         function updateSummaryCards() {
             const summary = expenseData.summary;
-            document.getElementById('totalExpense').textContent = formatCurrency(summary.total_expenses);
-            document.getElementById('totalTransactions').textContent = `총 ${summary.total_transactions.toLocaleString()}건의 거래`;
-
-            const uniqueDates = [...new Set(expenseData.expenses.map(e => e.date))];
-            const avgDaily = uniqueDates.length > 0 ? summary.total_expenses / uniqueDates.length : 0;
-            document.getElementById('avgDaily').textContent = formatCurrency(avgDaily);
-
             const now = new Date();
             const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             const lastMonthKey = `${now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()}-${String(now.getMonth() === 0 ? 12 : now.getMonth()).padStart(2, '0')}`;
 
-            const currentMonthTotal = summary.monthly_totals[currentMonthKey]?.total || 0;
-            const lastMonthTotal = summary.monthly_totals[lastMonthKey]?.total || 0;
+            const currentMonthData = summary.monthly_totals[currentMonthKey] || { total: 0, categories: {} };
+            const lastMonthData = summary.monthly_totals[lastMonthKey] || { total: 0, categories: {} };
 
-            document.getElementById('currentMonthExpense').textContent = formatCurrency(currentMonthTotal);
+            const currentMonthExpenses = expenseData.expenses.filter(e =>
+                `${e.year}-${String(e.month).padStart(2, '0')}` === currentMonthKey
+            );
+            const lastMonthExpenses = expenseData.expenses.filter(e =>
+                `${e.year}-${String(e.month).padStart(2, '0')}` === lastMonthKey
+            );
+
+            // 이번 달
+            document.getElementById('currentMonthExpense').textContent = formatCurrency(currentMonthData.total);
             document.getElementById('currentMonthName').textContent = `${now.getFullYear()}년 ${now.getMonth() + 1}월`;
+            document.getElementById('currentMonthCount').textContent = `${currentMonthExpenses.length}건의 지출`;
 
-            if (lastMonthTotal > 0) {
-                const diff = currentMonthTotal - lastMonthTotal;
-                const percent = ((diff / lastMonthTotal) * 100).toFixed(1);
+            // 지난 달
+            document.getElementById('lastMonthExpense').textContent = formatCurrency(lastMonthData.total);
+            document.getElementById('lastMonthName').textContent = `${now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()}년 ${now.getMonth() === 0 ? 12 : now.getMonth()}월`;
+            document.getElementById('lastMonthCount').textContent = `${lastMonthExpenses.length}건의 지출`;
+
+            // 전월 대비
+            if (lastMonthData.total > 0) {
+                const diff = currentMonthData.total - lastMonthData.total;
+                const percent = ((diff / lastMonthData.total) * 100).toFixed(1);
                 const isUp = diff > 0;
                 document.getElementById('monthComparison').innerHTML = `<span style="color: ${isUp ? 'var(--expense)' : 'var(--income)'};">${isUp ? '+' : ''}${percent}%</span>`;
                 document.getElementById('comparisonDetail').textContent = `${isUp ? '증가' : '감소'} (${formatCurrency(Math.abs(diff))})`;
             } else {
                 document.getElementById('monthComparison').textContent = '-';
                 document.getElementById('comparisonDetail').textContent = '비교 데이터 없음';
+            }
+
+            // 일 평균 (이번 달 기준)
+            const currentMonthDates = [...new Set(currentMonthExpenses.map(e => e.date))];
+            const lastMonthDates = [...new Set(lastMonthExpenses.map(e => e.date))];
+            const currentAvgDaily = currentMonthDates.length > 0 ? currentMonthData.total / currentMonthDates.length : 0;
+            const lastAvgDaily = lastMonthDates.length > 0 ? lastMonthData.total / lastMonthDates.length : 0;
+
+            document.getElementById('avgDaily').textContent = formatCurrency(currentAvgDaily);
+            if (lastAvgDaily > 0) {
+                const avgDiff = currentAvgDaily - lastAvgDaily;
+                const avgPercent = ((avgDiff / lastAvgDaily) * 100).toFixed(1);
+                document.getElementById('avgCompare').innerHTML = `전월 대비 <span style="color: ${avgDiff > 0 ? 'var(--expense)' : 'var(--income)'};">${avgDiff > 0 ? '+' : ''}${avgPercent}%</span>`;
+            } else {
+                document.getElementById('avgCompare').textContent = '이번 달 일평균';
+            }
+
+            // 카테고리 비교 분석 렌더링
+            renderCategoryComparison(currentMonthData.categories, lastMonthData.categories);
+        }
+
+        function renderCategoryComparison(currentCategories, lastCategories) {
+            const increased = [];
+            const decreased = [];
+            const newCats = [];
+
+            // 모든 카테고리 수집
+            const allCategories = new Set([...Object.keys(currentCategories), ...Object.keys(lastCategories)]);
+
+            for (const cat of allCategories) {
+                const current = currentCategories[cat] || 0;
+                const last = lastCategories[cat] || 0;
+                const diff = current - last;
+
+                if (last === 0 && current > 0) {
+                    // 새로 생긴 카테고리
+                    newCats.push({ category: cat, current, diff });
+                } else if (diff > 0) {
+                    // 증가
+                    const percent = last > 0 ? ((diff / last) * 100).toFixed(0) : 0;
+                    increased.push({ category: cat, current, last, diff, percent });
+                } else if (diff < 0) {
+                    // 감소
+                    const percent = last > 0 ? ((Math.abs(diff) / last) * 100).toFixed(0) : 0;
+                    decreased.push({ category: cat, current, last, diff: Math.abs(diff), percent });
+                }
+            }
+
+            // 정렬 (변화량 큰 순)
+            increased.sort((a, b) => b.diff - a.diff);
+            decreased.sort((a, b) => b.diff - a.diff);
+            newCats.sort((a, b) => b.current - a.current);
+
+            // 증가한 카테고리 렌더링
+            const increasedEl = document.getElementById('increasedCategories');
+            if (increased.length > 0) {
+                increasedEl.innerHTML = increased.slice(0, 5).map(item => `
+                    <div class="comparison-item">
+                        <div class="category-name">${item.category}</div>
+                        <div class="change-info">
+                            <div class="change-amount up">+${formatCurrency(item.diff)}</div>
+                            <div class="change-percent">+${item.percent}%</div>
+                            <div class="amounts-detail">${formatCurrency(item.last)} → ${formatCurrency(item.current)}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                increasedEl.innerHTML = '<div class="no-data">증가한 카테고리 없음</div>';
+            }
+
+            // 감소한 카테고리 렌더링
+            const decreasedEl = document.getElementById('decreasedCategories');
+            if (decreased.length > 0) {
+                decreasedEl.innerHTML = decreased.slice(0, 5).map(item => `
+                    <div class="comparison-item">
+                        <div class="category-name">${item.category}</div>
+                        <div class="change-info">
+                            <div class="change-amount down">-${formatCurrency(item.diff)}</div>
+                            <div class="change-percent">-${item.percent}%</div>
+                            <div class="amounts-detail">${formatCurrency(item.last)} → ${formatCurrency(item.current)}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                decreasedEl.innerHTML = '<div class="no-data">감소한 카테고리 없음</div>';
+            }
+
+            // 새로 생긴 지출 렌더링
+            const newEl = document.getElementById('newCategories');
+            if (newCats.length > 0) {
+                newEl.innerHTML = newCats.slice(0, 5).map(item => `
+                    <div class="comparison-item">
+                        <div class="category-name">${item.category}</div>
+                        <div class="change-info">
+                            <div class="change-amount up">${formatCurrency(item.current)}</div>
+                            <div class="change-percent">NEW</div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                newEl.innerHTML = '<div class="no-data">새로운 지출 없음</div>';
             }
         }
 
