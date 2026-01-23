@@ -372,6 +372,67 @@
         .expense-type-item .name { color: var(--gray-600); }
         .expense-type-item .value { font-weight: 500; color: var(--gray-700); }
 
+        /* 결제수단별 지출 */
+        .payment-methods-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .payment-method-card {
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            padding: 16px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .payment-method-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .payment-method-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .payment-method-name i {
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .payment-method-amount {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--gray-800);
+        }
+
+        .payment-method-bar {
+            height: 8px;
+            background: var(--gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .payment-method-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .payment-method-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
         /* 전월 대비 */
         .comparison-grid {
             display: grid;
@@ -701,6 +762,17 @@
                                 <div class="items" id="variableItems"></div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- 결제수단별 지출 -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-bank-card-fill"></i> 결제수단별 지출</h2>
+                        <span id="paymentMethodCount" style="font-size: 0.85rem; color: var(--gray-500);"></span>
+                    </div>
+                    <div class="section-body">
+                        <div class="payment-methods-grid" id="paymentMethodsGrid"></div>
                     </div>
                 </div>
 
@@ -1127,6 +1199,7 @@
 
             updateKeyMetrics();
             updateExpenseSplit();
+            updatePaymentMethods();
             updateCategoryComparison();
             updateYoYComparison();
             destroyCharts();
@@ -1240,6 +1313,63 @@
                 .sort((a, b) => b[1] - a[1]).slice(0, 5)
                 .map(([cat, amt]) => `<div class="expense-type-item"><span class="name">${cat}</span><span class="value">${formatCurrency(amt)}</span></div>`)
                 .join('') || '<div class="no-data">변동비 없음</div>';
+        }
+
+        // ===== 결제수단별 지출 =====
+        function updatePaymentMethods() {
+            const now = new Date();
+            const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const currentExpenses = expenseData.expenses.filter(e => `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey);
+
+            // 결제수단별 집계
+            const byPaymentMethod = {};
+            currentExpenses.forEach(e => {
+                const method = e.payment_method || '미지정';
+                if (!byPaymentMethod[method]) {
+                    byPaymentMethod[method] = { total: 0, count: 0 };
+                }
+                byPaymentMethod[method].total += e.amount;
+                byPaymentMethod[method].count++;
+            });
+
+            const sorted = Object.entries(byPaymentMethod).sort((a, b) => b[1].total - a[1].total);
+            const maxAmount = sorted.length > 0 ? sorted[0][1].total : 1;
+            const totalAmount = sorted.reduce((sum, [, data]) => sum + data.total, 0);
+
+            // 결제수단별 색상
+            const paymentColors = [
+                '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+                '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
+            ];
+
+            const grid = document.getElementById('paymentMethodsGrid');
+            grid.innerHTML = sorted.map(([method, data], index) => {
+                const percent = ((data.total / totalAmount) * 100).toFixed(1);
+                const barWidth = (data.total / maxAmount) * 100;
+                const color = paymentColors[index % paymentColors.length];
+                const icon = method.includes('현금') ? 'ri-money-won-circle-fill' : 'ri-bank-card-fill';
+
+                return `
+                    <div class="payment-method-card">
+                        <div class="payment-method-header">
+                            <div class="payment-method-name">
+                                <i class="${icon}" style="color: ${color};"></i>
+                                ${method}
+                            </div>
+                            <div class="payment-method-amount">${formatCurrency(data.total)}</div>
+                        </div>
+                        <div class="payment-method-bar">
+                            <div class="payment-method-bar-fill" style="width: ${barWidth}%; background: ${color};"></div>
+                        </div>
+                        <div class="payment-method-footer">
+                            <span>${data.count}건</span>
+                            <span>${percent}%</span>
+                        </div>
+                    </div>
+                `;
+            }).join('') || '<div class="no-data">결제 내역 없음</div>';
+
+            document.getElementById('paymentMethodCount').textContent = `${sorted.length}개 결제수단`;
         }
 
         // ===== 전월 대비 카테고리 분석 =====
