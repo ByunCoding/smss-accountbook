@@ -1119,6 +1119,7 @@
         // 구글 시트에서 가져온 데이터 (동적으로 채워짐)
         let MONTHLY_INCOME = {};
         let FIXED_EXPENSES = {}; // { '2026-01': { '시리': {...}, '상민': {...}, total: 0 } }
+        let SIDE_INCOME = {}; // 부수입 (공유숙박, 디센터 등) { '2026-01': 313590 }
 
         // 카테고리별 월 예산
         const CATEGORY_BUDGETS = {
@@ -1199,7 +1200,25 @@
             const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
             const response = await fetch(url);
             const csvText = await response.text();
+
+            // 부수입 파싱 (J열, 2번째 행)
+            parseSideIncome(csvText, monthKey);
+
             return parseCSVToExpenses(csvText, monthKey, gid);
+        }
+
+        // 부수입 파싱 (공유숙박, 디센터 등)
+        function parseSideIncome(csvText, monthKey) {
+            const lines = csvText.split('\n');
+            if (lines.length >= 2) {
+                const columns = parseCSVLine(lines[1]); // 2번째 행
+                const sideIncomeStr = columns[9]?.replace(/[",₩\s()]/g, ''); // J열 (인덱스 9)
+                const sideIncome = parseFloat(sideIncomeStr);
+                if (!isNaN(sideIncome) && sideIncome !== 0) {
+                    SIDE_INCOME[monthKey] = Math.abs(sideIncome);
+                    console.log(`Loaded SIDE_INCOME for ${monthKey}:`, SIDE_INCOME[monthKey]);
+                }
+            }
         }
 
         function parseCSVToExpenses(csvText, monthKey, gid) {
@@ -1549,15 +1568,18 @@
                 changeEl.innerHTML = '<span>전월 데이터 없음</span>';
             }
 
-            // 저축률 (수입은 구글 시트에서 가져온 값 사용)
-            const income = MONTHLY_INCOME[currentKey] || 3500000;
-            const savings = income - currentTotal;
-            const savingsRate = income > 0 ? Math.max(0, (savings / income) * 100) : 0;
+            // 저축률 (수입 = 월급 + 부수입)
+            const baseIncome = MONTHLY_INCOME[currentKey] || 3500000;
+            const sideIncome = SIDE_INCOME[currentKey] || 0;
+            const totalIncome = baseIncome + sideIncome;
+            const savings = totalIncome - currentTotal;
+            const savingsRate = totalIncome > 0 ? Math.max(0, (savings / totalIncome) * 100) : 0;
 
             document.getElementById('savingsRate').textContent = `${savingsRate.toFixed(0)}%`;
+            const incomeDetail = sideIncome > 0 ? ` (부수입 +${formatCurrency(sideIncome)})` : '';
             document.getElementById('savingsAmount').textContent = savings >= 0
-                ? `저축: ${formatCurrency(savings)}`
-                : `적자: ${formatCurrency(Math.abs(savings))}`;
+                ? `저축: ${formatCurrency(savings)}${incomeDetail}`
+                : `적자: ${formatCurrency(Math.abs(savings))}${incomeDetail}`;
 
             const circumference = 87.96;
             const offset = circumference - (Math.min(savingsRate, 100) / 100) * circumference;
@@ -1741,7 +1763,9 @@
             });
 
             // 3. 저축률 인사이트
-            const income = MONTHLY_INCOME[currentKey] || 3500000;
+            const baseIncome = MONTHLY_INCOME[currentKey] || 3500000;
+            const sideIncome = SIDE_INCOME[currentKey] || 0;
+            const income = baseIncome + sideIncome;
             const fixedExpense = FIXED_EXPENSES[currentKey]?.total || 0;
             const totalExpense = (currentData.total || 0) + fixedExpense;
             const savingsRate = ((income - totalExpense) / income) * 100;
