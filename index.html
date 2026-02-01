@@ -1767,45 +1767,141 @@
         let selectedMonth = null; // 선택된 월 (예: { year: 2026, month: 2 })
         let availableMonths = []; // 데이터가 있는 월 목록
 
-        // ===== 데이터 로드 =====
+        // ===== 캐시 관리 =====
+        const CACHE_KEY = 'smss_accountbook_cache';
+        const CACHE_EXPIRY = 5 * 60 * 1000; // 5분
+
+        function getCachedData() {
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                if (cached) {
+                    const { data, timestamp, monthlyIncome, fixedExpenses } = JSON.parse(cached);
+                    const isExpired = Date.now() - timestamp > CACHE_EXPIRY;
+                    return { data, monthlyIncome, fixedExpenses, isExpired };
+                }
+            } catch (e) { console.warn('Cache read error:', e); }
+            return null;
+        }
+
+        function setCachedData(expenses) {
+            try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify({
+                    data: expenses,
+                    monthlyIncome: MONTHLY_INCOME,
+                    fixedExpenses: FIXED_EXPENSES,
+                    timestamp: Date.now()
+                }));
+            } catch (e) { console.warn('Cache write error:', e); }
+        }
+
+        // ===== 데이터 로드 (최적화) =====
         async function loadData() {
             try {
-                document.getElementById('lastUpdated').textContent = '데이터 로딩 중...';
+                const lastUpdatedEl = document.getElementById('lastUpdated');
 
-                // 먼저 MONTHLY 시트에서 수입/고정비 데이터 로드
-                await loadMonthlySheet();
+                // 1. 캐시된 데이터가 있으면 먼저 표시
+                const cached = getCachedData();
+                if (cached && cached.data && cached.data.length > 0) {
+                    lastUpdatedEl.textContent = '캐시 데이터 표시 중...';
+                    MONTHLY_INCOME = cached.monthlyIncome || {};
+                    FIXED_EXPENSES = cached.fixedExpenses || {};
+                    expenseData.expenses = cached.data;
+                    calculateSummary();
+                    initializeDashboard();
 
-                const jsonMonths = ['2025-01', '2025-05', '2025-06', '2025-07', '2025-08', '2025-09', '2025-10', '2025-11'];
-                const allExpenses = [];
-
-                for (const month of jsonMonths) {
-                    try {
-                        const response = await fetch(`data/${month}.json`);
-                        const monthData = await response.json();
-                        allExpenses.push(...monthData);
-                    } catch (e) { console.warn(`Failed to load ${month}.json`); }
-                }
-
-                for (const [month, gid] of Object.entries(GOOGLE_SHEETS)) {
-                    try {
-                        const sheetData = await loadFromGoogleSheets(gid, month);
-                        allExpenses.push(...sheetData);
-                    } catch (e) {
-                        console.warn(`Failed to load Google Sheet for ${month}:`, e);
-                        try {
-                            const response = await fetch(`data/${month}.json`);
-                            const monthData = await response.json();
-                            allExpenses.push(...monthData);
-                        } catch (e2) { console.warn(`Fallback also failed for ${month}`); }
+                    // 캐시가 만료되지 않았으면 백그라운드 갱신만
+                    if (!cached.isExpired) {
+                        lastUpdatedEl.textContent = `${cached.data.length}건 로드됨`;
+                        refreshDataInBackground();
+                        return;
                     }
+                    lastUpdatedEl.textContent = '최신 데이터 확인 중...';
                 }
 
-                expenseData.expenses = allExpenses;
-                calculateSummary();
-                initializeDashboard();
+                // 2. 새 데이터 로드 (병렬)
+                await loadFreshData();
+
             } catch (error) {
                 console.error('Error loading data:', error);
                 document.getElementById('lastUpdated').textContent = '데이터 로딩 실패';
+            }
+        }
+
+        // 백그라운드에서 데이터 갱신 (UI 블로킹 없음)
+        async function refreshDataInBackground() {
+            try {
+                await loadFreshData(true);
+            } catch (e) { console.warn('Background refresh failed:', e); }
+        }
+
+        // 실제 데이터 로드 (병렬 처리)
+        async function loadFreshData(isBackground = false) {
+            const lastUpdatedEl = document.getElementById('lastUpdated');
+            if (!isBackground) lastUpdatedEl.textContent = '데이터 로딩 중...';
+
+            // MONTHLY 시트와 JSON/Google Sheets를 병렬로 로드
+            const [monthlyResult, expensesResult] = await Promise.all([
+                loadMonthlySheet().catch(e => { console.warn('Monthly sheet error:', e); return null; }),
+                loadAllExpenses()
+            ]);
+
+            expenseData.expenses = expensesResult;
+            setCachedData(expensesResult);
+
+            calculateSummary();
+
+            if (!isBackground) {
+                initializeDashboard();
+            } else {
+                // 백그라운드 갱신 시 현재 탭만 업데이트
+                updateCurrentTab();
+            }
+
+            lastUpdatedEl.textContent = `${expensesResult.length}건 로드됨`;
+        }
+
+        // 모든 지출 데이터 병렬 로드
+        async function loadAllExpenses() {
+            const allExpenses = [];
+            const jsonMonths = ['2025-01', '2025-05', '2025-06', '2025-07', '2025-08', '2025-09', '2025-10', '2025-11'];
+
+            // JSON 파일들 병렬 로드
+            const jsonPromises = jsonMonths.map(month =>
+                fetch(`data/${month}.json`)
+                    .then(r => r.json())
+                    .catch(() => [])
+            );
+
+            // Google Sheets 병렬 로드
+            const sheetPromises = Object.entries(GOOGLE_SHEETS).map(([month, gid]) =>
+                loadFromGoogleSheets(gid, month)
+                    .catch(() => fetch(`data/${month}.json`).then(r => r.json()).catch(() => []))
+            );
+
+            // 모든 요청 동시 실행
+            const [jsonResults, sheetResults] = await Promise.all([
+                Promise.all(jsonPromises),
+                Promise.all(sheetPromises)
+            ]);
+
+            jsonResults.forEach(data => allExpenses.push(...data));
+            sheetResults.forEach(data => allExpenses.push(...data));
+
+            return allExpenses;
+        }
+
+        // 현재 탭만 업데이트 (백그라운드 갱신용)
+        function updateCurrentTab() {
+            const activeTab = document.querySelector('.tab.active');
+            if (!activeTab) return;
+
+            const tabText = activeTab.textContent.trim();
+            if (tabText.includes('월간')) {
+                updateDashboard();
+            } else if (tabText.includes('예산')) {
+                updateBudgetTab();
+            } else if (tabText.includes('상세')) {
+                updateDetailTable();
             }
         }
 
