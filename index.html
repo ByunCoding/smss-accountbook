@@ -2126,12 +2126,16 @@
     <script>
         // ===== 설정 =====
         const SHEET_ID = '1EuWNGb3fEpLEbZwocIk6afSmmjiSTo2-rAu5qqfFnbk';
-        const GOOGLE_SHEETS = {
+        // 시트 목록 (동적으로 Apps Script에서 가져옴)
+        let GOOGLE_SHEETS = {
             '2025-12': 656326365,
             '2026-01': 989766285,
             '2026-02': 641362980
         };
         const MONTHLY_SHEET_GID = 0; // MONTHLY 탭 gid
+
+        // Apps Script URL (시트 목록 조회용)
+        const SHEET_LIST_URL = 'https://script.google.com/macros/s/AKfycbwg7wuVXbkdaua3yCqIWPyrjSXW8070LNCzkWidcLHy82VRctMYw554iyYGV2TqlDpdOQ/exec';
 
         // 구글 시트에서 가져온 데이터 (동적으로 채워짐)
         let MONTHLY_INCOME = {};
@@ -2198,6 +2202,27 @@
             } catch (e) { console.warn('Cache write error:', e); }
         }
 
+        // ===== 시트 목록 동적 로드 =====
+        async function loadSheetList() {
+            try {
+                const response = await fetch(`${SHEET_LIST_URL}?action=getSheetList`);
+                const result = await response.json();
+
+                if (result.success && result.sheets) {
+                    // 기존 시트 목록 유지하면서 새로운 시트 추가
+                    result.sheets.forEach(sheet => {
+                        if (!GOOGLE_SHEETS[sheet.monthKey]) {
+                            GOOGLE_SHEETS[sheet.monthKey] = sheet.gid;
+                            console.log(`새 시트 발견: ${sheet.monthKey} (GID: ${sheet.gid})`);
+                        }
+                    });
+                    console.log('시트 목록 로드 완료:', Object.keys(GOOGLE_SHEETS));
+                }
+            } catch (e) {
+                console.warn('시트 목록 로드 실패 (기본값 사용):', e);
+            }
+        }
+
         // ===== 데이터 로드 (최적화) =====
         async function loadData() {
             try {
@@ -2222,7 +2247,10 @@
                     lastUpdatedEl.textContent = '최신 데이터 확인 중...';
                 }
 
-                // 2. 새 데이터 로드 (병렬)
+                // 2. 시트 목록 동적 로드 (새 시트 자동 인식)
+                await loadSheetList();
+
+                // 3. 새 데이터 로드 (병렬)
                 await loadFreshData();
 
             } catch (error) {
