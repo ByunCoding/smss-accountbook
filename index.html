@@ -874,6 +874,155 @@
         .heatmap-day.level-4 { background: #FECACA; color: #991B1B; }
         .heatmap-day.level-5 { background: #DC2626; color: white; }
 
+        /* 일별 상세 모달 */
+        .day-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .day-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .day-modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: hidden;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .day-modal-overlay.active .day-modal {
+            transform: translateY(0);
+        }
+
+        .day-modal-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .day-modal-header h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .day-modal-header .total {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .day-modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .day-modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .day-modal-body {
+            padding: 0;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        .day-modal-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            gap: 14px;
+        }
+
+        .day-modal-item:last-child {
+            border-bottom: none;
+        }
+
+        .day-modal-item-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .day-modal-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .day-modal-item-category {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--gray-800);
+        }
+
+        .day-modal-item-desc {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .day-modal-item-amount {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--expense);
+            flex-shrink: 0;
+        }
+
+        .day-modal-item-payment {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            margin-top: 2px;
+        }
+
+        .day-modal-empty {
+            padding: 40px 24px;
+            text-align: center;
+            color: var(--gray-400);
+        }
+
+        .day-modal-empty i {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+
         .heatmap-legend {
             display: flex;
             align-items: center;
@@ -1466,6 +1615,24 @@
         </div>
     </main>
 
+    <!-- 일별 상세 모달 -->
+    <div class="day-modal-overlay" id="dayModal" onclick="closeDayModal(event)">
+        <div class="day-modal" onclick="event.stopPropagation()">
+            <div class="day-modal-header">
+                <div>
+                    <h3 id="dayModalTitle">1월 15일</h3>
+                    <div class="total" id="dayModalTotal">₩0</div>
+                </div>
+                <button class="day-modal-close" onclick="closeDayModal()">
+                    <i class="ri-close-line"></i>
+                </button>
+            </div>
+            <div class="day-modal-body" id="dayModalBody">
+                <!-- 내역이 여기에 들어감 -->
+            </div>
+        </div>
+    </div>
+
     <script>
         // ===== 설정 =====
         const SHEET_ID = '1EuWNGb3fEpLEbZwocIk6afSmmjiSTo2-rAu5qqfFnbk';
@@ -1933,9 +2100,13 @@
                 dailyData[day].items.push({
                     category: e.category,
                     description: e.description,
-                    amount: e.amount
+                    amount: e.amount,
+                    payment_method: e.payment_method
                 });
             });
+
+            // 전역으로 저장 (모달에서 사용)
+            window.currentDailyData = dailyData;
 
             // 지출 레벨 계산 (0-5)
             const amounts = Object.values(dailyData).map(d => d.total);
@@ -1984,7 +2155,7 @@
                     : `${day}일: 지출 없음`;
 
                 html += `
-                    <div class="heatmap-day level-${level}" title="${tooltip}">
+                    <div class="heatmap-day level-${level}" onclick="openDayModal(${day})" title="${tooltip}">
                         <span class="date">${day}</span>
                         <span class="amount">${topLabel}</span>
                     </div>
@@ -1999,6 +2170,66 @@
             document.getElementById('heatmapSummary').textContent =
                 `${totalDays}일 지출 · 평균 ${formatCurrency(avgAmount)}/일`;
         }
+
+        // ===== 일별 상세 모달 =====
+        function openDayModal(day) {
+            const data = window.currentDailyData?.[day] || { total: 0, items: [] };
+
+            // 헤더 업데이트
+            document.getElementById('dayModalTitle').textContent =
+                `${selectedMonth.month}월 ${day}일`;
+            document.getElementById('dayModalTotal').textContent =
+                formatCurrency(data.total);
+
+            // 본문 업데이트
+            const body = document.getElementById('dayModalBody');
+
+            if (data.items.length === 0) {
+                body.innerHTML = `
+                    <div class="day-modal-empty">
+                        <i class="ri-calendar-check-line"></i>
+                        <div>이 날은 지출이 없습니다</div>
+                    </div>
+                `;
+            } else {
+                // 금액 순으로 정렬
+                const sortedItems = [...data.items].sort((a, b) => b.amount - a.amount);
+
+                body.innerHTML = sortedItems.map(item => {
+                    const color = categoryColors[item.category] || '#9CA3AF';
+                    const bgColor = color + '20'; // 20% opacity
+
+                    return `
+                        <div class="day-modal-item">
+                            <div class="day-modal-item-icon" style="background: ${bgColor}; color: ${color};">
+                                <i class="ri-price-tag-3-fill"></i>
+                            </div>
+                            <div class="day-modal-item-content">
+                                <div class="day-modal-item-category">${item.category}</div>
+                                <div class="day-modal-item-desc">${item.description || '-'}</div>
+                                <div class="day-modal-item-payment">${item.payment_method || ''}</div>
+                            </div>
+                            <div class="day-modal-item-amount">${formatCurrency(item.amount)}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // 모달 열기
+            document.getElementById('dayModal').classList.add('active');
+            document.body.style.overflow = 'hidden'; // 스크롤 방지
+        }
+
+        function closeDayModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('dayModal').classList.remove('active');
+            document.body.style.overflow = ''; // 스크롤 복원
+        }
+
+        // ESC 키로 모달 닫기
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeDayModal();
+        });
 
         function destroyCharts() {
             Object.values(charts).forEach(c => c?.destroy());
