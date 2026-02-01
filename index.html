@@ -1407,18 +1407,18 @@
             position: fixed;
             bottom: 24px;
             right: 24px;
-            width: 56px;
-            height: 56px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
             color: white;
             border: none;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             transition: all 0.3s ease;
             z-index: 1000;
         }
@@ -1996,8 +1996,8 @@
     </div>
 
     <!-- 플로팅 액션 버튼 -->
-    <button class="fab" onclick="openInputModal()" title="지출 입력">
-        <i class="ri-add-line"></i>
+    <button class="fab" onclick="openInputModal()" title="지출 입력" aria-label="지출 입력">
+        <span style="font-weight: bold;">+</span>
     </button>
 
     <!-- 지출 입력 모달 -->
@@ -2053,11 +2053,13 @@
                         <select id="inputPayment" required>
                             <option value="">결제수단 선택</option>
                             <option value="현대카드_상민">💳 현대카드_상민</option>
-                            <option value="신한카드_상민">💳 신한카드_상민</option>
                             <option value="현대카드_시리">💳 현대카드_시리</option>
-                            <option value="삼성카드_시리">💳 삼성카드_시리</option>
-                            <option value="현금">💵 현금</option>
+                            <option value="국민카드">💳 국민카드</option>
+                            <option value="쿠팡와우카드">💳 쿠팡와우카드</option>
+                            <option value="삼성카드">💳 삼성카드</option>
+                            <option value="국민행복카드">💳 국민행복카드</option>
                             <option value="계좌이체">🏦 계좌이체</option>
+                            <option value="현금">💵 현금</option>
                         </select>
                     </div>
                 </form>
