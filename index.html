@@ -3617,8 +3617,10 @@
             try {
                 // Google Apps Script로 데이터 전송 (URL 파라미터 방식)
                 const [year, month] = date.split('-').map(Number);
+                const shortYear = String(year).slice(-2); // 2026 -> "26"
                 const params = new URLSearchParams({
                     action: 'add',
+                    year: shortYear,
                     month: month.toString(),
                     date: date,
                     category: category,
@@ -3678,9 +3680,11 @@
             try {
                 const data = JSON.parse(decodeURIComponent(encodedData));
                 const [year, month] = data.date.split('-').map(Number);
+                const shortYear = String(year).slice(-2); // 2026 -> "26"
 
                 const params = new URLSearchParams({
                     action: 'delete',
+                    year: shortYear,
                     month: month.toString(),
                     date: data.date,
                     category: data.category,
