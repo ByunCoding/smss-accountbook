@@ -3587,26 +3587,23 @@
             submitBtn.innerHTML = '<i class="ri-loader-4-line"></i> 저장 중...';
 
             try {
-                // Google Apps Script로 데이터 전송
-                const formData = {
+                // Google Apps Script로 데이터 전송 (URL 파라미터 방식)
+                const params = new URLSearchParams({
                     date: date,
                     category: category,
                     description: description,
-                    amount: amount,
+                    amount: amount.toString(),
                     payment: payment
-                };
+                });
 
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', // CORS 우회
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
+                // GET 요청으로 전송 (CORS 문제 우회)
+                const response = await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
+                    method: 'GET',
+                    mode: 'no-cors'
                 });
 
                 // no-cors 모드에서는 응답을 읽을 수 없으므로 성공으로 간주
-                // 실제로는 Apps Script에서 처리됨
+                console.log('Expense submitted to Apps Script');
 
                 // 로컬 데이터에도 추가 (즉시 반영)
                 const [year, month] = date.split('-').map(Number);
