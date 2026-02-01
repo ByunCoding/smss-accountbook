@@ -1604,8 +1604,9 @@
             padding: 16px;
             border: none;
             border-radius: 12px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
+            background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
+            background-color: #2563EB !important;
+            color: #FFFFFF !important;
             font-size: 1rem;
             font-weight: 700;
             cursor: pointer;
@@ -1614,6 +1615,8 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            opacity: 1 !important;
+            visibility: visible !important;
         }
 
         .submit-btn:hover {
@@ -1626,7 +1629,8 @@
         }
 
         .submit-btn:disabled {
-            background: var(--gray-300);
+            background: #D1D5DB !important;
+            background-color: #D1D5DB !important;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
@@ -2090,8 +2094,9 @@
                 </form>
             </div>
             <div class="input-modal-footer">
-                <button type="submit" class="submit-btn" id="submitBtn" onclick="submitExpense(event)">
-                    <i class="ri-save-line"></i> 저장하기
+                <button type="submit" class="submit-btn" id="submitBtn" onclick="submitExpense(event)"
+                    style="background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important; background-color: #2563EB !important; color: #FFFFFF !important; opacity: 1 !important; visibility: visible !important;">
+                    <i class="ri-save-line" style="color: #FFFFFF !important;"></i> 저장하기
                 </button>
             </div>
         </div>
