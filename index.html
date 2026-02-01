@@ -3431,7 +3431,7 @@
                 charts.category = new Chart(document.getElementById('categoryChart'), {
                     type: 'doughnut',
                     data: {
-                        labels: sortedCats.map(([k]) => k),
+                        labels: sortedCats.map(([k, v]) => `${k} ${formatCurrency(v)}`),
                         datasets: [{
                             data: sortedCats.map(([, v]) => v),
                             backgroundColor: sortedCats.map(([k]) => categoryColors[k] || '#9CA3AF'),
@@ -3441,8 +3441,8 @@
                     options: {
                         responsive: true, maintainAspectRatio: false, cutout: '65%',
                         plugins: {
-                            legend: { position: 'right', labels: { padding: 12, usePointStyle: true } },
-                            tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatCurrency(ctx.raw)}` } }
+                            legend: { position: 'right', labels: { padding: 12, usePointStyle: true, font: { size: 11 } } },
+                            tooltip: { enabled: false }
                         }
                     }
                 });
