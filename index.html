@@ -449,6 +449,47 @@
             color: var(--gray-500);
         }
 
+        /* 기타 지출 (예산 없는 카테고리) */
+        .no-budget-section {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .no-budget-title {
+            font-size: 0.9rem;
+            color: var(--gray-500);
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .no-budget-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .no-budget-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--gray-50);
+            border-radius: 8px;
+        }
+
+        .no-budget-item .cat-name {
+            flex: 1;
+            font-size: 0.85rem;
+            color: var(--gray-700);
+        }
+
+        .no-budget-item .cat-amount {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
         /* 고정비/변동비 */
         .expense-split {
             display: grid;
@@ -3339,47 +3380,71 @@
             const currentKey = getSelectedKey();
             const currentCats = expenseData.summary.monthly_totals[currentKey]?.categories || {};
 
-            let overBudgetCount = 0;
-            let html = '';
+            let budgetHtml = '';
+            let noBudgetHtml = '';
 
-            Object.entries(CATEGORY_BUDGETS).sort((a, b) => {
-                const spentA = currentCats[a[0]] || 0;
-                const spentB = currentCats[b[0]] || 0;
-                return (spentB / b[1]) - (spentA / a[1]);
-            }).forEach(([cat, budget]) => {
-                const spent = currentCats[cat] || 0;
-                const percent = Math.min((spent / budget) * 100, 150);
-                const remaining = budget - spent;
-                const status = percent >= 100 ? 'danger' : percent >= 80 ? 'warning' : 'safe';
-                if (percent >= 100) overBudgetCount++;
-                const color = categoryColors[cat] || '#9CA3AF';
+            // 예산이 있는 카테고리 (식비, 외식, 생활비)
+            Object.entries(CATEGORY_BUDGETS)
+                .filter(([, budget]) => budget > 0)
+                .sort((a, b) => b[1] - a[1])
+                .forEach(([cat, budget]) => {
+                    const spent = currentCats[cat] || 0;
+                    const percent = Math.min((spent / budget) * 100, 150);
+                    const remaining = budget - spent;
+                    const status = percent >= 100 ? 'danger' : percent >= 80 ? 'warning' : 'safe';
+                    const color = categoryColors[cat] || '#9CA3AF';
 
-                html += `
-                    <div class="budget-item">
-                        <div class="budget-item-header">
-                            <div class="category">
-                                <span class="dot" style="background: ${color};"></span>
-                                ${cat}
+                    budgetHtml += `
+                        <div class="budget-item">
+                            <div class="budget-item-header">
+                                <div class="category">
+                                    <span class="dot" style="background: ${color};"></span>
+                                    ${cat}
+                                </div>
+                                <div class="amounts">
+                                    <span class="spent">${formatCurrency(spent)}</span>
+                                    <span class="budget"> / ${formatCurrency(budget)}</span>
+                                </div>
                             </div>
-                            <div class="amounts">
-                                <span class="spent">${formatCurrency(spent)}</span>
-                                <span class="budget"> / ${formatCurrency(budget)}</span>
+                            <div class="budget-progress">
+                                <div class="budget-progress-bar ${status}" style="width: ${Math.min(percent, 100)}%;"></div>
+                            </div>
+                            <div class="budget-item-footer">
+                                <span class="percent ${status}">${percent.toFixed(0)}%</span>
+                                <span class="remaining">${remaining >= 0 ? `남은 금액: ${formatCurrency(remaining)}` : `초과: ${formatCurrency(Math.abs(remaining))}`}</span>
                             </div>
                         </div>
-                        <div class="budget-progress">
-                            <div class="budget-progress-bar ${status}" style="width: ${Math.min(percent, 100)}%;"></div>
-                        </div>
-                        <div class="budget-item-footer">
-                            <span class="percent ${status}">${percent.toFixed(0)}%</span>
-                            <span class="remaining">${remaining >= 0 ? `남은 금액: ${formatCurrency(remaining)}` : `초과: ${formatCurrency(Math.abs(remaining))}`}</span>
-                        </div>
-                    </div>
-                `;
-            });
+                    `;
+                });
 
-            document.getElementById('budgetGrid').innerHTML = html;
-            document.getElementById('budgetSummary').textContent = overBudgetCount > 0 ?
-                `⚠️ ${overBudgetCount}개 카테고리 예산 초과` : '✅ 모든 카테고리 예산 내 지출';
+            // 예산 없는 카테고리 (지출이 있는 것만, 금액순 정렬)
+            const noBudgetCats = Object.entries(currentCats)
+                .filter(([cat]) => !CATEGORY_BUDGETS[cat] || CATEGORY_BUDGETS[cat] === 0)
+                .sort((a, b) => b[1] - a[1]);
+
+            if (noBudgetCats.length > 0) {
+                noBudgetHtml = '<div class="no-budget-section"><h3 class="no-budget-title">기타 지출</h3><div class="no-budget-grid">';
+                noBudgetCats.forEach(([cat, spent]) => {
+                    const color = categoryColors[cat] || '#9CA3AF';
+                    noBudgetHtml += `
+                        <div class="no-budget-item">
+                            <span class="dot" style="background: ${color};"></span>
+                            <span class="cat-name">${cat}</span>
+                            <span class="cat-amount">${formatCurrency(spent)}</span>
+                        </div>
+                    `;
+                });
+                noBudgetHtml += '</div></div>';
+            }
+
+            document.getElementById('budgetGrid').innerHTML = budgetHtml + noBudgetHtml;
+
+            const totalBudget = Object.values(CATEGORY_BUDGETS).filter(b => b > 0).reduce((a, b) => a + b, 0);
+            const totalSpentInBudget = Object.entries(CATEGORY_BUDGETS)
+                .filter(([, budget]) => budget > 0)
+                .reduce((sum, [cat]) => sum + (currentCats[cat] || 0), 0);
+            document.getElementById('budgetSummary').textContent =
+                `예산 ${formatCurrency(totalBudget)} 중 ${formatCurrency(totalSpentInBudget)} 사용`;
         }
 
         // ===== 차트 =====
