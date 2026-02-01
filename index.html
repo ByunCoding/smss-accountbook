@@ -1410,7 +1410,7 @@
             width: 64px !important;
             height: 64px !important;
             border-radius: 50% !important;
-            background: #2563EB !important;
+            background-color: #2563EB !important;
             color: #FFFFFF !important;
             border: 3px solid #FFFFFF !important;
             cursor: pointer;
@@ -1424,16 +1424,36 @@
             z-index: 9999 !important;
             -webkit-appearance: none;
             appearance: none;
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+            -webkit-tap-highlight-color: transparent;
+            outline: none !important;
         }
 
         .fab:hover {
             transform: scale(1.1);
-            background: #1D4ED8 !important;
+            background-color: #1D4ED8 !important;
             box-shadow: 0 6px 25px rgba(37, 99, 235, 0.7) !important;
         }
 
         .fab:active {
             transform: scale(0.95);
+        }
+
+        /* FAB 백업 스타일 - 혹시 다른 스타일이 덮어쓸 경우를 대비 */
+        #fabButton {
+            position: fixed !important;
+            bottom: 24px !important;
+            right: 24px !important;
+            width: 64px !important;
+            height: 64px !important;
+            border-radius: 50% !important;
+            background-color: #2563EB !important;
+            color: #FFFFFF !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            z-index: 9999 !important;
         }
 
         /* ===== 입력 모달 ===== */
@@ -2000,10 +2020,10 @@
     </div>
 
     <!-- 플로팅 액션 버튼 -->
-    <button class="fab" onclick="openInputModal()" title="지출 입력" aria-label="지출 입력"
-        style="position:fixed; bottom:24px; right:24px; width:64px; height:64px; border-radius:50%; background:#2563EB; color:#fff; border:3px solid #fff; font-size:2rem; font-weight:bold; z-index:9999; box-shadow:0 4px 20px rgba(37,99,235,0.6);">
-        +
-    </button>
+    <div id="fabButton" class="fab" onclick="openInputModal()" title="지출 입력" aria-label="지출 입력" role="button" tabindex="0"
+        style="position:fixed !important; bottom:24px !important; right:24px !important; width:64px !important; height:64px !important; border-radius:50% !important; background-color:#2563EB !important; color:#FFFFFF !important; border:3px solid #FFFFFF !important; font-size:2rem !important; font-weight:bold !important; z-index:9999 !important; box-shadow:0 4px 20px rgba(37,99,235,0.6) !important; opacity:1 !important; visibility:visible !important; display:flex !important; align-items:center !important; justify-content:center !important; cursor:pointer !important;">
+        <span style="color:#FFFFFF !important; font-size:2rem !important; font-weight:bold !important; line-height:1 !important;">+</span>
+    </div>
 
     <!-- 지출 입력 모달 -->
     <div class="input-modal-overlay" id="inputModal" onclick="closeInputModal(event)">
@@ -3623,6 +3643,19 @@
                 closeDayModal();
             }
         });
+
+        // FAB 버튼 visibility 확보 (혹시 다른 스타일이 덮어쓸 경우를 대비)
+        function ensureFabVisible() {
+            const fab = document.getElementById('fabButton');
+            if (fab) {
+                fab.style.cssText = 'position:fixed !important; bottom:24px !important; right:24px !important; width:64px !important; height:64px !important; border-radius:50% !important; background-color:#2563EB !important; color:#FFFFFF !important; border:3px solid #FFFFFF !important; font-size:2rem !important; font-weight:bold !important; z-index:9999 !important; box-shadow:0 4px 20px rgba(37,99,235,0.6) !important; opacity:1 !important; visibility:visible !important; display:flex !important; align-items:center !important; justify-content:center !important; cursor:pointer !important;';
+            }
+        }
+
+        // 페이지 로드 후 FAB 스타일 강제 적용
+        setTimeout(ensureFabVisible, 100);
+        setTimeout(ensureFabVisible, 500);
+        setTimeout(ensureFabVisible, 1000);
 
         loadData();
     </script>
