@@ -1561,22 +1561,23 @@
             const response = await fetch(url);
             const csvText = await response.text();
 
-            // 부수입 파싱 (J열, 2번째 행)
-            parseSideIncome(csvText, monthKey);
+            // 2026년 월별 시트에서 총 소득 파싱 (J열)
+            parseSheetIncome(csvText, monthKey);
 
             return parseCSVToExpenses(csvText, monthKey, gid);
         }
 
-        // 부수입 파싱 (공유숙박, 디센터 등)
-        function parseSideIncome(csvText, monthKey) {
+        // 월별 시트에서 총 소득 파싱 (J열, 2번째 행)
+        function parseSheetIncome(csvText, monthKey) {
             const lines = csvText.split('\n');
             if (lines.length >= 2) {
                 const columns = parseCSVLine(lines[1]); // 2번째 행
-                const sideIncomeStr = columns[9]?.replace(/[",₩\s()]/g, ''); // J열 (인덱스 9)
-                const sideIncome = parseFloat(sideIncomeStr);
-                if (!isNaN(sideIncome) && sideIncome !== 0) {
-                    SIDE_INCOME[monthKey] = Math.abs(sideIncome);
-                    console.log(`Loaded SIDE_INCOME for ${monthKey}:`, SIDE_INCOME[monthKey]);
+                const incomeStr = columns[9]?.replace(/[",₩\s]/g, '').replace(/[()]/g, '-'); // J열 (인덱스 9)
+                const income = parseFloat(incomeStr);
+                if (!isNaN(income)) {
+                    // 월별 시트의 총 소득을 MONTHLY_INCOME에 저장 (2026년용)
+                    MONTHLY_INCOME[monthKey] = income;
+                    console.log(`Loaded income for ${monthKey} from sheet:`, income);
                 }
             }
         }
@@ -1897,9 +1898,7 @@
             const currentKey = getSelectedKey();
             const currentData = expenseData.summary.monthly_totals[currentKey] || { total: 0 };
 
-            const baseIncome = MONTHLY_INCOME[currentKey] || 3500000;
-            const sideIncome = SIDE_INCOME[currentKey] || 0;
-            const totalIncome = baseIncome + sideIncome;
+            const totalIncome = MONTHLY_INCOME[currentKey] || 0;
 
             const fixedExpense = FIXED_EXPENSES[currentKey]?.total || 0;
             const variableExpense = currentData.total || 0;
@@ -1923,15 +1922,23 @@
                 `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey
             );
 
-            // 일별 지출 합계
-            const dailyTotals = {};
+            // 일별 지출 합계 및 내역
+            const dailyData = {};
             currentExpenses.forEach(e => {
                 const day = parseInt(e.date.split('-')[2]);
-                dailyTotals[day] = (dailyTotals[day] || 0) + e.amount;
+                if (!dailyData[day]) {
+                    dailyData[day] = { total: 0, items: [] };
+                }
+                dailyData[day].total += e.amount;
+                dailyData[day].items.push({
+                    category: e.category,
+                    description: e.description,
+                    amount: e.amount
+                });
             });
 
             // 지출 레벨 계산 (0-5)
-            const amounts = Object.values(dailyTotals);
+            const amounts = Object.values(dailyData).map(d => d.total);
             const maxAmount = Math.max(...amounts, 1);
             const avgAmount = amounts.length > 0 ? amounts.reduce((a, b) => a + b, 0) / amounts.length : 0;
 
@@ -1959,14 +1966,27 @@
 
             // 날짜별 셀
             for (let day = 1; day <= daysInMonth; day++) {
-                const amount = dailyTotals[day] || 0;
-                const level = getLevel(amount);
-                const amountStr = amount > 0 ? `${Math.round(amount / 1000)}k` : '';
+                const data = dailyData[day] || { total: 0, items: [] };
+                const level = getLevel(data.total);
+
+                // 가장 큰 지출 1개
+                const topItem = data.items.sort((a, b) => b.amount - a.amount)[0];
+                const topLabel = topItem ? `${topItem.category}` : '';
+
+                // 툴팁 내용 (상위 3개 내역)
+                const tooltipItems = data.items
+                    .sort((a, b) => b.amount - a.amount)
+                    .slice(0, 3)
+                    .map(i => `${i.category}: ${formatCurrency(i.amount)}`)
+                    .join('\n');
+                const tooltip = data.total > 0
+                    ? `${day}일 총 ${formatCurrency(data.total)}\n${tooltipItems}${data.items.length > 3 ? '\n...' : ''}`
+                    : `${day}일: 지출 없음`;
 
                 html += `
-                    <div class="heatmap-day level-${level}" title="${day}일: ${formatCurrency(amount)}">
+                    <div class="heatmap-day level-${level}" title="${tooltip}">
                         <span class="date">${day}</span>
-                        <span class="amount">${amountStr}</span>
+                        <span class="amount">${topLabel}</span>
                     </div>
                 `;
             }
@@ -1974,7 +1994,7 @@
             document.getElementById('dailyHeatmap').innerHTML = html;
 
             // 요약 정보
-            const totalDays = Object.keys(dailyTotals).length;
+            const totalDays = Object.keys(dailyData).length;
             const highSpendDays = amounts.filter(a => a > avgAmount * 1.5).length;
             document.getElementById('heatmapSummary').textContent =
                 `${totalDays}일 지출 · 평균 ${formatCurrency(avgAmount)}/일`;
@@ -2018,18 +2038,15 @@
                 changeEl.innerHTML = '<span>전월 데이터 없음</span>';
             }
 
-            // 저축률 (수입 = 월급 + 부수입)
-            const baseIncome = MONTHLY_INCOME[currentKey] || 3500000;
-            const sideIncome = SIDE_INCOME[currentKey] || 0;
-            const totalIncome = baseIncome + sideIncome;
+            // 저축률 (수입은 MONTHLY_INCOME에서 가져옴)
+            const totalIncome = MONTHLY_INCOME[currentKey] || 0;
             const savings = totalIncome - currentTotal;
             const savingsRate = totalIncome > 0 ? Math.max(0, (savings / totalIncome) * 100) : 0;
 
             document.getElementById('savingsRate').textContent = `${savingsRate.toFixed(0)}%`;
-            const incomeDetail = sideIncome > 0 ? ` (부수입 +${formatCurrency(sideIncome)})` : '';
             document.getElementById('savingsAmount').textContent = savings >= 0
-                ? `저축: ${formatCurrency(savings)}${incomeDetail}`
-                : `적자: ${formatCurrency(Math.abs(savings))}${incomeDetail}`;
+                ? `저축: ${formatCurrency(savings)}`
+                : `적자: ${formatCurrency(Math.abs(savings))}`;
 
             const circumference = 87.96;
             const offset = circumference - (Math.min(savingsRate, 100) / 100) * circumference;
@@ -2213,12 +2230,10 @@
             });
 
             // 3. 저축률 인사이트
-            const baseIncome = MONTHLY_INCOME[currentKey] || 3500000;
-            const sideIncome = SIDE_INCOME[currentKey] || 0;
-            const income = baseIncome + sideIncome;
+            const income = MONTHLY_INCOME[currentKey] || 0;
             const fixedExpense = FIXED_EXPENSES[currentKey]?.total || 0;
             const totalExpense = (currentData.total || 0) + fixedExpense;
-            const savingsRate = ((income - totalExpense) / income) * 100;
+            const savingsRate = income > 0 ? ((income - totalExpense) / income) * 100 : 0;
 
             if (savingsRate >= 30) {
                 insights.push({
