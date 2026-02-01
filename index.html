@@ -838,19 +838,338 @@
             color: var(--gray-500);
         }
 
-        /* 반응형 */
+        /* 일별 지출 히트맵 */
+        .daily-heatmap {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-top: 16px;
+        }
+
+        .heatmap-day {
+            aspect-ratio: 1;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+            position: relative;
+        }
+
+        .heatmap-day:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .heatmap-day .date { font-weight: 600; }
+        .heatmap-day .amount { font-size: 0.6rem; opacity: 0.8; }
+
+        .heatmap-day.level-0 { background: var(--gray-100); color: var(--gray-400); }
+        .heatmap-day.level-1 { background: #DCFCE7; color: #166534; }
+        .heatmap-day.level-2 { background: #FEF9C3; color: #854D0E; }
+        .heatmap-day.level-3 { background: #FED7AA; color: #9A3412; }
+        .heatmap-day.level-4 { background: #FECACA; color: #991B1B; }
+        .heatmap-day.level-5 { background: #DC2626; color: white; }
+
+        .heatmap-legend {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            margin-top: 12px;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .heatmap-legend-item {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .weekday-labels {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 4px;
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        /* 주간 트렌드 미니 차트 */
+        .weekly-trend {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 60px;
+            padding: 8px 0;
+        }
+
+        .weekly-bar {
+            flex: 1;
+            background: var(--primary);
+            border-radius: 4px 4px 0 0;
+            min-height: 4px;
+            transition: height 0.3s;
+            position: relative;
+        }
+
+        .weekly-bar:hover::after {
+            content: attr(data-amount);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gray-800);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+        }
+
+        .weekly-labels {
+            display: flex;
+            gap: 4px;
+            font-size: 0.7rem;
+            color: var(--gray-400);
+            text-align: center;
+        }
+
+        .weekly-labels span { flex: 1; }
+
+        /* 총 수입/지출 요약 카드 */
+        .summary-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 20px;
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+        }
+
+        .flow-item {
+            text-align: center;
+        }
+
+        .flow-item .label {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            margin-bottom: 4px;
+        }
+
+        .flow-item .value {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .flow-item.income .value { color: var(--income); }
+        .flow-item.expense .value { color: var(--expense); }
+        .flow-item.balance .value { color: var(--primary); }
+
+        .flow-arrow {
+            font-size: 1.5rem;
+            color: var(--gray-300);
+        }
+
+        /* 반응형 - 태블릿 */
         @media (max-width: 1200px) {
             .key-metrics { grid-template-columns: 1fr 1fr; }
             .budget-grid { grid-template-columns: 1fr; }
         }
 
+        /* 반응형 - 모바일 */
         @media (max-width: 768px) {
-            .key-metrics { grid-template-columns: 1fr; }
-            .charts-grid { grid-template-columns: 1fr; }
-            .comparison-grid { grid-template-columns: 1fr; }
-            .expense-split { grid-template-columns: 1fr; }
-            .yoy-comparison { grid-template-columns: 1fr; }
+            .container { padding: 0 16px; }
+
+            /* 헤더 모바일 */
+            .header-content {
+                flex-direction: column;
+                gap: 12px;
+                padding: 16px 0;
+            }
+
+            .logo h1 { font-size: 1.2rem; }
+
+            .month-selector {
+                width: 100%;
+                justify-content: center;
+                padding: 10px 12px;
+            }
+
+            .month-selector select {
+                flex: 1;
+                max-width: 200px;
+            }
+
+            .header-info {
+                display: none;
+            }
+
+            /* 탭 모바일 */
+            .tabs {
+                justify-content: space-around;
+                width: 100%;
+            }
+
+            .tab {
+                padding: 14px 16px;
+                flex: 1;
+                justify-content: center;
+            }
+
             .tab span { display: none; }
+            .tab i { font-size: 1.3rem; }
+
+            /* 메인 콘텐츠 */
+            main { padding: 16px 0 30px; }
+
+            .key-metrics {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .metric-card {
+                padding: 18px;
+            }
+
+            .metric-card .value {
+                font-size: 1.6rem;
+            }
+
+            .savings-ring {
+                width: 70px;
+                height: 70px;
+            }
+
+            /* 섹션 */
+            .section {
+                border-radius: 12px;
+                margin-bottom: 16px;
+            }
+
+            .section-header {
+                padding: 16px;
+            }
+
+            .section-title {
+                font-size: 0.95rem;
+            }
+
+            .section-body {
+                padding: 16px;
+            }
+
+            /* 차트 */
+            .charts-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .chart-container {
+                height: 220px;
+            }
+
+            /* 비교 그리드 */
+            .comparison-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .expense-split {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .yoy-comparison {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            /* 인사이트 */
+            .insights-container {
+                flex-direction: column;
+            }
+
+            .insight-card {
+                min-width: auto;
+            }
+
+            /* 필터 */
+            .filter-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-group {
+                width: 100%;
+            }
+
+            .filter-group select,
+            .filter-group input {
+                width: 100%;
+            }
+
+            /* 테이블 */
+            .data-table th,
+            .data-table td {
+                padding: 10px 8px;
+                font-size: 0.8rem;
+            }
+
+            .category-badge {
+                padding: 3px 8px;
+                font-size: 0.7rem;
+            }
+
+            /* 결제수단 */
+            .payment-methods-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* 히트맵 모바일 */
+            .heatmap-day {
+                font-size: 0.6rem;
+            }
+
+            .heatmap-day .amount {
+                display: none;
+            }
+
+            /* 플로우 요약 */
+            .summary-flow {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .flow-arrow {
+                transform: rotate(90deg);
+            }
+
+            .flow-item .value {
+                font-size: 1.1rem;
+            }
+        }
+
+        /* 반응형 - 작은 모바일 */
+        @media (max-width: 400px) {
+            .metric-card .value {
+                font-size: 1.4rem;
+            }
+
+            .budget-item {
+                padding: 12px;
+            }
+
+            .heatmap-day {
+                font-size: 0.55rem;
+            }
         }
     </style>
 </head>
@@ -902,6 +1221,24 @@
         <div class="container">
             <!-- 월간 리포트 탭 -->
             <div id="overview-tab">
+                <!-- 수입/지출 요약 플로우 -->
+                <div class="summary-flow" id="summaryFlow">
+                    <div class="flow-item income">
+                        <div class="label">총 수입</div>
+                        <div class="value" id="flowIncome">₩0</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-item expense">
+                        <div class="label">총 지출</div>
+                        <div class="value" id="flowExpense">₩0</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-item balance">
+                        <div class="label">잔액</div>
+                        <div class="value" id="flowBalance">₩0</div>
+                    </div>
+                </div>
+
                 <!-- 핵심 지표 -->
                 <div class="key-metrics">
                     <div class="metric-card main">
@@ -934,6 +1271,29 @@
 
                 <!-- 인사이트 -->
                 <div class="insights-container" id="insightsContainer"></div>
+
+                <!-- 일별 지출 히트맵 -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-calendar-fill"></i> 일별 지출 현황</h2>
+                        <span id="heatmapSummary" style="font-size: 0.85rem; color: var(--gray-500);"></span>
+                    </div>
+                    <div class="section-body">
+                        <div class="weekday-labels">
+                            <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+                        </div>
+                        <div class="daily-heatmap" id="dailyHeatmap"></div>
+                        <div class="heatmap-legend">
+                            <span>적음</span>
+                            <div class="heatmap-legend-item" style="background: #DCFCE7;"></div>
+                            <div class="heatmap-legend-item" style="background: #FEF9C3;"></div>
+                            <div class="heatmap-legend-item" style="background: #FED7AA;"></div>
+                            <div class="heatmap-legend-item" style="background: #FECACA;"></div>
+                            <div class="heatmap-legend-item" style="background: #DC2626;"></div>
+                            <span>많음</span>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- 고정비/변동비 분리 -->
                 <div class="section">
@@ -1519,7 +1879,9 @@
 
         // 대시보드 전체 업데이트
         function updateDashboard() {
+            updateSummaryFlow();
             updateKeyMetrics();
+            updateDailyHeatmap();
             generateInsights();
             updateExpenseSplit();
             updatePaymentMethods();
@@ -1528,6 +1890,94 @@
             destroyCharts();
             createCharts();
             updateBudgetTab();
+        }
+
+        // ===== 수입/지출 요약 플로우 =====
+        function updateSummaryFlow() {
+            const currentKey = getSelectedKey();
+            const currentData = expenseData.summary.monthly_totals[currentKey] || { total: 0 };
+
+            const baseIncome = MONTHLY_INCOME[currentKey] || 3500000;
+            const sideIncome = SIDE_INCOME[currentKey] || 0;
+            const totalIncome = baseIncome + sideIncome;
+
+            const fixedExpense = FIXED_EXPENSES[currentKey]?.total || 0;
+            const variableExpense = currentData.total || 0;
+            const totalExpense = fixedExpense + variableExpense;
+
+            const balance = totalIncome - totalExpense;
+
+            document.getElementById('flowIncome').textContent = formatCurrency(totalIncome);
+            document.getElementById('flowExpense').textContent = formatCurrency(totalExpense);
+
+            const balanceEl = document.getElementById('flowBalance');
+            balanceEl.textContent = formatCurrency(Math.abs(balance));
+            balanceEl.style.color = balance >= 0 ? 'var(--income)' : 'var(--expense)';
+            balanceEl.parentElement.querySelector('.label').textContent = balance >= 0 ? '잔액' : '적자';
+        }
+
+        // ===== 일별 지출 히트맵 =====
+        function updateDailyHeatmap() {
+            const currentKey = getSelectedKey();
+            const currentExpenses = expenseData.expenses.filter(e =>
+                `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey
+            );
+
+            // 일별 지출 합계
+            const dailyTotals = {};
+            currentExpenses.forEach(e => {
+                const day = parseInt(e.date.split('-')[2]);
+                dailyTotals[day] = (dailyTotals[day] || 0) + e.amount;
+            });
+
+            // 지출 레벨 계산 (0-5)
+            const amounts = Object.values(dailyTotals);
+            const maxAmount = Math.max(...amounts, 1);
+            const avgAmount = amounts.length > 0 ? amounts.reduce((a, b) => a + b, 0) / amounts.length : 0;
+
+            const getLevel = (amount) => {
+                if (!amount || amount === 0) return 0;
+                const ratio = amount / maxAmount;
+                if (ratio <= 0.2) return 1;
+                if (ratio <= 0.4) return 2;
+                if (ratio <= 0.6) return 3;
+                if (ratio <= 0.8) return 4;
+                return 5;
+            };
+
+            // 해당 월의 일수와 시작 요일
+            const daysInMonth = new Date(selectedMonth.year, selectedMonth.month, 0).getDate();
+            const firstDayOfWeek = new Date(selectedMonth.year, selectedMonth.month - 1, 1).getDay();
+
+            // 히트맵 생성
+            let html = '';
+
+            // 빈 칸 (월 시작 전)
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                html += '<div class="heatmap-day level-0" style="visibility: hidden;"></div>';
+            }
+
+            // 날짜별 셀
+            for (let day = 1; day <= daysInMonth; day++) {
+                const amount = dailyTotals[day] || 0;
+                const level = getLevel(amount);
+                const amountStr = amount > 0 ? `${Math.round(amount / 1000)}k` : '';
+
+                html += `
+                    <div class="heatmap-day level-${level}" title="${day}일: ${formatCurrency(amount)}">
+                        <span class="date">${day}</span>
+                        <span class="amount">${amountStr}</span>
+                    </div>
+                `;
+            }
+
+            document.getElementById('dailyHeatmap').innerHTML = html;
+
+            // 요약 정보
+            const totalDays = Object.keys(dailyTotals).length;
+            const highSpendDays = amounts.filter(a => a > avgAmount * 1.5).length;
+            document.getElementById('heatmapSummary').textContent =
+                `${totalDays}일 지출 · 평균 ${formatCurrency(avgAmount)}/일`;
         }
 
         function destroyCharts() {
