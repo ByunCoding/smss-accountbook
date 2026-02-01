@@ -1404,28 +1404,32 @@
 
         /* ===== 플로팅 액션 버튼 (FAB) ===== */
         .fab {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
-            color: white;
-            border: none;
+            position: fixed !important;
+            bottom: 24px !important;
+            right: 24px !important;
+            width: 64px !important;
+            height: 64px !important;
+            border-radius: 50% !important;
+            background: #2563EB !important;
+            color: #FFFFFF !important;
+            border: 3px solid #FFFFFF !important;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.8rem;
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.6), 0 0 0 4px rgba(37, 99, 235, 0.2) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 2rem !important;
+            font-weight: bold !important;
             transition: all 0.3s ease;
-            z-index: 1000;
+            z-index: 9999 !important;
+            -webkit-appearance: none;
+            appearance: none;
         }
 
         .fab:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+            background: #1D4ED8 !important;
+            box-shadow: 0 6px 25px rgba(37, 99, 235, 0.7) !important;
         }
 
         .fab:active {
@@ -1996,8 +2000,9 @@
     </div>
 
     <!-- 플로팅 액션 버튼 -->
-    <button class="fab" onclick="openInputModal()" title="지출 입력" aria-label="지출 입력">
-        <span style="font-weight: bold;">+</span>
+    <button class="fab" onclick="openInputModal()" title="지출 입력" aria-label="지출 입력"
+        style="position:fixed; bottom:24px; right:24px; width:64px; height:64px; border-radius:50%; background:#2563EB; color:#fff; border:3px solid #fff; font-size:2rem; font-weight:bold; z-index:9999; box-shadow:0 4px 20px rgba(37,99,235,0.6);">
+        +
     </button>
 
     <!-- 지출 입력 모달 -->
@@ -2052,12 +2057,12 @@
                         <label><i class="ri-bank-card-line"></i> 결제수단</label>
                         <select id="inputPayment" required>
                             <option value="">결제수단 선택</option>
-                            <option value="현대카드_상민">💳 현대카드_상민</option>
-                            <option value="현대카드_시리">💳 현대카드_시리</option>
-                            <option value="국민카드">💳 국민카드</option>
-                            <option value="쿠팡와우카드">💳 쿠팡와우카드</option>
-                            <option value="삼성카드">💳 삼성카드</option>
-                            <option value="국민행복카드">💳 국민행복카드</option>
+                            <option value="현대카드_상민">🔴 현대카드_상민</option>
+                            <option value="현대카드_시리">🟠 현대카드_시리</option>
+                            <option value="국민카드">🟡 국민카드</option>
+                            <option value="쿠팡와우카드">🟣 쿠팡와우카드</option>
+                            <option value="삼성카드">🔵 삼성카드</option>
+                            <option value="국민행복카드">🟢 국민행복카드</option>
                             <option value="계좌이체">🏦 계좌이체</option>
                             <option value="현금">💵 현금</option>
                         </select>
