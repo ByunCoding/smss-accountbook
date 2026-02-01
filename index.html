@@ -1837,10 +1837,6 @@
                         <div class="label"><i class="ri-shopping-bag-fill"></i> 이번 달 변동비</div>
                         <div class="value" id="currentMonthVariable">₩0</div>
                         <div class="sub" id="currentMonthCount">0건의 지출</div>
-                        <div class="variable-progress">
-                            <div class="variable-progress-bar" id="variableProgressBar"></div>
-                        </div>
-                        <div class="variable-budget-info" id="variableBudgetInfo">변동비 예산 대비 0%</div>
                         <div class="total-reference" id="totalReference">
                             <span class="total-label">총 지출 (고정비 포함)</span>
                             <span class="total-value" id="currentMonthExpense">₩0</span>
@@ -2416,7 +2412,7 @@
 
                 const category = columns[1]?.trim();
                 const description = columns[2]?.trim();
-                const amountStr = columns[4]?.replace(/[",₩\s]/g, '');  // E열: 금액
+                const amountStr = columns[3]?.replace(/[",₩\s]/g, '');  // D열: 금액 (양수)
                 const amount = parseFloat(amountStr);
                 const paymentMethod = columns[5]?.trim();  // F열: 결제수단
 
@@ -2915,30 +2911,6 @@
             // === 변동비 메인 카드 ===
             document.getElementById('currentMonthVariable').textContent = formatCurrency(currentVariable);
             document.getElementById('currentMonthCount').textContent = `${currentExpenses.length}건의 지출`;
-
-            // 변동비 예산 대비 진행률
-            const totalVariableBudget = Object.values(CATEGORY_BUDGETS).reduce((sum, b) => sum + b, 0);
-            const variablePercent = totalVariableBudget > 0 ? (currentVariable / totalVariableBudget) * 100 : 0;
-            const remainingBudget = totalVariableBudget - currentVariable;
-
-            const progressBar = document.getElementById('variableProgressBar');
-            progressBar.style.width = `${Math.min(variablePercent, 100)}%`;
-
-            // 진행률에 따른 색상
-            if (variablePercent >= 100) {
-                progressBar.style.background = '#EF4444'; // 빨강
-            } else if (variablePercent >= 80) {
-                progressBar.style.background = '#F59E0B'; // 주황
-            } else {
-                progressBar.style.background = 'rgba(255,255,255,0.8)'; // 흰색
-            }
-
-            const budgetInfoEl = document.getElementById('variableBudgetInfo');
-            if (variablePercent >= 100) {
-                budgetInfoEl.innerHTML = `예산 초과! ${formatCurrency(Math.abs(remainingBudget))} 오버`;
-            } else {
-                budgetInfoEl.innerHTML = `예산 ${formatCurrency(totalVariableBudget)} 중 ${variablePercent.toFixed(1)}% 사용 · 남은 금액 ${formatCurrency(remainingBudget)}`;
-            }
 
             // === 총 지출 참고 정보 ===
             document.getElementById('currentMonthExpense').textContent = formatCurrency(currentTotal);
