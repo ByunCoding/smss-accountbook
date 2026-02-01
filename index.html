@@ -1656,6 +1656,59 @@
             border-top: 1px solid var(--gray-100);
         }
 
+        .edit-budget-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            background: white;
+            color: var(--gray-700);
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .edit-budget-btn:hover {
+            background: var(--gray-50);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .budget-input-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .budget-input-group label {
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .budget-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .budget-input-wrapper input {
+            width: 120px;
+            padding: 8px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            text-align: right;
+            font-size: 0.95rem;
+        }
+
+        .budget-input-wrapper span {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
+
         .submit-btn,
         #submitBtn {
             width: 100%;
@@ -1990,7 +2043,10 @@
                 <div class="section">
                     <div class="section-header">
                         <h2 class="section-title"><i class="ri-funds-box-fill"></i> 카테고리별 예산 현황</h2>
-                        <span id="budgetSummary" style="font-size: 0.9rem; color: var(--gray-500);"></span>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span id="budgetSummary" style="font-size: 0.9rem; color: var(--gray-500);"></span>
+                            <button onclick="openBudgetModal()" class="edit-budget-btn"><i class="ri-settings-3-line"></i> 예산 수정</button>
+                        </div>
                     </div>
                     <div class="section-body">
                         <div class="budget-grid" id="budgetGrid"></div>
@@ -2082,6 +2138,26 @@
     <div id="fabButton" class="fab" onclick="openInputModal()" title="지출 입력" aria-label="지출 입력" role="button" tabindex="0"
         style="position:fixed !important; bottom:24px !important; right:24px !important; width:64px !important; height:64px !important; border-radius:50% !important; background-color:#2563EB !important; color:#FFFFFF !important; border:3px solid #FFFFFF !important; font-size:2rem !important; font-weight:bold !important; z-index:9999 !important; box-shadow:0 4px 20px rgba(37,99,235,0.6) !important; opacity:1 !important; visibility:visible !important; display:flex !important; align-items:center !important; justify-content:center !important; cursor:pointer !important;">
         <span style="color:#FFFFFF !important; font-size:2rem !important; font-weight:bold !important; line-height:1 !important;">+</span>
+    </div>
+
+    <!-- 예산 수정 모달 -->
+    <div class="input-modal-overlay" id="budgetModal" onclick="closeBudgetModal(event)">
+        <div class="input-modal" onclick="event.stopPropagation()" style="max-height: 80vh; overflow-y: auto;">
+            <div class="input-modal-header">
+                <h3><i class="ri-settings-3-line"></i> 예산 수정</h3>
+                <button class="input-modal-close" onclick="closeBudgetModal()">
+                    <i class="ri-close-line"></i>
+                </button>
+            </div>
+            <div class="input-modal-body" id="budgetFormBody">
+                <!-- 동적으로 생성됨 -->
+            </div>
+            <div class="input-modal-footer">
+                <button type="button" class="submit-btn" onclick="saveBudgets()">
+                    <i class="ri-save-line"></i> 저장하기
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- 지출 입력 모달 -->
@@ -2179,8 +2255,8 @@
         let FIXED_EXPENSES = {}; // { '2026-01': { '시리': {...}, '상민': {...}, total: 0 } }
         let SIDE_INCOME = {}; // 부수입 (공유숙박, 디센터 등) { '2026-01': 313590 }
 
-        // 카테고리별 월 예산
-        const CATEGORY_BUDGETS = {
+        // 카테고리별 월 예산 (기본값)
+        const DEFAULT_BUDGETS = {
             '식비': 400000,
             '외식': 300000,
             '생활비': 300000,
@@ -2195,6 +2271,9 @@
             '경조사비': 0,
             '교통비': 0
         };
+
+        // localStorage에서 예산 로드 (없으면 기본값 사용)
+        let CATEGORY_BUDGETS = JSON.parse(localStorage.getItem('smss_budgets')) || { ...DEFAULT_BUDGETS };
 
         // 고정비로 분류할 카테고리 (지출 내역 시트 기준)
         const FIXED_CATEGORIES = ['관리비', '대출이자', '보험료', '통신비', '구독료', '교육비'];
@@ -3604,6 +3683,56 @@
             document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
             document.querySelectorAll('[id$="-tab"]').forEach(t => t.classList.add('hidden'));
             document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+        }
+
+        // ===== 예산 수정 모달 =====
+        function openBudgetModal() {
+            const modal = document.getElementById('budgetModal');
+            const body = document.getElementById('budgetFormBody');
+
+            // 모든 카테고리 목록 (예산 있는 것 + 없는 것)
+            const allCategories = Object.keys(DEFAULT_BUDGETS);
+
+            body.innerHTML = allCategories.map(cat => `
+                <div class="budget-input-group">
+                    <label>${cat}</label>
+                    <div class="budget-input-wrapper">
+                        <input type="number" id="budget_${cat}" value="${CATEGORY_BUDGETS[cat] || 0}" min="0" step="10000">
+                        <span>원</span>
+                    </div>
+                </div>
+            `).join('');
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeBudgetModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            const modal = document.getElementById('budgetModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function saveBudgets() {
+            const allCategories = Object.keys(DEFAULT_BUDGETS);
+
+            allCategories.forEach(cat => {
+                const input = document.getElementById(`budget_${cat}`);
+                if (input) {
+                    CATEGORY_BUDGETS[cat] = parseInt(input.value) || 0;
+                }
+            });
+
+            // localStorage에 저장
+            localStorage.setItem('smss_budgets', JSON.stringify(CATEGORY_BUDGETS));
+
+            // UI 업데이트
+            updateBudgetTab();
+            updateDashboard();
+
+            closeBudgetModal();
+            showToast('예산이 저장되었습니다');
         }
 
         // ===== 지출 입력 모달 =====
