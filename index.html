@@ -1459,6 +1459,160 @@
             }
         }
 
+        /* 모바일 추가 최적화 */
+        @media (max-width: 768px) {
+            /* 상단 플로우 요약 개선 */
+            .summary-flow {
+                padding: 16px 12px;
+                gap: 8px;
+            }
+
+            .flow-item {
+                padding: 8px 4px;
+            }
+
+            .flow-item .label {
+                font-size: 0.75rem;
+            }
+
+            .flow-item .value {
+                font-size: 1rem;
+            }
+
+            /* 테이블 가로 스크롤 */
+            .data-table-wrapper {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .data-table {
+                min-width: 600px;
+            }
+
+            /* 내용 열 숨기기 (모바일) */
+            .data-table th:nth-child(3),
+            .data-table td:nth-child(3) {
+                max-width: 100px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            /* 삭제 버튼 터치 영역 확대 */
+            .delete-btn {
+                width: 40px;
+                height: 40px;
+                min-width: 40px;
+            }
+
+            /* 기타 지출 그리드 1열 */
+            .no-budget-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* 예산 수정 버튼 */
+            .edit-budget-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+
+            /* 섹션 헤더 모바일 */
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .section-header > div {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            /* 차트 범례 아래로 */
+            #categoryChart {
+                height: 250px !important;
+            }
+
+            /* 입력 모달 전체 화면 */
+            .input-modal-overlay.active .input-modal {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                max-height: 90vh;
+                border-radius: 20px 20px 0 0;
+            }
+
+            /* 예산 입력 그룹 */
+            .budget-input-group {
+                padding: 10px 0;
+            }
+
+            .budget-input-wrapper input {
+                width: 100px;
+                padding: 10px 8px;
+            }
+
+            /* 인사이트 카드 */
+            .insight-card {
+                padding: 14px;
+            }
+
+            .insight-card .title {
+                font-size: 0.9rem;
+            }
+
+            .insight-card .desc {
+                font-size: 0.8rem;
+            }
+
+            /* 고정비/변동비 카드 */
+            .expense-type-card {
+                padding: 16px;
+            }
+
+            .expense-type-card h4 {
+                font-size: 0.9rem;
+            }
+
+            .expense-type-card .amount {
+                font-size: 1.3rem;
+            }
+
+            /* 결제수단 카드 */
+            .payment-method-card {
+                padding: 14px;
+            }
+
+            /* 로고 영역 */
+            .logo-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 1.1rem;
+            }
+        }
+
+        /* 아주 작은 화면 */
+        @media (max-width: 360px) {
+            .container { padding: 0 12px; }
+
+            .metric-card .value {
+                font-size: 1.2rem;
+            }
+
+            .flow-item .value {
+                font-size: 0.9rem;
+            }
+
+            .tab {
+                padding: 12px 10px;
+            }
+
+            .budget-input-wrapper input {
+                width: 80px;
+            }
+        }
+
         /* ===== 플로팅 액션 버튼 (FAB) ===== */
         .fab {
             position: fixed !important;
@@ -2096,7 +2250,7 @@
                     </div>
                 </div>
                 <div class="section">
-                    <div class="section-body" style="padding: 0; overflow-x: auto;">
+                    <div class="section-body data-table-wrapper" style="padding: 0;">
                         <table class="data-table">
                             <thead>
                                 <tr>
@@ -3506,6 +3660,7 @@
 
             // 카테고리 도넛 차트
             const sortedCats = Object.entries(currentCats).sort((a, b) => b[1] - a[1]).slice(0, 8);
+            const isMobile = window.innerWidth <= 768;
             if (sortedCats.length > 0) {
                 charts.category = new Chart(document.getElementById('categoryChart'), {
                     type: 'doughnut',
@@ -3518,9 +3673,12 @@
                         }]
                     },
                     options: {
-                        responsive: true, maintainAspectRatio: false, cutout: '65%',
+                        responsive: true, maintainAspectRatio: false, cutout: '60%',
                         plugins: {
-                            legend: { position: 'right', labels: { padding: 12, usePointStyle: true, font: { size: 11 } } },
+                            legend: {
+                                position: isMobile ? 'bottom' : 'right',
+                                labels: { padding: isMobile ? 8 : 12, usePointStyle: true, font: { size: isMobile ? 10 : 11 } }
+                            },
                             tooltip: { enabled: false }
                         }
                     }
