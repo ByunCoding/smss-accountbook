@@ -2416,9 +2416,9 @@
 
                 const category = columns[1]?.trim();
                 const description = columns[2]?.trim();
-                const amountStr = columns[3]?.replace(/[",₩\s]/g, '');
+                const amountStr = columns[4]?.replace(/[",₩\s]/g, '');  // E열: 금액
                 const amount = parseFloat(amountStr);
-                const paymentMethod = columns[5]?.trim();
+                const paymentMethod = columns[5]?.trim();  // F열: 결제수단
 
                 if (!category || !amount || isNaN(amount)) continue;
 
@@ -3713,13 +3713,12 @@
                 const shortYear = String(year).slice(-2); // 2026 -> "26"
                 const params = new URLSearchParams({
                     action: 'add',
-                    year: shortYear,
-                    month: month.toString(),
+                    year: year.toString(),
                     date: date,
                     category: category,
-                    description: description,
-                    amount: amount.toString(),
-                    payment: payment
+                    item: description,
+                    person: payment,
+                    amount: amount.toString()
                 });
 
                 // GET 요청으로 전송 (CORS 문제 우회)
@@ -3777,11 +3776,10 @@
 
                 const params = new URLSearchParams({
                     action: 'delete',
-                    year: shortYear,
-                    month: month.toString(),
                     date: data.date,
                     category: data.category,
-                    description: data.description,
+                    item: data.description || '',
+                    person: data.payment_method || '',
                     amount: data.amount.toString()
                 });
 
