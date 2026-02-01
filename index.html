@@ -1838,7 +1838,7 @@
                         <div class="value" id="currentMonthVariable">₩0</div>
                         <div class="sub" id="currentMonthCount">0건의 지출</div>
                         <div class="total-reference" id="totalReference">
-                            <span class="total-label">총 지출 (고정비 포함)</span>
+                            <span class="total-label">이번 달 지출</span>
                             <span class="total-value" id="currentMonthExpense">₩0</span>
                         </div>
                     </div>
@@ -3102,8 +3102,9 @@
                 });
             });
 
-            // 2. 예산 초과 카테고리
+            // 2. 예산 초과 카테고리 (예산이 있는 카테고리만)
             Object.entries(CATEGORY_BUDGETS).forEach(([cat, budget]) => {
+                if (budget <= 0) return; // 예산 없으면 무시
                 const spent = currentData.categories?.[cat] || 0;
                 const percent = (spent / budget) * 100;
                 if (percent >= 100) {
