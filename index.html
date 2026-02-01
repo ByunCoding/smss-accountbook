@@ -1599,12 +1599,12 @@
             border-top: 1px solid var(--gray-100);
         }
 
-        .submit-btn {
+        .submit-btn,
+        #submitBtn {
             width: 100%;
             padding: 16px;
-            border: none;
+            border: none !important;
             border-radius: 12px;
-            background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
             background-color: #2563EB !important;
             color: #FFFFFF !important;
             font-size: 1rem;
@@ -1615,21 +1615,22 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            opacity: 1 !important;
-            visibility: visible !important;
         }
 
-        .submit-btn:hover {
+        .submit-btn:hover,
+        #submitBtn:hover {
+            background-color: #1D4ED8 !important;
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
             transform: translateY(-2px);
         }
 
-        .submit-btn:active {
+        .submit-btn:active,
+        #submitBtn:active {
             transform: translateY(0);
         }
 
-        .submit-btn:disabled {
-            background: #D1D5DB !important;
+        .submit-btn:disabled,
+        #submitBtn:disabled {
             background-color: #D1D5DB !important;
             cursor: not-allowed;
             transform: none;
@@ -2095,7 +2096,7 @@
             </div>
             <div class="input-modal-footer">
                 <button type="submit" class="submit-btn" id="submitBtn" onclick="submitExpense(event)"
-                    style="background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important; background-color: #2563EB !important; color: #FFFFFF !important; opacity: 1 !important; visibility: visible !important;">
+                    style="background-color: #2563EB !important; color: #FFFFFF !important;">
                     <i class="ri-save-line" style="color: #FFFFFF !important;"></i> 저장하기
                 </button>
             </div>
