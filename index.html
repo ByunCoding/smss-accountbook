@@ -1401,6 +1401,282 @@
                 font-size: 0.55rem;
             }
         }
+
+        /* ===== 플로팅 액션 버튼 (FAB) ===== */
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+        }
+
+        .fab:active {
+            transform: scale(0.95);
+        }
+
+        /* ===== 입력 모달 ===== */
+        .input-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .input-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .input-modal {
+            background: white;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            border-radius: 20px 20px 0 0;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            overflow: hidden;
+        }
+
+        .input-modal-overlay.active .input-modal {
+            transform: translateY(0);
+        }
+
+        .input-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            background: var(--gray-50);
+        }
+
+        .input-modal-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: var(--gray-200);
+            color: var(--gray-600);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.2s;
+        }
+
+        .input-modal-close:hover {
+            background: var(--gray-300);
+        }
+
+        .input-modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            max-height: calc(90vh - 160px);
+        }
+
+        .input-form-group {
+            margin-bottom: 20px;
+        }
+
+        .input-form-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .input-form-group label i {
+            color: var(--primary);
+        }
+
+        .input-form-group input,
+        .input-form-group select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .input-form-group input:focus,
+        .input-form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .input-form-group input::placeholder {
+            color: var(--gray-400);
+        }
+
+        .amount-input-wrapper {
+            position: relative;
+        }
+
+        .amount-input-wrapper input {
+            padding-right: 40px;
+        }
+
+        .amount-input-wrapper .currency {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-500);
+            font-weight: 600;
+        }
+
+        .input-modal-footer {
+            padding: 16px 24px 24px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .submit-btn:hover {
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            background: var(--gray-300);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .submit-btn.loading {
+            pointer-events: none;
+        }
+
+        .submit-btn.loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid white;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 입력 성공/실패 토스트 */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            z-index: 3000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: var(--income);
+            color: white;
+        }
+
+        .toast.error {
+            background: var(--expense);
+            color: white;
+        }
+
+        /* 모바일 반응형 */
+        @media (max-width: 768px) {
+            .fab {
+                bottom: 20px;
+                right: 20px;
+                width: 52px;
+                height: 52px;
+            }
+
+            .input-modal {
+                max-width: 100%;
+                border-radius: 16px 16px 0 0;
+            }
+
+            .input-modal-body {
+                padding: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1718,6 +1994,84 @@
             </div>
         </div>
     </div>
+
+    <!-- 플로팅 액션 버튼 -->
+    <button class="fab" onclick="openInputModal()" title="지출 입력">
+        <i class="ri-add-line"></i>
+    </button>
+
+    <!-- 지출 입력 모달 -->
+    <div class="input-modal-overlay" id="inputModal" onclick="closeInputModal(event)">
+        <div class="input-modal" onclick="event.stopPropagation()">
+            <div class="input-modal-header">
+                <h3><i class="ri-edit-line"></i> 지출 입력</h3>
+                <button class="input-modal-close" onclick="closeInputModal()">
+                    <i class="ri-close-line"></i>
+                </button>
+            </div>
+            <div class="input-modal-body">
+                <form id="expenseForm" onsubmit="submitExpense(event)">
+                    <div class="input-form-group">
+                        <label><i class="ri-calendar-line"></i> 날짜</label>
+                        <input type="date" id="inputDate" required>
+                    </div>
+                    <div class="input-form-group">
+                        <label><i class="ri-folder-line"></i> 카테고리</label>
+                        <select id="inputCategory" required>
+                            <option value="">카테고리 선택</option>
+                            <option value="외식">🍽️ 외식</option>
+                            <option value="식비">🛒 식비</option>
+                            <option value="카페">☕ 카페</option>
+                            <option value="쇼핑">🛍️ 쇼핑</option>
+                            <option value="생활비">🏠 생활비</option>
+                            <option value="병원비">🏥 병원비</option>
+                            <option value="육아비">👶 육아비</option>
+                            <option value="약속">👥 약속</option>
+                            <option value="여행비">✈️ 여행비</option>
+                            <option value="차량유지비">🚗 차량유지비</option>
+                            <option value="관리비">🏢 관리비</option>
+                            <option value="경조사비">💐 경조사비</option>
+                            <option value="교통비">🚌 교통비</option>
+                            <option value="자기계발비">📚 자기계발비</option>
+                            <option value="건강식품">💊 건강식품</option>
+                            <option value="기타">📦 기타</option>
+                        </select>
+                    </div>
+                    <div class="input-form-group">
+                        <label><i class="ri-money-dollar-circle-line"></i> 금액</label>
+                        <div class="amount-input-wrapper">
+                            <input type="number" id="inputAmount" placeholder="0" required min="1">
+                            <span class="currency">원</span>
+                        </div>
+                    </div>
+                    <div class="input-form-group">
+                        <label><i class="ri-file-text-line"></i> 메모 (선택)</label>
+                        <input type="text" id="inputDescription" placeholder="ex) 점심 식사">
+                    </div>
+                    <div class="input-form-group">
+                        <label><i class="ri-bank-card-line"></i> 결제수단</label>
+                        <select id="inputPayment" required>
+                            <option value="">결제수단 선택</option>
+                            <option value="현대카드_상민">💳 현대카드_상민</option>
+                            <option value="신한카드_상민">💳 신한카드_상민</option>
+                            <option value="현대카드_시리">💳 현대카드_시리</option>
+                            <option value="삼성카드_시리">💳 삼성카드_시리</option>
+                            <option value="현금">💵 현금</option>
+                            <option value="계좌이체">🏦 계좌이체</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="input-modal-footer">
+                <button type="submit" class="submit-btn" id="submitBtn" onclick="submitExpense(event)">
+                    <i class="ri-save-line"></i> 저장하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 토스트 메시지 -->
+    <div class="toast" id="toast"></div>
 
     <script>
         // ===== 설정 =====
@@ -3124,6 +3478,144 @@
             document.querySelectorAll('[id$="-tab"]').forEach(t => t.classList.add('hidden'));
             document.getElementById(`${tabName}-tab`).classList.remove('hidden');
         }
+
+        // ===== 지출 입력 모달 =====
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'; // 나중에 실제 URL로 교체
+
+        function openInputModal() {
+            const modal = document.getElementById('inputModal');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            // 오늘 날짜로 기본 설정
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+            document.getElementById('inputDate').value = dateStr;
+
+            // 선택된 월이 있으면 해당 월의 마지막 날짜로 제한
+            if (selectedMonth) {
+                const year = selectedMonth.year;
+                const month = selectedMonth.month;
+                const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
+                const lastDay = new Date(year, month, 0).getDate();
+                const lastDayStr = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+                document.getElementById('inputDate').min = firstDay;
+                document.getElementById('inputDate').max = lastDayStr;
+
+                // 오늘이 선택된 월에 포함되지 않으면 해당 월의 첫째 날로 설정
+                const todayMonth = today.getMonth() + 1;
+                const todayYear = today.getFullYear();
+                if (todayYear !== year || todayMonth !== month) {
+                    document.getElementById('inputDate').value = firstDay;
+                }
+            }
+        }
+
+        function closeInputModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            const modal = document.getElementById('inputModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+
+            // 폼 리셋
+            document.getElementById('expenseForm').reset();
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.innerHTML = `<i class="ri-${type === 'success' ? 'check' : 'error-warning'}-line"></i> ${message}`;
+            toast.className = `toast ${type} show`;
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        async function submitExpense(event) {
+            event.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const date = document.getElementById('inputDate').value;
+            const category = document.getElementById('inputCategory').value;
+            const amount = parseInt(document.getElementById('inputAmount').value);
+            const description = document.getElementById('inputDescription').value || '';
+            const payment = document.getElementById('inputPayment').value;
+
+            // 유효성 검사
+            if (!date || !category || !amount || !payment) {
+                showToast('모든 필수 항목을 입력해주세요', 'error');
+                return;
+            }
+
+            // 로딩 상태
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="ri-loader-4-line"></i> 저장 중...';
+
+            try {
+                // Google Apps Script로 데이터 전송
+                const formData = {
+                    date: date,
+                    category: category,
+                    description: description,
+                    amount: amount,
+                    payment: payment
+                };
+
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // CORS 우회
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                // no-cors 모드에서는 응답을 읽을 수 없으므로 성공으로 간주
+                // 실제로는 Apps Script에서 처리됨
+
+                // 로컬 데이터에도 추가 (즉시 반영)
+                const [year, month] = date.split('-').map(Number);
+                const newExpense = {
+                    date: date,
+                    year: year,
+                    month: month,
+                    category: category,
+                    description: description,
+                    amount: amount,
+                    payment_method: payment,
+                    isFixed: FIXED_CATEGORIES.includes(category),
+                    id: `local_${Date.now()}`
+                };
+
+                expenseData.expenses.push(newExpense);
+                calculateSummary();
+                updateDashboard();
+
+                // 캐시 업데이트
+                setCachedData(expenseData.expenses);
+
+                showToast(`${formatCurrency(amount)} 지출이 기록되었습니다`);
+                closeInputModal();
+
+            } catch (error) {
+                console.error('Error submitting expense:', error);
+                showToast('저장 중 오류가 발생했습니다', 'error');
+            } finally {
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="ri-save-line"></i> 저장하기';
+            }
+        }
+
+        // ESC 키로 모달 닫기
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeInputModal();
+                closeDayModal();
+            }
+        });
 
         loadData();
     </script>
