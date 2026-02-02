@@ -1,0 +1,18 @@
+{
+  "name": "SMSS 가계부",
+  "short_name": "SMSS가계부",
+  "description": "스마트한 가계부 관리 앱",
+  "start_url": "/smss-accountbook/",
+  "display": "standalone",
+  "background_color": "#1E3A5F",
+  "theme_color": "#1E3A5F",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
