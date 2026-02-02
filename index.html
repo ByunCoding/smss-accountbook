@@ -2055,17 +2055,30 @@
             }
 
             .input-modal {
-                max-width: 100%;
+                max-width: 100% !important;
+                width: 100% !important;
                 border-radius: 16px 16px 0 0;
+                margin: 0 !important;
             }
 
             .input-modal-body {
-                padding: 16px;
+                padding: 16px !important;
+                width: 100% !important;
+            }
+
+            .input-form-group {
+                width: 100% !important;
             }
 
             .input-form-group input,
             .input-form-group select {
+                width: 100% !important;
                 padding: 12px 14px;
+                max-width: 100% !important;
+            }
+
+            .amount-input-wrapper {
+                width: 100% !important;
             }
         }
 
@@ -2073,16 +2086,27 @@
         @media (max-width: 768px) {
             html, body {
                 overflow-x: hidden !important;
-                -webkit-overflow-scrolling: touch;
+                width: 100% !important;
+                max-width: 100% !important;
             }
 
             .container {
-                max-width: 100vw !important;
+                width: 100% !important;
+                max-width: 100% !important;
                 overflow-x: hidden !important;
+                padding-left: 16px !important;
+                padding-right: 16px !important;
             }
 
             main, header, nav, .section {
-                max-width: 100vw !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: hidden !important;
+            }
+
+            #app-wrapper {
+                width: 100% !important;
+                max-width: 100% !important;
                 overflow-x: hidden !important;
             }
         }
