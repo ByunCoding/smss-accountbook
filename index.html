@@ -2107,6 +2107,251 @@
                 overflow-x: hidden !important;
             }
         }
+
+        /* ===== 설정 모달 ===== */
+        .settings-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            margin-right: 8px;
+        }
+        .settings-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .settings-modal-body {
+            padding: 20px 24px;
+            overflow-y: auto;
+            max-height: calc(90vh - 180px);
+        }
+
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .settings-list {
+            background: var(--gray-50);
+            border-radius: 12px;
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+        }
+
+        .settings-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-item-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .settings-item-emoji {
+            font-size: 1.2rem;
+        }
+
+        .settings-item-name {
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .settings-item-delete {
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .settings-item-delete:hover {
+            background: var(--expense-light);
+            color: var(--expense);
+        }
+
+        .settings-add-btn {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed var(--gray-300);
+            border-radius: 10px;
+            background: white;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 12px;
+            transition: all 0.2s;
+        }
+
+        .settings-add-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--accent-light);
+        }
+
+        /* 설정 추가 폼 */
+        .settings-add-form {
+            display: none;
+            padding: 16px;
+            background: var(--gray-50);
+            border-radius: 12px;
+            border: 1px solid var(--gray-200);
+            margin-top: 12px;
+        }
+
+        .settings-add-form.active {
+            display: block;
+        }
+
+        .settings-add-form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .settings-add-form-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .settings-add-form input[type="text"] {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        .settings-add-form input[type="color"] {
+            width: 44px;
+            height: 44px;
+            padding: 2px;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .settings-add-form-emoji {
+            width: 60px;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+
+        .settings-add-form-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .settings-add-form-actions button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .settings-add-form .cancel-btn {
+            background: var(--gray-200);
+            border: none;
+            color: var(--gray-700);
+        }
+
+        .settings-add-form .cancel-btn:hover {
+            background: var(--gray-300);
+        }
+
+        .settings-add-form .confirm-btn {
+            background: var(--primary);
+            border: none;
+            color: white;
+        }
+
+        .settings-add-form .confirm-btn:hover {
+            background: var(--primary-light);
+        }
+
+        /* 내보내기/가져오기 버튼 */
+        .settings-export-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .settings-export-btn {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 10px;
+            background: white;
+            color: var(--gray-700);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .settings-export-btn:hover {
+            background: var(--gray-50);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .settings-export-btn input[type="file"] {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .settings-add-form-row {
+                flex-wrap: wrap;
+            }
+
+            .settings-add-form input[type="text"] {
+                min-width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2131,6 +2376,9 @@
             </div>
             <div class="header-info">
                 <span id="lastUpdated">로딩 중...</span>
+                <button class="settings-btn" onclick="openSettingsModal()" title="설정">
+                    <i class="ri-settings-3-line"></i>
+                </button>
                 <button class="refresh-btn" onclick="forceRefresh()" title="새로고침">
                     <i class="ri-refresh-line"></i>
                 </button>
@@ -2474,22 +2722,7 @@
                         <label><i class="ri-folder-line"></i> 카테고리</label>
                         <select id="inputCategory" required>
                             <option value="">카테고리 선택</option>
-                            <option value="외식">🍽️ 외식</option>
-                            <option value="식비">🛒 식비</option>
-                            <option value="카페">☕ 카페</option>
-                            <option value="쇼핑">🛍️ 쇼핑</option>
-                            <option value="생활비">🏠 생활비</option>
-                            <option value="병원비">🏥 병원비</option>
-                            <option value="육아비">👶 육아비</option>
-                            <option value="약속">👥 약속</option>
-                            <option value="여행비">✈️ 여행비</option>
-                            <option value="차량유지비">🚗 차량유지비</option>
-                            <option value="관리비">🏢 관리비</option>
-                            <option value="경조사비">💐 경조사비</option>
-                            <option value="교통비">🚌 교통비</option>
-                            <option value="자기계발비">📚 자기계발비</option>
-                            <option value="건강식품">💊 건강식품</option>
-                            <option value="기타">📦 기타</option>
+                            <!-- 동적으로 생성됨 -->
                         </select>
                     </div>
                     <div class="input-form-group">
@@ -2507,14 +2740,7 @@
                         <label><i class="ri-bank-card-line"></i> 결제수단</label>
                         <select id="inputPayment" required>
                             <option value="">결제수단 선택</option>
-                            <option value="현대카드_상민">🔴 현대카드_상민</option>
-                            <option value="현대카드_시리">🟠 현대카드_시리</option>
-                            <option value="국민카드">🟡 국민카드</option>
-                            <option value="쿠팡와우카드">🟣 쿠팡와우카드</option>
-                            <option value="삼성카드">🔵 삼성카드</option>
-                            <option value="국민행복카드">🟢 국민행복카드</option>
-                            <option value="계좌이체">🏦 계좌이체</option>
-                            <option value="현금">💵 현금</option>
+                            <!-- 동적으로 생성됨 -->
                         </select>
                     </div>
                 </form>
@@ -2523,6 +2749,78 @@
                 <button type="submit" class="submit-btn" id="submitBtn" onclick="submitExpense(event)"
                     style="background-color: #2563EB !important; color: #FFFFFF !important;">
                     <i class="ri-save-line" style="color: #FFFFFF !important;"></i> 저장하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 설정 모달 -->
+    <div class="input-modal-overlay" id="settingsModal" onclick="closeSettingsModal(event)">
+        <div class="input-modal" onclick="event.stopPropagation()">
+            <div class="input-modal-header">
+                <h3><i class="ri-settings-3-line"></i> 설정</h3>
+                <button class="input-modal-close" onclick="closeSettingsModal()">
+                    <i class="ri-close-line"></i>
+                </button>
+            </div>
+            <div class="settings-modal-body">
+                <!-- 카테고리 섹션 -->
+                <div class="settings-section">
+                    <div class="settings-section-title">
+                        <i class="ri-folder-line" style="color: var(--primary);"></i> 카테고리
+                    </div>
+                    <div class="settings-list" id="categorySettingsList"></div>
+                    <button class="settings-add-btn" onclick="showAddCategoryForm()">
+                        <i class="ri-add-line"></i> 카테고리 추가
+                    </button>
+                    <div class="settings-add-form" id="addCategoryForm">
+                        <div class="settings-add-form-row">
+                            <input type="text" id="newCategoryName" placeholder="카테고리 이름">
+                            <input type="text" id="newCategoryEmoji" class="settings-add-form-emoji" placeholder="🏷️" maxlength="2">
+                            <input type="color" id="newCategoryColor" value="#3B82F6">
+                        </div>
+                        <div class="settings-add-form-row settings-add-form-actions">
+                            <button class="cancel-btn" onclick="hideAddCategoryForm()">취소</button>
+                            <button class="confirm-btn" onclick="addCategory()">추가</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 결제수단 섹션 -->
+                <div class="settings-section">
+                    <div class="settings-section-title">
+                        <i class="ri-bank-card-line" style="color: var(--primary);"></i> 결제수단
+                    </div>
+                    <div class="settings-list" id="paymentSettingsList"></div>
+                    <button class="settings-add-btn" onclick="showAddPaymentForm()">
+                        <i class="ri-add-line"></i> 결제수단 추가
+                    </button>
+                    <div class="settings-add-form" id="addPaymentForm">
+                        <div class="settings-add-form-row">
+                            <input type="text" id="newPaymentName" placeholder="결제수단 이름">
+                            <input type="text" id="newPaymentEmoji" class="settings-add-form-emoji" placeholder="💳" maxlength="2">
+                        </div>
+                        <div class="settings-add-form-row settings-add-form-actions">
+                            <button class="cancel-btn" onclick="hideAddPaymentForm()">취소</button>
+                            <button class="confirm-btn" onclick="addPaymentMethod()">추가</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 내보내기/가져오기 -->
+                <div class="settings-export-row">
+                    <button class="settings-export-btn" onclick="exportSettings()">
+                        <i class="ri-download-line"></i> 내보내기
+                    </button>
+                    <label class="settings-export-btn">
+                        <i class="ri-upload-line"></i> 가져오기
+                        <input type="file" accept=".json" onchange="importSettings(event)">
+                    </label>
+                </div>
+            </div>
+            <div class="input-modal-footer">
+                <button type="button" class="submit-btn" onclick="closeSettingsModal()">
+                    <i class="ri-check-line"></i> 닫기
                 </button>
             </div>
         </div>
@@ -2573,13 +2871,319 @@
         // 고정비로 분류할 카테고리 (지출 내역 시트 기준)
         const FIXED_CATEGORIES = ['관리비', '대출이자', '보험료', '통신비', '구독료', '교육비'];
 
-        // 카테고리 색상
-        const categoryColors = {
+        // 카테고리 색상 (동적으로 설정에서 로드됨)
+        let categoryColors = {
             '외식': '#F97316', '식비': '#22C55E', '카페': '#A16207', '쇼핑': '#A855F7',
             '생활비': '#3B82F6', '병원비': '#EF4444', '육아비': '#EC4899', '약속': '#EAB308',
             '여행비': '#06B6D4', '차량유지비': '#64748B', '관리비': '#14B8A6', '경조사비': '#F43F5E',
             '교통비': '#6366F1', '자기계발비': '#8B5CF6', '건강식품': '#84CC16', '기타': '#9CA3AF'
         };
+
+        // ===== 설정 관리 =====
+        const SETTINGS_KEY = 'smss_settings';
+
+        // 기본 설정 (카테고리/결제수단)
+        const DEFAULT_SETTINGS = {
+            categories: [
+                { name: '외식', emoji: '🍽️', color: '#F97316' },
+                { name: '식비', emoji: '🛒', color: '#22C55E' },
+                { name: '카페', emoji: '☕', color: '#A16207' },
+                { name: '쇼핑', emoji: '🛍️', color: '#A855F7' },
+                { name: '생활비', emoji: '🏠', color: '#3B82F6' },
+                { name: '병원비', emoji: '🏥', color: '#EF4444' },
+                { name: '육아비', emoji: '👶', color: '#EC4899' },
+                { name: '약속', emoji: '👥', color: '#EAB308' },
+                { name: '여행비', emoji: '✈️', color: '#06B6D4' },
+                { name: '차량유지비', emoji: '🚗', color: '#64748B' },
+                { name: '관리비', emoji: '🏢', color: '#14B8A6' },
+                { name: '경조사비', emoji: '💐', color: '#F43F5E' },
+                { name: '교통비', emoji: '🚌', color: '#6366F1' },
+                { name: '자기계발비', emoji: '📚', color: '#8B5CF6' },
+                { name: '건강식품', emoji: '💊', color: '#84CC16' },
+                { name: '기타', emoji: '📦', color: '#9CA3AF' }
+            ],
+            paymentMethods: [
+                { name: '현대카드_상민', emoji: '🔴' },
+                { name: '현대카드_시리', emoji: '🟠' },
+                { name: '국민카드', emoji: '🟡' },
+                { name: '쿠팡와우카드', emoji: '🟣' },
+                { name: '삼성카드', emoji: '🔵' },
+                { name: '국민행복카드', emoji: '🟢' },
+                { name: '계좌이체', emoji: '🏦' },
+                { name: '현금', emoji: '💵' }
+            ]
+        };
+
+        // 현재 설정 (localStorage에서 로드)
+        let appSettings = null;
+
+        // 설정 로드
+        function loadSettings() {
+            try {
+                const saved = localStorage.getItem(SETTINGS_KEY);
+                if (saved) {
+                    appSettings = JSON.parse(saved);
+                } else {
+                    appSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+                }
+            } catch (e) {
+                console.warn('설정 로드 실패:', e);
+                appSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+            }
+
+            // categoryColors 업데이트
+            categoryColors = {};
+            appSettings.categories.forEach(cat => {
+                categoryColors[cat.name] = cat.color;
+            });
+
+            // select 옵션 렌더링
+            renderCategorySelect();
+            renderPaymentSelect();
+        }
+
+        // 설정 저장
+        function saveSettings() {
+            try {
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
+
+                // categoryColors 업데이트
+                categoryColors = {};
+                appSettings.categories.forEach(cat => {
+                    categoryColors[cat.name] = cat.color;
+                });
+
+                // select 옵션 다시 렌더링
+                renderCategorySelect();
+                renderPaymentSelect();
+            } catch (e) {
+                console.error('설정 저장 실패:', e);
+            }
+        }
+
+        // 카테고리 select 옵션 렌더링
+        function renderCategorySelect() {
+            const select = document.getElementById('inputCategory');
+            if (!select || !appSettings) return;
+
+            // 기본 옵션만 남기고 삭제
+            select.innerHTML = '<option value="">카테고리 선택</option>';
+
+            // 카테고리 옵션 추가
+            appSettings.categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.name;
+                option.textContent = `${cat.emoji} ${cat.name}`;
+                select.appendChild(option);
+            });
+        }
+
+        // 결제수단 select 옵션 렌더링
+        function renderPaymentSelect() {
+            const select = document.getElementById('inputPayment');
+            if (!select || !appSettings) return;
+
+            // 기본 옵션만 남기고 삭제
+            select.innerHTML = '<option value="">결제수단 선택</option>';
+
+            // 결제수단 옵션 추가
+            appSettings.paymentMethods.forEach(pm => {
+                const option = document.createElement('option');
+                option.value = pm.name;
+                option.textContent = `${pm.emoji} ${pm.name}`;
+                select.appendChild(option);
+            });
+        }
+
+        // 설정 모달 열기
+        function openSettingsModal() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            renderSettingsLists();
+        }
+
+        // 설정 모달 닫기
+        function closeSettingsModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            const modal = document.getElementById('settingsModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+            hideAddCategoryForm();
+            hideAddPaymentForm();
+        }
+
+        // 설정 리스트 렌더링
+        function renderSettingsLists() {
+            // 카테고리 리스트
+            const categoryList = document.getElementById('categorySettingsList');
+            categoryList.innerHTML = appSettings.categories.map((cat, idx) => `
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-color" style="background: ${cat.color};"></div>
+                        <span class="settings-item-emoji">${cat.emoji}</span>
+                        <span class="settings-item-name">${cat.name}</span>
+                    </div>
+                    <button class="settings-item-delete" onclick="removeCategory(${idx})" title="삭제">
+                        <i class="ri-delete-bin-line"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            // 결제수단 리스트
+            const paymentList = document.getElementById('paymentSettingsList');
+            paymentList.innerHTML = appSettings.paymentMethods.map((pm, idx) => `
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <span class="settings-item-emoji">${pm.emoji}</span>
+                        <span class="settings-item-name">${pm.name}</span>
+                    </div>
+                    <button class="settings-item-delete" onclick="removePaymentMethod(${idx})" title="삭제">
+                        <i class="ri-delete-bin-line"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // 카테고리 추가 폼 표시
+        function showAddCategoryForm() {
+            document.getElementById('addCategoryForm').classList.add('active');
+            document.getElementById('newCategoryName').focus();
+        }
+
+        // 카테고리 추가 폼 숨김
+        function hideAddCategoryForm() {
+            document.getElementById('addCategoryForm').classList.remove('active');
+            document.getElementById('newCategoryName').value = '';
+            document.getElementById('newCategoryEmoji').value = '';
+            document.getElementById('newCategoryColor').value = '#3B82F6';
+        }
+
+        // 카테고리 추가
+        function addCategory() {
+            const name = document.getElementById('newCategoryName').value.trim();
+            const emoji = document.getElementById('newCategoryEmoji').value.trim() || '🏷️';
+            const color = document.getElementById('newCategoryColor').value;
+
+            if (!name) {
+                showToast('카테고리 이름을 입력해주세요.', 'error');
+                return;
+            }
+
+            // 중복 체크
+            if (appSettings.categories.some(cat => cat.name === name)) {
+                showToast('이미 존재하는 카테고리입니다.', 'error');
+                return;
+            }
+
+            appSettings.categories.push({ name, emoji, color });
+            saveSettings();
+            renderSettingsLists();
+            hideAddCategoryForm();
+            showToast(`'${name}' 카테고리가 추가되었습니다.`, 'success');
+        }
+
+        // 카테고리 삭제
+        function removeCategory(index) {
+            const cat = appSettings.categories[index];
+            if (confirm(`'${cat.name}' 카테고리를 삭제하시겠습니까?`)) {
+                appSettings.categories.splice(index, 1);
+                saveSettings();
+                renderSettingsLists();
+                showToast(`'${cat.name}' 카테고리가 삭제되었습니다.`, 'success');
+            }
+        }
+
+        // 결제수단 추가 폼 표시
+        function showAddPaymentForm() {
+            document.getElementById('addPaymentForm').classList.add('active');
+            document.getElementById('newPaymentName').focus();
+        }
+
+        // 결제수단 추가 폼 숨김
+        function hideAddPaymentForm() {
+            document.getElementById('addPaymentForm').classList.remove('active');
+            document.getElementById('newPaymentName').value = '';
+            document.getElementById('newPaymentEmoji').value = '';
+        }
+
+        // 결제수단 추가
+        function addPaymentMethod() {
+            const name = document.getElementById('newPaymentName').value.trim();
+            const emoji = document.getElementById('newPaymentEmoji').value.trim() || '💳';
+
+            if (!name) {
+                showToast('결제수단 이름을 입력해주세요.', 'error');
+                return;
+            }
+
+            // 중복 체크
+            if (appSettings.paymentMethods.some(pm => pm.name === name)) {
+                showToast('이미 존재하는 결제수단입니다.', 'error');
+                return;
+            }
+
+            appSettings.paymentMethods.push({ name, emoji });
+            saveSettings();
+            renderSettingsLists();
+            hideAddPaymentForm();
+            showToast(`'${name}' 결제수단이 추가되었습니다.`, 'success');
+        }
+
+        // 결제수단 삭제
+        function removePaymentMethod(index) {
+            const pm = appSettings.paymentMethods[index];
+            if (confirm(`'${pm.name}' 결제수단을 삭제하시겠습니까?`)) {
+                appSettings.paymentMethods.splice(index, 1);
+                saveSettings();
+                renderSettingsLists();
+                showToast(`'${pm.name}' 결제수단이 삭제되었습니다.`, 'success');
+            }
+        }
+
+        // 설정 내보내기
+        function exportSettings() {
+            const data = JSON.stringify(appSettings, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `smss-settings-${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('설정이 내보내기되었습니다.', 'success');
+        }
+
+        // 설정 가져오기
+        function importSettings(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+
+                    // 유효성 검사
+                    if (!imported.categories || !Array.isArray(imported.categories)) {
+                        throw new Error('잘못된 형식: categories 배열이 없습니다.');
+                    }
+                    if (!imported.paymentMethods || !Array.isArray(imported.paymentMethods)) {
+                        throw new Error('잘못된 형식: paymentMethods 배열이 없습니다.');
+                    }
+
+                    appSettings = imported;
+                    saveSettings();
+                    renderSettingsLists();
+                    showToast('설정이 가져오기되었습니다.', 'success');
+                } catch (err) {
+                    console.error('설정 가져오기 실패:', err);
+                    showToast('설정 파일을 읽을 수 없습니다.', 'error');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // 같은 파일 다시 선택 가능하게
+        }
 
         let expenseData = { expenses: [], summary: {} };
         let charts = {};
@@ -4035,8 +4639,8 @@
             const modal = document.getElementById('budgetModal');
             const body = document.getElementById('budgetFormBody');
 
-            // 모든 카테고리 목록 (예산 있는 것 + 없는 것)
-            const allCategories = Object.keys(DEFAULT_BUDGETS);
+            // 설정에서 카테고리 목록 가져오기
+            const allCategories = appSettings ? appSettings.categories.map(c => c.name) : Object.keys(DEFAULT_BUDGETS);
 
             body.innerHTML = allCategories.map(cat => `
                 <div class="budget-input-group">
@@ -4060,7 +4664,8 @@
         }
 
         function saveBudgets() {
-            const allCategories = Object.keys(DEFAULT_BUDGETS);
+            // 설정에서 카테고리 목록 가져오기
+            const allCategories = appSettings ? appSettings.categories.map(c => c.name) : Object.keys(DEFAULT_BUDGETS);
 
             allCategories.forEach(cat => {
                 const input = document.getElementById(`budget_${cat}`);
@@ -4390,6 +4995,8 @@
         setTimeout(ensureFabVisible, 500);
         setTimeout(ensureFabVisible, 1000);
 
+        // 설정 로드 후 데이터 로드
+        loadSettings();
         loadData();
     </script>
 </div><!-- end app-wrapper -->
