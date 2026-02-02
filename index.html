@@ -524,6 +524,26 @@
             color: var(--gray-900);
         }
 
+        /* 하루 사용 가능 금액 카드 */
+        .daily-budget-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            text-align: center;
+            color: white;
+        }
+
+        .daily-budget-amount {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .daily-budget-info {
+            font-size: 0.95rem;
+            opacity: 0.85;
+        }
+
         /* 고정비/변동비 */
         .expense-split {
             display: grid;
@@ -2359,7 +2379,7 @@
                 </button>
                 <button class="tab" onclick="showTab('budget')">
                     <i class="ri-pie-chart-fill"></i>
-                    <span>예산 관리</span>
+                    <span>지출 현황</span>
                 </button>
                 <button class="tab" onclick="showTab('details')">
                     <i class="ri-file-list-3-fill"></i>
@@ -2560,12 +2580,26 @@
                     </div>
                 </div>
 
+                <!-- 하루 사용 가능 금액 -->
                 <div class="section">
                     <div class="section-header">
-                        <h2 class="section-title"><i class="ri-pie-chart-2-fill"></i> 예산 대비 지출</h2>
+                        <h2 class="section-title"><i class="ri-wallet-3-fill"></i> 오늘 사용 가능 금액</h2>
                     </div>
                     <div class="section-body">
-                        <div class="chart-container"><canvas id="budgetChart"></canvas></div>
+                        <div class="daily-budget-card">
+                            <div class="daily-budget-amount" id="dailyBudgetAmount">₩0</div>
+                            <div class="daily-budget-info" id="dailyBudgetInfo">계산 중...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 일별 지출 추이 -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-line-chart-fill"></i> 일별 지출 추이</h2>
+                    </div>
+                    <div class="section-body">
+                        <div class="chart-container"><canvas id="dailyExpenseChart"></canvas></div>
                     </div>
                 </div>
             </div>
@@ -4470,26 +4504,114 @@
                 }
             });
 
-            // 예산 차트
-            const budgetData = Object.entries(CATEGORY_BUDGETS).map(([cat, budget]) => ({
-                cat, budget, spent: currentCats[cat] || 0
-            })).sort((a, b) => (b.spent / b.budget) - (a.spent / a.budget)).slice(0, 6);
+            // 일별 지출 추이 차트
+            renderDailyExpenseChart();
 
-            charts.budget = new Chart(document.getElementById('budgetChart'), {
-                type: 'bar',
+            // 하루 사용 가능 금액 업데이트
+            updateDailyBudget();
+        }
+
+        // 하루 사용 가능 금액 계산
+        function updateDailyBudget() {
+            const now = new Date();
+            const year = selectedMonth ? selectedMonth.year : now.getFullYear();
+            const month = selectedMonth ? selectedMonth.month : now.getMonth() + 1;
+
+            // 해당 월의 마지막 날
+            const lastDay = new Date(year, month, 0).getDate();
+            const today = (year === now.getFullYear() && month === now.getMonth() + 1) ? now.getDate() : lastDay;
+            const remainingDays = lastDay - today + 1; // 오늘 포함
+
+            // 예산 합계 (설정된 예산만)
+            const totalBudget = Object.values(CATEGORY_BUDGETS).reduce((sum, b) => sum + (b || 0), 0);
+
+            // 이번 달 지출
+            const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+            const monthlyExpense = expenseData.summary.monthly_totals?.[monthKey] || 0;
+
+            // 변동비만 계산 (고정비 제외)
+            const fixedExpense = expenseData.expenses
+                .filter(e => e.year === year && e.month === month && e.isFixed)
+                .reduce((sum, e) => sum + e.amount, 0);
+            const variableExpense = monthlyExpense - fixedExpense;
+
+            // 남은 예산
+            const remainingBudget = Math.max(0, totalBudget - variableExpense);
+
+            // 하루 사용 가능 금액
+            const dailyBudget = remainingDays > 0 ? Math.floor(remainingBudget / remainingDays) : 0;
+
+            // UI 업데이트
+            const amountEl = document.getElementById('dailyBudgetAmount');
+            const infoEl = document.getElementById('dailyBudgetInfo');
+
+            if (amountEl) amountEl.textContent = formatCurrency(dailyBudget);
+            if (infoEl) infoEl.textContent = `남은 예산 ${formatCurrency(remainingBudget)} ÷ ${remainingDays}일`;
+        }
+
+        // 일별 지출 추이 차트
+        function renderDailyExpenseChart() {
+            const canvas = document.getElementById('dailyExpenseChart');
+            if (!canvas) return;
+
+            // 기존 차트 제거
+            if (charts.dailyExpense) {
+                charts.dailyExpense.destroy();
+            }
+
+            const now = new Date();
+            const year = selectedMonth ? selectedMonth.year : now.getFullYear();
+            const month = selectedMonth ? selectedMonth.month : now.getMonth() + 1;
+            const lastDay = new Date(year, month, 0).getDate();
+
+            // 일별 지출 집계
+            const dailyData = {};
+            for (let d = 1; d <= lastDay; d++) {
+                dailyData[d] = 0;
+            }
+
+            expenseData.expenses
+                .filter(e => e.year === year && e.month === month && !e.isFixed)
+                .forEach(e => {
+                    const day = parseInt(e.date.split('-')[2]);
+                    dailyData[day] = (dailyData[day] || 0) + e.amount;
+                });
+
+            const labels = Object.keys(dailyData).map(d => `${d}일`);
+            const data = Object.values(dailyData);
+
+            charts.dailyExpense = new Chart(canvas, {
+                type: 'line',
                 data: {
-                    labels: budgetData.map(d => d.cat),
-                    datasets: [
-                        { label: '지출', data: budgetData.map(d => d.spent), backgroundColor: 'rgba(220, 38, 38, 0.7)', borderRadius: 4 },
-                        { label: '예산', data: budgetData.map(d => d.budget), backgroundColor: 'rgba(209, 213, 219, 0.5)', borderRadius: 4 }
-                    ]
+                    labels: labels,
+                    datasets: [{
+                        label: '일별 지출',
+                        data: data,
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointBackgroundColor: 'rgba(59, 130, 246, 1)'
+                    }]
                 },
                 options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top' } },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
                     scales: {
-                        y: { beginAtZero: true, ticks: { callback: v => (v / 10000) + '만' } },
-                        x: { grid: { display: false } }
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: v => (v / 10000) + '만' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                maxTicksLimit: 10
+                            }
+                        }
                     }
                 }
             });
