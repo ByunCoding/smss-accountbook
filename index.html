@@ -43,10 +43,16 @@
             box-sizing: border-box;
         }
 
-        html, body {
-            overflow-x: hidden;
-            width: 100%;
-            max-width: 100vw;
+        html {
+            overflow-x: hidden !important;
+            width: 100% !important;
+            max-width: 100vw !important;
+        }
+
+        body {
+            overflow-x: hidden !important;
+            width: 100% !important;
+            max-width: 100vw !important;
             position: relative;
         }
 
@@ -2045,7 +2051,30 @@
             }
 
             .input-modal-body {
-                padding: 20px;
+                padding: 16px;
+            }
+
+            .input-form-group input,
+            .input-form-group select {
+                padding: 12px 14px;
+            }
+        }
+
+        /* 모바일 가로 스크롤 완전 차단 */
+        @media (max-width: 768px) {
+            html, body {
+                overflow-x: hidden !important;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .container {
+                max-width: 100vw !important;
+                overflow-x: hidden !important;
+            }
+
+            main, header, nav, .section {
+                max-width: 100vw !important;
+                overflow-x: hidden !important;
             }
         }
     </style>
