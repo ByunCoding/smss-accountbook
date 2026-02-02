@@ -18,15 +18,17 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        /* 라이트 모드 (기본) */
         :root {
-            --primary: #1E3A5F;
-            --primary-light: #2E5077;
-            --primary-bg: #EEF2F7;
+            --primary: #2563EB;
+            --primary-light: #3B82F6;
+            --primary-dark: #1D4ED8;
+            --primary-bg: #EFF6FF;
             --accent: #3B82F6;
             --accent-light: #DBEAFE;
-            --expense: #DC2626;
+            --expense: #EF4444;
             --expense-light: #FEE2E2;
-            --income: #059669;
+            --income: #10B981;
             --income-light: #D1FAE5;
             --warning: #F59E0B;
             --warning-light: #FEF3C7;
@@ -40,8 +42,11 @@
             --gray-700: #374151;
             --gray-800: #1F2937;
             --gray-900: #111827;
-            --bg-primary: #F3F4F6;
+            --bg-primary: #F8FAFC;
             --bg-card: #FFFFFF;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --border-color: #E5E7EB;
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
             --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
             --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
@@ -49,39 +54,48 @@
             --radius-lg: 16px;
         }
 
-        /* 다크 모드 */
+        /* 다크 모드 - GitHub/Linear 스타일 */
         [data-theme="dark"] {
-            --primary: #3B82F6;
-            --primary-light: #60A5FA;
-            --primary-bg: #1E293B;
-            --accent: #60A5FA;
-            --accent-light: #1E3A5F;
-            --expense: #F87171;
-            --expense-light: #450A0A;
-            --income: #34D399;
-            --income-light: #064E3B;
-            --warning: #FBBF24;
-            --warning-light: #451A03;
-            --gray-50: #1F2937;
-            --gray-100: #1F2937;
-            --gray-200: #374151;
-            --gray-300: #4B5563;
-            --gray-400: #6B7280;
-            --gray-500: #9CA3AF;
-            --gray-600: #D1D5DB;
-            --gray-700: #E5E7EB;
-            --gray-800: #F3F4F6;
-            --gray-900: #F9FAFB;
-            --bg-primary: #0F172A;
-            --bg-card: #1E293B;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-            --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
-            --shadow-md: 0 4px 6px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3);
+            --primary: #58A6FF;
+            --primary-light: #79C0FF;
+            --primary-dark: #388BFD;
+            --primary-bg: #1C2128;
+            --accent: #58A6FF;
+            --accent-light: #1C3A5E;
+            --expense: #F85149;
+            --expense-light: #3D1A1A;
+            --income: #3FB950;
+            --income-light: #1A3D1F;
+            --warning: #D29922;
+            --warning-light: #3D2E0F;
+            --gray-50: #161B22;
+            --gray-100: #21262D;
+            --gray-200: #30363D;
+            --gray-300: #484F58;
+            --gray-400: #6E7681;
+            --gray-500: #8B949E;
+            --gray-600: #C9D1D9;
+            --gray-700: #E6EDF3;
+            --gray-800: #F0F6FC;
+            --gray-900: #FFFFFF;
+            --bg-primary: #0D1117;
+            --bg-card: #161B22;
+            --text-primary: #E6EDF3;
+            --text-secondary: #8B949E;
+            --border-color: #30363D;
+            --shadow-sm: 0 0 0 1px rgba(48,54,61,0.5);
+            --shadow: 0 3px 6px rgba(0,0,0,0.4);
+            --shadow-md: 0 8px 24px rgba(0,0,0,0.4);
         }
 
         [data-theme="dark"] body {
             background: var(--bg-primary);
-            color: var(--gray-800);
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] header {
+            background: linear-gradient(135deg, #161B22 0%, #21262D 100%);
+            border-bottom: 1px solid var(--border-color);
         }
 
         [data-theme="dark"] .section,
@@ -89,23 +103,62 @@
         [data-theme="dark"] .input-modal,
         [data-theme="dark"] .day-modal {
             background: var(--bg-card);
+            border: 1px solid var(--border-color);
+        }
+
+        [data-theme="dark"] .metric-card.main {
+            background: linear-gradient(135deg, #238636 0%, #2EA043 100%);
+            border: none;
+        }
+
+        [data-theme="dark"] .savings-card {
+            background: linear-gradient(135deg, #1F6FEB 0%, #388BFD 100%);
+        }
+
+        [data-theme="dark"] .fixed-card {
+            background: linear-gradient(135deg, #6E7681 0%, #484F58 100%);
         }
 
         [data-theme="dark"] .nav-tabs {
             background: var(--bg-card);
-            border-color: var(--gray-200);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .tab {
+            color: var(--text-secondary);
         }
 
         [data-theme="dark"] .tab:hover {
             background: var(--gray-100);
+            color: var(--text-primary);
         }
 
         [data-theme="dark"] .tab.active {
-            background: var(--primary-bg);
+            background: var(--gray-100);
+            color: var(--primary);
+        }
+
+        [data-theme="dark"] .section-header {
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .section-title {
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .section-title i {
+            color: var(--primary);
         }
 
         [data-theme="dark"] .data-table th {
             background: var(--gray-100);
+            color: var(--text-secondary);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .data-table td {
+            border-color: var(--border-color);
+            color: var(--text-primary);
         }
 
         [data-theme="dark"] .data-table tr:hover {
@@ -115,23 +168,123 @@
         [data-theme="dark"] .budget-item,
         [data-theme="dark"] .top-expense-item,
         [data-theme="dark"] .settings-list,
-        [data-theme="dark"] .settings-add-form {
+        [data-theme="dark"] .settings-add-form,
+        [data-theme="dark"] .no-budget-item {
             background: var(--gray-100);
-            border-color: var(--gray-200);
+            border-color: var(--border-color);
         }
 
         [data-theme="dark"] .input-form-group input,
         [data-theme="dark"] .input-form-group select {
             background: var(--gray-100);
-            border-color: var(--gray-200);
-            color: var(--gray-800);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .input-form-group label {
+            color: var(--text-primary);
         }
 
         [data-theme="dark"] .filter-bar select,
         [data-theme="dark"] .filter-bar input {
             background: var(--gray-100);
-            border-color: var(--gray-200);
-            color: var(--gray-800);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .input-modal-header {
+            background: var(--gray-100);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .input-modal-header h3 {
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .input-modal-footer {
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .insight-card {
+            background: var(--gray-100);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .insight-card .title {
+            color: var(--text-primary) !important;
+        }
+
+        [data-theme="dark"] .insight-card .detail {
+            color: var(--text-secondary) !important;
+        }
+
+        [data-theme="dark"] .calendar-day {
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .calendar-day:hover {
+            background: var(--gray-100);
+        }
+
+        [data-theme="dark"] .daily-budget-card {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+        }
+
+        [data-theme="dark"] .month-selector {
+            background: rgba(255,255,255,0.08);
+        }
+
+        [data-theme="dark"] .month-selector select {
+            background: var(--gray-100);
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .edit-budget-btn {
+            background: var(--gray-100);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .edit-budget-btn:hover {
+            background: var(--gray-200);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        [data-theme="dark"] .settings-item {
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .settings-item-name {
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .settings-add-btn {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        [data-theme="dark"] .settings-add-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--gray-100);
+        }
+
+        [data-theme="dark"] .top-expense-desc {
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .top-expense-meta {
+            color: var(--text-secondary);
+        }
+
+        [data-theme="dark"] .budget-item-header .category {
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .budget-progress {
+            background: var(--gray-200);
         }
 
         *, *::before, *::after {
