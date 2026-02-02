@@ -718,6 +718,8 @@
         .yoy-summary {
             text-align: center;
             padding: 20px;
+            max-width: 100%;
+            overflow: hidden;
         }
 
         .yoy-summary .label {
@@ -740,7 +742,15 @@
             margin-top: 8px;
         }
 
-        .yoy-chart { height: 200px; }
+        .yoy-chart {
+            height: 200px;
+            max-width: 100%;
+            overflow: hidden;
+        }
+        .yoy-chart canvas {
+            max-width: 100% !important;
+            height: auto !important;
+        }
 
         /* 차트 */
         .charts-grid {
@@ -750,7 +760,16 @@
             margin-bottom: 24px;
         }
 
-        .chart-container { height: 280px; position: relative; }
+        .chart-container {
+            height: 280px;
+            position: relative;
+            max-width: 100%;
+            overflow: hidden;
+        }
+        .chart-container canvas,
+        canvas {
+            max-width: 100% !important;
+        }
 
         /* 상세 내역 테이블 */
         .data-table {
