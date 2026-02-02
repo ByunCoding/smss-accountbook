@@ -2063,10 +2063,15 @@
             }
 
             .input-form-group input,
-            .input-form-group select {
+            .input-form-group select,
+            .input-form-group input[type="date"] {
                 width: 100% !important;
-                padding: 12px 14px;
                 max-width: 100% !important;
+                min-width: 0 !important;
+                padding: 12px 14px !important;
+                -webkit-appearance: none !important;
+                appearance: none !important;
+                box-sizing: border-box !important;
             }
 
             .amount-input-wrapper {
