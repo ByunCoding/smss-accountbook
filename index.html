@@ -67,7 +67,24 @@
         }
         .logo h1 { font-size: 1.5rem; font-weight: 700; }
         .logo span { font-size: 0.8rem; opacity: 0.8; }
-        .header-info { font-size: 0.85rem; opacity: 0.9; }
+        .header-info { font-size: 0.85rem; opacity: 0.9; display: flex; align-items: center; gap: 8px; }
+        .refresh-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .refresh-btn:hover { background: rgba(255,255,255,0.3); }
+        .refresh-btn:active { transform: scale(0.95); }
+        .refresh-btn.spinning i { animation: spin 0.8s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         /* 월 선택기 */
         .month-selector {
@@ -1296,6 +1313,9 @@
             }
 
             .header-info {
+                display: flex;
+            }
+            .header-info #lastUpdated {
                 display: none;
             }
 
@@ -1967,6 +1987,19 @@
             color: white;
         }
 
+        .toast .undo-btn {
+            background: rgba(255,255,255,0.25);
+            border: none;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-left: 8px;
+            transition: background 0.2s;
+        }
+        .toast .undo-btn:hover { background: rgba(255,255,255,0.4); }
+
         /* 모바일 반응형 */
         @media (max-width: 768px) {
             .fab {
@@ -2008,6 +2041,9 @@
             </div>
             <div class="header-info">
                 <span id="lastUpdated">로딩 중...</span>
+                <button class="refresh-btn" onclick="forceRefresh()" title="새로고침">
+                    <i class="ri-refresh-line"></i>
+                </button>
             </div>
         </div>
     </header>
@@ -2369,7 +2405,7 @@
                     <div class="input-form-group">
                         <label><i class="ri-money-dollar-circle-line"></i> 금액</label>
                         <div class="amount-input-wrapper">
-                            <input type="number" id="inputAmount" placeholder="0" required min="1">
+                            <input type="number" id="inputAmount" placeholder="0" required min="1" inputmode="numeric">
                             <span class="currency">원</span>
                         </div>
                     </div>
@@ -2459,10 +2495,12 @@
         let charts = {};
         let selectedMonth = null; // 선택된 월 (예: { year: 2026, month: 2 })
         let availableMonths = []; // 데이터가 있는 월 목록
+        let lastDeletedExpense = null; // 최근 삭제된 지출 (되돌리기용)
+        let undoTimeout = null; // 되돌리기 타이머
 
         // ===== 캐시 관리 =====
         const CACHE_KEY = 'smss_accountbook_cache';
-        const CACHE_EXPIRY = 5 * 60 * 1000; // 5분
+        const CACHE_EXPIRY = 1 * 60 * 1000; // 1분
 
         function getCachedData() {
             try {
@@ -2525,7 +2563,7 @@
 
                     // 캐시가 만료되지 않았으면 백그라운드 갱신만
                     if (!cached.isExpired) {
-                        lastUpdatedEl.textContent = `${cached.data.length}건 로드됨`;
+                        updateCountDisplay();
                         refreshDataInBackground();
                         return;
                     }
@@ -2551,6 +2589,36 @@
             } catch (e) { console.warn('Background refresh failed:', e); }
         }
 
+        // 강제 새로고침 (캐시 무시)
+        async function forceRefresh() {
+            const btn = document.querySelector('.refresh-btn');
+            const lastUpdatedEl = document.getElementById('lastUpdated');
+
+            // 이미 새로고침 중이면 무시
+            if (btn.classList.contains('spinning')) return;
+
+            btn.classList.add('spinning');
+            lastUpdatedEl.textContent = '새로고침 중...';
+
+            try {
+                // 캐시 삭제
+                localStorage.removeItem(CACHE_KEY);
+
+                // 시트 목록 새로 로드
+                await loadSheetList();
+
+                // 데이터 새로 로드
+                await loadFreshData(false);
+
+                updateCountDisplay();
+            } catch (e) {
+                console.error('Force refresh failed:', e);
+                lastUpdatedEl.textContent = '새로고침 실패';
+            } finally {
+                btn.classList.remove('spinning');
+            }
+        }
+
         // 실제 데이터 로드 (병렬 처리)
         async function loadFreshData(isBackground = false) {
             const lastUpdatedEl = document.getElementById('lastUpdated');
@@ -2574,7 +2642,7 @@
                 updateCurrentTab();
             }
 
-            lastUpdatedEl.textContent = `${expensesResult.length}건 로드됨`;
+            updateCountDisplay();
         }
 
         // 모든 지출 데이터 병렬 로드
@@ -2864,7 +2932,7 @@
             // 월 선택 드롭다운 채우기
             populateMonthSelector();
 
-            document.getElementById('lastUpdated').textContent = `${expenseData.expenses.length}건 로드됨`;
+            updateCountDisplay();
 
             updateDashboard();
             populateFilters();
@@ -2919,6 +2987,18 @@
             return `${selectedMonth.year}-${String(selectedMonth.month).padStart(2, '0')}`;
         }
 
+        // 현재 월 건수 가져오기
+        function getCurrentMonthCount() {
+            const currentKey = getSelectedKey();
+            return expenseData.expenses.filter(e => e.date && e.date.startsWith(currentKey)).length;
+        }
+
+        // 건수 표시 업데이트
+        function updateCountDisplay() {
+            const count = getCurrentMonthCount();
+            document.getElementById('lastUpdated').textContent = `${selectedMonth.month}월 ${count}건`;
+        }
+
         // 월 변경 핸들러
         function onMonthChange() {
             const select = document.getElementById('monthSelect');
@@ -2926,6 +3006,7 @@
             selectedMonth = { year, month };
             updateHeaderDate();
             updateNavButtons();
+            updateCountDisplay();
             updateDashboard();
         }
 
@@ -2940,6 +3021,7 @@
                 document.getElementById('monthSelect').value = availableMonths[newIndex];
                 updateHeaderDate();
                 updateNavButtons();
+                updateCountDisplay();
                 updateDashboard();
             }
         }
@@ -3971,14 +4053,63 @@
             document.getElementById('expenseForm').reset();
         }
 
-        function showToast(message, type = 'success') {
+        function showToast(message, type = 'success', showUndo = false) {
             const toast = document.getElementById('toast');
-            toast.innerHTML = `<i class="ri-${type === 'success' ? 'check' : 'error-warning'}-line"></i> ${message}`;
+            const undoBtn = showUndo ? `<button class="undo-btn" onclick="undoDelete()">되돌리기</button>` : '';
+            toast.innerHTML = `<i class="ri-${type === 'success' ? 'check' : 'error-warning'}-line"></i> ${message} ${undoBtn}`;
             toast.className = `toast ${type} show`;
 
-            setTimeout(() => {
+            // 기존 타이머 취소
+            if (undoTimeout) clearTimeout(undoTimeout);
+
+            undoTimeout = setTimeout(() => {
                 toast.classList.remove('show');
-            }, 3000);
+                if (showUndo) lastDeletedExpense = null; // 되돌리기 기회 만료
+            }, showUndo ? 5000 : 3000); // 되돌리기 있으면 5초
+        }
+
+        // 삭제 되돌리기
+        async function undoDelete() {
+            if (!lastDeletedExpense) return;
+
+            const data = lastDeletedExpense;
+            lastDeletedExpense = null;
+
+            // 토스트 즉시 숨김
+            document.getElementById('toast').classList.remove('show');
+            if (undoTimeout) clearTimeout(undoTimeout);
+
+            try {
+                // 삭제된 항목 다시 저장
+                const params = new URLSearchParams({
+                    action: 'add',
+                    date: data.date,
+                    category: data.category,
+                    item: data.description || '',
+                    amount: data.amount.toString(),
+                    person: data.payment_method || ''
+                });
+
+                await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
+
+                // 로컬 데이터에 다시 추가
+                expenseData.expenses.push(data);
+                calculateSummary();
+
+                showToast('삭제가 취소되었습니다');
+
+                // 현재 화면 업데이트
+                updateDashboard();
+                renderExpenseTable();
+                updateCountDisplay();
+
+            } catch (error) {
+                console.error('Undo failed:', error);
+                showToast('되돌리기 실패', 'error');
+            }
         }
 
         async function submitExpense(event) {
@@ -4066,8 +4197,6 @@
 
             try {
                 const data = JSON.parse(decodeURIComponent(encodedData));
-                const [year, month] = data.date.split('-').map(Number);
-                const shortYear = String(year).slice(-2); // 2026 -> "26"
 
                 const params = new URLSearchParams({
                     action: 'delete',
@@ -4083,15 +4212,31 @@
                     mode: 'no-cors'
                 });
 
+                // 되돌리기를 위해 삭제된 항목 저장
+                lastDeletedExpense = data;
+
+                // 로컬 데이터에서 제거
+                const idx = expenseData.expenses.findIndex(e =>
+                    e.date === data.date &&
+                    e.category === data.category &&
+                    e.amount === data.amount &&
+                    (e.description || '') === (data.description || '')
+                );
+                if (idx !== -1) {
+                    expenseData.expenses.splice(idx, 1);
+                }
+
                 // 캐시 무효화
                 localStorage.removeItem(CACHE_KEY);
 
-                showToast('지출이 삭제되었습니다. 새로고침 중...');
+                // 화면 즉시 업데이트 (새로고침 없이)
+                calculateSummary();
+                updateDashboard();
+                renderExpenseTable();
+                updateCountDisplay();
+                closeDayModal();
 
-                // 데이터 새로고침
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
+                showToast('삭제됨', 'success', true); // 되돌리기 버튼 표시
 
             } catch (error) {
                 console.error('Error deleting expense:', error);
