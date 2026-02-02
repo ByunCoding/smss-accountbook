@@ -41,29 +41,27 @@
 
         *, *::before, *::after {
             box-sizing: border-box;
-            max-width: 100vw;
         }
 
         html {
-            overflow-x: hidden !important;
-            width: 100% !important;
-            max-width: 100vw !important;
-            overflow-y: auto;
+            overflow-x: hidden;
+            overflow-y: scroll;
         }
 
         body {
-            overflow-x: hidden !important;
-            width: 100% !important;
-            max-width: 100vw !important;
+            overflow-x: hidden;
+            width: 100%;
+            min-width: 0;
             position: relative;
-            min-height: 100vh;
         }
 
-        /* 모바일 가로 스크롤 강제 차단 */
-        @media screen and (max-width: 768px) {
-            * {
-                max-width: 100vw !important;
-            }
+        /* Safari 가로 스크롤 완전 차단 */
+        #app-wrapper {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+            overflow-y: visible;
+            position: relative;
         }
 
         body {
@@ -2091,6 +2089,7 @@
     </style>
 </head>
 <body>
+<div id="app-wrapper">
     <header>
         <div class="container header-content">
             <div class="logo">
@@ -4337,5 +4336,6 @@
 
         loadData();
     </script>
+</div><!-- end app-wrapper -->
 </body>
 </html>
