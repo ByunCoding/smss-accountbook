@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SMSS 가계부</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
@@ -1754,6 +1754,7 @@
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
+            overflow: hidden;
         }
 
         .input-modal-overlay.active {
@@ -1764,7 +1765,7 @@
         .input-modal {
             background: white;
             width: 100%;
-            max-width: 500px;
+            max-width: min(500px, 100vw);
             max-height: 90vh;
             border-radius: 20px 20px 0 0;
             transform: translateY(100%);
