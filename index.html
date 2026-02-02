@@ -524,24 +524,59 @@
             color: var(--gray-900);
         }
 
-        /* 하루 사용 가능 금액 카드 */
-        .daily-budget-card {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            border-radius: var(--radius-lg);
-            padding: 28px;
-            text-align: center;
-            color: white;
+        /* 지출 TOP 5 */
+        .top-expenses-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
-        .daily-budget-amount {
-            font-size: 2.5rem;
+        .top-expense-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            border: 1px solid var(--gray-200);
+        }
+
+        .top-expense-rank {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-weight: 700;
-            margin-bottom: 8px;
+            font-size: 0.85rem;
         }
 
-        .daily-budget-info {
-            font-size: 0.95rem;
-            opacity: 0.85;
+        .top-expense-rank.rank-1 { background: #FEF3C7; color: #D97706; }
+        .top-expense-rank.rank-2 { background: #E5E7EB; color: #6B7280; }
+        .top-expense-rank.rank-3 { background: #FED7AA; color: #C2410C; }
+        .top-expense-rank.rank-4,
+        .top-expense-rank.rank-5 { background: var(--gray-100); color: var(--gray-500); }
+
+        .top-expense-info {
+            flex: 1;
+        }
+
+        .top-expense-desc {
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 2px;
+        }
+
+        .top-expense-meta {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        .top-expense-amount {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--expense);
         }
 
         /* 고정비/변동비 */
@@ -2580,15 +2615,14 @@
                     </div>
                 </div>
 
-                <!-- 하루 사용 가능 금액 -->
+                <!-- 지출 TOP 5 -->
                 <div class="section">
                     <div class="section-header">
-                        <h2 class="section-title"><i class="ri-wallet-3-fill"></i> 오늘 사용 가능 금액</h2>
+                        <h2 class="section-title"><i class="ri-trophy-fill"></i> 지출 TOP 5</h2>
                     </div>
                     <div class="section-body">
-                        <div class="daily-budget-card">
-                            <div class="daily-budget-amount" id="dailyBudgetAmount">₩0</div>
-                            <div class="daily-budget-info" id="dailyBudgetInfo">계산 중...</div>
+                        <div class="top-expenses-list" id="topExpensesList">
+                            <!-- 동적으로 생성 -->
                         </div>
                     </div>
                 </div>
@@ -4507,46 +4541,48 @@
             // 일별 지출 추이 차트
             renderDailyExpenseChart();
 
-            // 하루 사용 가능 금액 업데이트
-            updateDailyBudget();
+            // 지출 TOP 5 업데이트
+            renderTopExpenses();
         }
 
-        // 하루 사용 가능 금액 계산
-        function updateDailyBudget() {
+        // 지출 TOP 5 렌더링
+        function renderTopExpenses() {
+            const container = document.getElementById('topExpensesList');
+            if (!container) return;
+
             const now = new Date();
             const year = selectedMonth ? selectedMonth.year : now.getFullYear();
             const month = selectedMonth ? selectedMonth.month : now.getMonth() + 1;
 
-            // 해당 월의 마지막 날
-            const lastDay = new Date(year, month, 0).getDate();
-            const today = (year === now.getFullYear() && month === now.getMonth() + 1) ? now.getDate() : lastDay;
-            const remainingDays = lastDay - today + 1; // 오늘 포함
+            // 이번 달 지출 중 금액 TOP 5
+            const topExpenses = expenseData.expenses
+                .filter(e => e.year === year && e.month === month)
+                .sort((a, b) => b.amount - a.amount)
+                .slice(0, 5);
 
-            // 예산 합계 (설정된 예산만)
-            const totalBudget = Object.values(CATEGORY_BUDGETS).reduce((sum, b) => sum + (b || 0), 0);
+            if (topExpenses.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: var(--gray-400); padding: 20px;">지출 내역이 없습니다</div>';
+                return;
+            }
 
-            // 이번 달 지출
-            const monthKey = `${year}-${String(month).padStart(2, '0')}`;
-            const monthlyExpense = expenseData.summary.monthly_totals?.[monthKey] || 0;
+            container.innerHTML = topExpenses.map((expense, idx) => {
+                const rank = idx + 1;
+                const date = expense.date.split('-').slice(1).join('/'); // MM/DD 형식
+                const color = categoryColors[expense.category] || '#9CA3AF';
 
-            // 변동비만 계산 (고정비 제외)
-            const fixedExpense = expenseData.expenses
-                .filter(e => e.year === year && e.month === month && e.isFixed)
-                .reduce((sum, e) => sum + e.amount, 0);
-            const variableExpense = monthlyExpense - fixedExpense;
-
-            // 남은 예산
-            const remainingBudget = Math.max(0, totalBudget - variableExpense);
-
-            // 하루 사용 가능 금액
-            const dailyBudget = remainingDays > 0 ? Math.floor(remainingBudget / remainingDays) : 0;
-
-            // UI 업데이트
-            const amountEl = document.getElementById('dailyBudgetAmount');
-            const infoEl = document.getElementById('dailyBudgetInfo');
-
-            if (amountEl) amountEl.textContent = formatCurrency(dailyBudget);
-            if (infoEl) infoEl.textContent = `남은 예산 ${formatCurrency(remainingBudget)} ÷ ${remainingDays}일`;
+                return `
+                    <div class="top-expense-item">
+                        <div class="top-expense-rank rank-${rank}">${rank}</div>
+                        <div class="top-expense-info">
+                            <div class="top-expense-desc">${expense.description || expense.category}</div>
+                            <div class="top-expense-meta">
+                                <span style="color: ${color};">●</span> ${expense.category} · ${date}
+                            </div>
+                        </div>
+                        <div class="top-expense-amount">${formatCurrency(expense.amount)}</div>
+                    </div>
+                `;
+            }).join('');
         }
 
         // 일별 지출 추이 차트
