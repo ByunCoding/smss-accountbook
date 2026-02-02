@@ -3898,8 +3898,22 @@
 
         function openInputModal() {
             const modal = document.getElementById('inputModal');
+            const fab = document.getElementById('fabButton');
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
+
+            // FAB 버튼 숨기기 (모달과 겹치지 않도록)
+            if (fab) {
+                fab.style.display = 'none';
+            }
+
+            // 저장 버튼 상태 초기화 (연속 저장 문제 해결)
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('loading');
+                submitBtn.innerHTML = '<i class="ri-save-line" style="color: #FFFFFF !important;"></i> 저장하기';
+            }
 
             // 오늘 날짜로 기본 설정
             const today = new Date();
@@ -3929,8 +3943,14 @@
         function closeInputModal(event) {
             if (event && event.target !== event.currentTarget) return;
             const modal = document.getElementById('inputModal');
+            const fab = document.getElementById('fabButton');
             modal.classList.remove('active');
             document.body.style.overflow = '';
+
+            // FAB 버튼 다시 보이기
+            if (fab) {
+                fab.style.display = 'flex';
+            }
 
             // 폼 리셋
             document.getElementById('expenseForm').reset();
