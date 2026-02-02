@@ -1652,6 +1652,14 @@
             transform: scale(0.95);
         }
 
+        /* FAB 숨김 클래스 - 모달 열릴 때 사용 */
+        .fab.fab-hidden {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
         /* FAB 백업 스타일 - 혹시 다른 스타일이 덮어쓸 경우를 대비 */
         #fabButton {
             position: fixed !important;
@@ -3904,7 +3912,7 @@
 
             // FAB 버튼 숨기기 (모달과 겹치지 않도록)
             if (fab) {
-                fab.style.display = 'none';
+                fab.classList.add('fab-hidden');
             }
 
             // 저장 버튼 상태 초기화 (연속 저장 문제 해결)
@@ -3949,7 +3957,7 @@
 
             // FAB 버튼 다시 보이기
             if (fab) {
-                fab.style.display = 'flex';
+                fab.classList.remove('fab-hidden');
             }
 
             // 폼 리셋
