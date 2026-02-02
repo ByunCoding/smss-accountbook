@@ -2307,42 +2307,6 @@
             background: var(--primary-light);
         }
 
-        /* 내보내기/가져오기 버튼 */
-        .settings-export-row {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid var(--gray-200);
-        }
-
-        .settings-export-btn {
-            flex: 1;
-            padding: 12px;
-            border: 1px solid var(--gray-300);
-            border-radius: 10px;
-            background: white;
-            color: var(--gray-700);
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: all 0.2s;
-        }
-
-        .settings-export-btn:hover {
-            background: var(--gray-50);
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        .settings-export-btn input[type="file"] {
-            display: none;
-        }
-
         @media (max-width: 768px) {
             .settings-add-form-row {
                 flex-wrap: wrap;
@@ -2806,17 +2770,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- 내보내기/가져오기 -->
-                <div class="settings-export-row">
-                    <button class="settings-export-btn" onclick="exportSettings()">
-                        <i class="ri-download-line"></i> 내보내기
-                    </button>
-                    <label class="settings-export-btn">
-                        <i class="ri-upload-line"></i> 가져오기
-                        <input type="file" accept=".json" onchange="importSettings(event)">
-                    </label>
-                </div>
             </div>
             <div class="input-modal-footer">
                 <button type="button" class="submit-btn" onclick="closeSettingsModal()">
@@ -3139,50 +3092,6 @@
                 renderSettingsLists();
                 showToast(`'${pm.name}' 결제수단이 삭제되었습니다.`, 'success');
             }
-        }
-
-        // 설정 내보내기
-        function exportSettings() {
-            const data = JSON.stringify(appSettings, null, 2);
-            const blob = new Blob([data], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `smss-settings-${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showToast('설정이 내보내기되었습니다.', 'success');
-        }
-
-        // 설정 가져오기
-        function importSettings(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const imported = JSON.parse(e.target.result);
-
-                    // 유효성 검사
-                    if (!imported.categories || !Array.isArray(imported.categories)) {
-                        throw new Error('잘못된 형식: categories 배열이 없습니다.');
-                    }
-                    if (!imported.paymentMethods || !Array.isArray(imported.paymentMethods)) {
-                        throw new Error('잘못된 형식: paymentMethods 배열이 없습니다.');
-                    }
-
-                    appSettings = imported;
-                    saveSettings();
-                    renderSettingsLists();
-                    showToast('설정이 가져오기되었습니다.', 'success');
-                } catch (err) {
-                    console.error('설정 가져오기 실패:', err);
-                    showToast('설정 파일을 읽을 수 없습니다.', 'error');
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = ''; // 같은 파일 다시 선택 가능하게
         }
 
         let expenseData = { expenses: [], summary: {} };
