@@ -2867,22 +2867,46 @@
             ]
         };
 
-        // 현재 설정 (localStorage에서 로드)
+        // 현재 설정
         let appSettings = null;
 
-        // 설정 로드
-        function loadSettings() {
+        // 설정 로드 (Google Sheets에서)
+        async function loadSettings() {
             try {
+                // 먼저 localStorage 캐시로 빠르게 표시
+                const cached = localStorage.getItem(SETTINGS_KEY);
+                if (cached) {
+                    appSettings = JSON.parse(cached);
+                    applySettings();
+                }
+
+                // Google Sheets에서 최신 설정 로드
+                const response = await fetch(`${SHEET_LIST_URL}?action=getSettings`);
+                const result = await response.json();
+
+                if (result.success && result.settings) {
+                    appSettings = result.settings;
+                    // localStorage에 캐시 저장
+                    localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
+                    applySettings();
+                    console.log('설정 로드 완료 (Google Sheets)');
+                }
+            } catch (e) {
+                console.warn('Google Sheets 설정 로드 실패, localStorage 사용:', e);
+                // 실패 시 localStorage 또는 기본값 사용
                 const saved = localStorage.getItem(SETTINGS_KEY);
                 if (saved) {
                     appSettings = JSON.parse(saved);
                 } else {
                     appSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
                 }
-            } catch (e) {
-                console.warn('설정 로드 실패:', e);
-                appSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+                applySettings();
             }
+        }
+
+        // 설정 적용 (UI 업데이트)
+        function applySettings() {
+            if (!appSettings) return;
 
             // categoryColors 업데이트
             categoryColors = {};
@@ -2895,20 +2919,27 @@
             renderPaymentSelect();
         }
 
-        // 설정 저장
-        function saveSettings() {
+        // 설정 저장 (Google Sheets에)
+        async function saveSettings() {
             try {
+                // localStorage에 즉시 저장 (빠른 반영)
                 localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
+                applySettings();
 
-                // categoryColors 업데이트
-                categoryColors = {};
-                appSettings.categories.forEach(cat => {
-                    categoryColors[cat.name] = cat.color;
+                // Google Sheets에 저장
+                const params = new URLSearchParams({
+                    action: 'saveSettings',
+                    settings: JSON.stringify(appSettings)
                 });
 
-                // select 옵션 다시 렌더링
-                renderCategorySelect();
-                renderPaymentSelect();
+                const response = await fetch(`${SHEET_LIST_URL}?${params}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('설정 저장 완료 (Google Sheets)');
+                } else {
+                    console.error('설정 저장 실패:', result.error);
+                }
             } catch (e) {
                 console.error('설정 저장 실패:', e);
             }
