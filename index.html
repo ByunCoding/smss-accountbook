@@ -4345,6 +4345,41 @@
             }
         });
 
+        // Safari 가로 스크롤 강제 차단
+        function preventHorizontalScroll() {
+            // 가로 스크롤 위치 항상 0으로
+            document.documentElement.scrollLeft = 0;
+            document.body.scrollLeft = 0;
+            window.scrollTo(0, window.scrollY);
+        }
+
+        // 스크롤 이벤트에서 가로 스크롤 차단
+        window.addEventListener('scroll', preventHorizontalScroll, { passive: false });
+        document.addEventListener('scroll', preventHorizontalScroll, { passive: false });
+
+        // 터치 이동 시 가로 스크롤 차단
+        document.addEventListener('touchmove', function(e) {
+            if (document.documentElement.scrollLeft > 0 || document.body.scrollLeft > 0) {
+                preventHorizontalScroll();
+            }
+        }, { passive: false });
+
+        // 화면 너비 초과 요소 찾아서 수정
+        function fixOverflowElements() {
+            const width = window.innerWidth;
+            document.querySelectorAll('*').forEach(el => {
+                const rect = el.getBoundingClientRect();
+                if (rect.width > width && el.tagName !== 'HTML' && el.tagName !== 'BODY') {
+                    el.style.maxWidth = '100%';
+                    el.style.overflowX = 'hidden';
+                }
+            });
+        }
+
+        // 페이지 로드 후 실행
+        setTimeout(fixOverflowElements, 500);
+        setTimeout(fixOverflowElements, 1500);
+
         // FAB 버튼 visibility 확보 (혹시 다른 스타일이 덮어쓸 경우를 대비)
         function ensureFabVisible() {
             const fab = document.getElementById('fabButton');
