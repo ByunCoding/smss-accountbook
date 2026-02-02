@@ -41,27 +41,19 @@
 
         *, *::before, *::after {
             box-sizing: border-box;
+            touch-action: pan-y pinch-zoom;
+        }
+
+        html, body, #app-wrapper {
+            overflow-x: hidden !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            touch-action: pan-y pinch-zoom !important;
+            overscroll-behavior-x: none !important;
         }
 
         html {
-            overflow-x: hidden;
             overflow-y: scroll;
-        }
-
-        body {
-            overflow-x: hidden;
-            width: 100%;
-            min-width: 0;
-            position: relative;
-        }
-
-        /* Safari 가로 스크롤 완전 차단 */
-        #app-wrapper {
-            width: 100%;
-            max-width: 100%;
-            overflow-x: hidden;
-            overflow-y: visible;
-            position: relative;
         }
 
         body {
