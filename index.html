@@ -1660,6 +1660,13 @@
             pointer-events: none !important;
         }
 
+        /* 모달 열릴 때 FAB 자동 숨김 (CSS 백업) */
+        .input-modal-overlay.active ~ .fab,
+        body:has(.input-modal-overlay.active) .fab {
+            display: none !important;
+            visibility: hidden !important;
+        }
+
         /* FAB 백업 스타일 - 혹시 다른 스타일이 덮어쓸 경우를 대비 */
         #fabButton {
             position: fixed !important;
@@ -2971,7 +2978,7 @@
             const balanceEl = document.getElementById('flowBalance');
             balanceEl.textContent = formatCurrency(Math.abs(balance));
             balanceEl.style.color = balance >= 0 ? 'var(--income)' : 'var(--expense)';
-            balanceEl.parentElement.querySelector('.label').textContent = balance >= 0 ? '잔액' : '적자';
+            balanceEl.parentElement.querySelector('.label').textContent = balance >= 0 ? '잔액' : '초과';
         }
 
         // ===== 일별 지출 히트맵 =====
@@ -3183,7 +3190,7 @@
             document.getElementById('savingsRate').textContent = `${savingsRate.toFixed(0)}%`;
             document.getElementById('savingsAmount').textContent = savings >= 0
                 ? `저축: ${formatCurrency(savings)}`
-                : `적자: ${formatCurrency(Math.abs(savings))}`;
+                : `초과: ${formatCurrency(Math.abs(savings))}`;
 
             const circumference = 87.96;
             const offset = circumference - (Math.min(savingsRate, 100) / 100) * circumference;
@@ -3393,7 +3400,7 @@
                 insights.push({
                     type: 'danger',
                     icon: 'ri-error-warning-fill',
-                    title: '적자 발생',
+                    title: '예산 초과',
                     desc: `수입 대비 ${formatCurrency(Math.abs(income - totalExpense))} 초과 지출`,
                     action: '긴급 점검 필요'
                 });
