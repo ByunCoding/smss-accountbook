@@ -1052,6 +1052,70 @@
         .expense-type-item .name { color: var(--gray-600); }
         .expense-type-item .value { font-weight: 500; color: var(--gray-700); }
 
+        /* 카테고리별 지출 바 리스트 */
+        .category-bar-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .category-bar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .category-bar-label {
+            min-width: 70px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .category-bar-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .category-bar-track {
+            flex: 1;
+            height: 24px;
+            background: var(--gray-100);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .category-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            min-width: fit-content;
+        }
+
+        .category-bar-amount {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            white-space: nowrap;
+        }
+
+        .category-bar-percent {
+            min-width: 42px;
+            text-align: right;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--gray-500);
+        }
+
         /* 결제수단별 지출 */
         .payment-methods-grid {
             display: grid;
@@ -3044,10 +3108,11 @@
                 <!-- 카테고리별 지출 -->
                 <div class="section">
                     <div class="section-header">
-                        <h2 class="section-title"><i class="ri-donut-chart-fill"></i> 카테고리별 지출</h2>
+                        <h2 class="section-title"><i class="ri-bar-chart-horizontal-fill"></i> 카테고리별 지출</h2>
+                        <span id="categoryCount" style="font-size: 0.85rem; color: var(--gray-500);"></span>
                     </div>
                     <div class="section-body">
-                        <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+                        <div class="category-bar-list" id="categoryBarList"></div>
                     </div>
                 </div>
 
@@ -5069,37 +5134,47 @@
                 `예산 ${formatCurrency(totalBudget)} 중 ${formatCurrency(totalSpentInBudget)} 사용`;
         }
 
+        // ===== 카테고리별 지출 바 리스트 =====
+        function updateCategoryBarList(currentCats) {
+            const sorted = Object.entries(currentCats).sort((a, b) => b[1] - a[1]);
+            const totalAmount = sorted.reduce((sum, [, v]) => sum + v, 0);
+            const maxAmount = sorted.length > 0 ? sorted[0][1] : 1;
+
+            const container = document.getElementById('categoryBarList');
+            if (!container) return;
+
+            container.innerHTML = sorted.map(([cat, amount]) => {
+                const percent = totalAmount > 0 ? ((amount / totalAmount) * 100).toFixed(1) : 0;
+                const barWidth = Math.max((amount / maxAmount) * 100, 8);
+                const color = categoryColors[cat] || '#9CA3AF';
+
+                return `
+                    <div class="category-bar-item">
+                        <div class="category-bar-label">
+                            <span class="category-bar-dot" style="background: ${color};"></span>
+                            ${cat}
+                        </div>
+                        <div class="category-bar-track">
+                            <div class="category-bar-fill" style="width: ${barWidth}%; background: ${color};">
+                                <span class="category-bar-amount">${formatCurrency(amount)}</span>
+                            </div>
+                        </div>
+                        <div class="category-bar-percent">${percent}%</div>
+                    </div>
+                `;
+            }).join('') || '<div class="no-data">카테고리별 지출 없음</div>';
+
+            const countEl = document.getElementById('categoryCount');
+            if (countEl) countEl.textContent = `${sorted.length}개 카테고리`;
+        }
+
         // ===== 차트 =====
         function createCharts() {
             const currentKey = getSelectedKey();
             const currentCats = expenseData.summary.monthly_totals[currentKey]?.categories || {};
 
-            // 카테고리 도넛 차트
-            const sortedCats = Object.entries(currentCats).sort((a, b) => b[1] - a[1]).slice(0, 8);
-            const isMobile = window.innerWidth <= 768;
-            if (sortedCats.length > 0) {
-                charts.category = new Chart(document.getElementById('categoryChart'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: sortedCats.map(([k, v]) => `${k} ${formatCurrency(v)}`),
-                        datasets: [{
-                            data: sortedCats.map(([, v]) => v),
-                            backgroundColor: sortedCats.map(([k]) => categoryColors[k] || '#9CA3AF'),
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false, cutout: '60%',
-                        plugins: {
-                            legend: {
-                                position: isMobile ? 'bottom' : 'right',
-                                labels: { padding: isMobile ? 8 : 12, usePointStyle: true, font: { size: isMobile ? 10 : 11 } }
-                            },
-                            tooltip: { enabled: false }
-                        }
-                    }
-                });
-            }
+            // 카테고리별 가로 바 리스트
+            updateCategoryBarList(currentCats);
 
             // 월별 추이 차트
             const monthlyData = expenseData.summary.monthly_totals;
