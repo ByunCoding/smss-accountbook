@@ -4393,7 +4393,8 @@
                 const dateStr = columns[0]?.trim();
                 if (!dateStr || !dateStr.match(/^\d{4}[\.\-]/)) continue;
 
-                const category = columns[1]?.trim();
+                const rawCategory = columns[1]?.trim();
+                const category = rawCategory === '공유숙박' ? '부수입' : rawCategory;
                 const description = columns[2]?.trim();
                 const amountStr = columns[3]?.replace(/[",₩\s]/g, '');  // D열: 금액 (양수)
                 const amount = parseFloat(amountStr);
