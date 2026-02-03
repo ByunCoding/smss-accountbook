@@ -2485,6 +2485,70 @@
             border-top: 1px solid var(--gray-100);
         }
 
+        /* 지출/수입 토글 */
+        .input-type-toggle {
+            display: flex;
+            padding: 8px 24px;
+            gap: 0;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .input-type-toggle .toggle-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: 2px solid var(--gray-200);
+            background: var(--bg-card);
+            color: var(--gray-500);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .input-type-toggle .toggle-btn:first-child {
+            border-radius: 10px 0 0 10px;
+            border-right: 1px solid var(--gray-200);
+        }
+
+        .input-type-toggle .toggle-btn:last-child {
+            border-radius: 0 10px 10px 0;
+            border-left: 1px solid var(--gray-200);
+        }
+
+        .input-type-toggle .toggle-btn.active[data-type="expense"] {
+            background: var(--expense);
+            color: white;
+            border-color: var(--expense);
+        }
+
+        .input-type-toggle .toggle-btn.active[data-type="income"] {
+            background: var(--income);
+            color: white;
+            border-color: var(--income);
+        }
+
+        /* 수입 모드 금액 표시 */
+        .income-amount {
+            color: var(--income) !important;
+        }
+
+        /* 상세 내역 수입 행 */
+        .income-row td.amount {
+            color: var(--income) !important;
+            font-weight: 700;
+        }
+
+        .income-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: var(--income-light);
+            color: var(--income);
+        }
+
         .quick-suggestions {
             margin-top: 16px;
             padding-top: 16px;
@@ -3394,9 +3458,17 @@
     <div class="input-modal-overlay" id="inputModal" onclick="closeInputModal(event)">
         <div class="input-modal" onclick="event.stopPropagation()">
             <div class="input-modal-header">
-                <h3><i class="ri-edit-line"></i> 지출 입력</h3>
+                <h3 id="inputModalTitle"><i class="ri-edit-line"></i> 지출 입력</h3>
                 <button class="input-modal-close" onclick="closeInputModal()">
                     <i class="ri-close-line"></i>
+                </button>
+            </div>
+            <div class="input-type-toggle">
+                <button type="button" class="toggle-btn active" data-type="expense" onclick="setInputType('expense')">
+                    지출
+                </button>
+                <button type="button" class="toggle-btn" data-type="income" onclick="setInputType('income')">
+                    수입
                 </button>
             </div>
             <div class="input-modal-body">
@@ -3423,7 +3495,7 @@
                             <!-- 동적으로 생성됨 -->
                         </select>
                     </div>
-                    <div class="input-form-group">
+                    <div class="input-form-group" id="paymentFormGroup">
                         <label><i class="ri-bank-card-line"></i> 결제수단</label>
                         <select id="inputPayment" required>
                             <option value="">결제수단 선택</option>
@@ -3472,6 +3544,27 @@
                         <div class="settings-add-form-row settings-add-form-actions">
                             <button class="cancel-btn" onclick="hideAddCategoryForm()">취소</button>
                             <button class="confirm-btn" onclick="addCategory()">추가</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 수입 카테고리 섹션 -->
+                <div class="settings-section">
+                    <div class="settings-section-title">
+                        <i class="ri-money-dollar-circle-line" style="color: var(--income);"></i> 수입 카테고리
+                    </div>
+                    <div class="settings-list" id="incomeCategorySettingsList"></div>
+                    <button class="settings-add-btn" onclick="showAddIncomeCategoryForm()">
+                        <i class="ri-add-line"></i> 수입 카테고리 추가
+                    </button>
+                    <div class="settings-add-form" id="addIncomeCategoryForm">
+                        <div class="settings-add-form-row">
+                            <input type="text" id="newIncomeCategoryName" placeholder="수입 카테고리 이름">
+                            <input type="text" id="newIncomeCategoryEmoji" class="settings-add-form-emoji" placeholder="💰" maxlength="2">
+                        </div>
+                        <div class="settings-add-form-row settings-add-form-actions">
+                            <button class="cancel-btn" onclick="hideAddIncomeCategoryForm()">취소</button>
+                            <button class="confirm-btn" onclick="addIncomeCategory()">추가</button>
                         </div>
                     </div>
                 </div>
@@ -3548,6 +3641,12 @@
         // 예산 (loadSettings()에서 appSettings.budgets로 채워짐)
         let CATEGORY_BUDGETS = { ...DEFAULT_BUDGETS };
 
+        // 수입 카테고리 Set (빠른 조회용)
+        let INCOME_CATEGORIES = new Set();
+
+        // 입력 모달 타입 (expense / income)
+        let currentInputType = 'expense';
+
         // 고정비로 분류할 카테고리 (지출 내역 시트 기준)
         const FIXED_CATEGORIES = ['관리비', '대출이자', '보험료', '통신비', '구독료', '교육비'];
 
@@ -3606,7 +3705,12 @@
                 '관리비': 0,
                 '경조사비': 0,
                 '교통비': 0
-            }
+            },
+            incomeCategories: [
+                { name: '월급', emoji: '💰' },
+                { name: '디센터', emoji: '🏢' },
+                { name: '공유숙박', emoji: '🏠' }
+            ]
         };
 
         // 현재 설정
@@ -3678,6 +3782,10 @@
             // 예산 적용
             CATEGORY_BUDGETS = appSettings.budgets || { ...DEFAULT_BUDGETS };
 
+            // 수입 카테고리 적용
+            const incomeCats = appSettings.incomeCategories || DEFAULT_SETTINGS.incomeCategories;
+            INCOME_CATEGORIES = new Set(incomeCats.map(c => c.name));
+
             // select 옵션 렌더링
             renderCategorySelect();
             renderPaymentSelect();
@@ -3743,6 +3851,56 @@
             });
         }
 
+        // 수입 카테고리 select 렌더링
+        function renderIncomeCategorySelect() {
+            const select = document.getElementById('inputCategory');
+            if (!select || !appSettings) return;
+
+            select.innerHTML = '<option value="">수입 카테고리 선택</option>';
+
+            const incomeCats = appSettings.incomeCategories || DEFAULT_SETTINGS.incomeCategories;
+            incomeCats.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.name;
+                option.textContent = `${cat.emoji} ${cat.name}`;
+                select.appendChild(option);
+            });
+        }
+
+        // 입력 타입 전환 (지출/수입)
+        function setInputType(type) {
+            currentInputType = type;
+            const paymentGroup = document.getElementById('paymentFormGroup');
+            const categorySelect = document.getElementById('inputCategory');
+            const submitBtn = document.getElementById('submitBtn');
+            const titleEl = document.getElementById('inputModalTitle');
+
+            // 토글 버튼 활성화
+            document.querySelectorAll('.input-type-toggle .toggle-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+
+            if (type === 'income') {
+                // 결제수단 숨기고 required 해제
+                paymentGroup.style.display = 'none';
+                document.getElementById('inputPayment').required = false;
+                // 수입 카테고리로 교체
+                renderIncomeCategorySelect();
+                // 헤더 변경
+                titleEl.innerHTML = '<i class="ri-money-dollar-circle-line"></i> 수입 입력';
+                // 저장 버튼 색상 변경
+                submitBtn.style.backgroundColor = 'var(--income)';
+                submitBtn.style.borderColor = 'var(--income)';
+            } else {
+                paymentGroup.style.display = '';
+                document.getElementById('inputPayment').required = true;
+                renderCategorySelect();
+                titleEl.innerHTML = '<i class="ri-edit-line"></i> 지출 입력';
+                submitBtn.style.backgroundColor = '#2563EB';
+                submitBtn.style.borderColor = '#2563EB';
+            }
+        }
+
         // 설정 모달 열기
         function openSettingsModal() {
             const modal = document.getElementById('settingsModal');
@@ -3759,6 +3917,7 @@
             document.body.style.overflow = '';
             hideAddCategoryForm();
             hideAddPaymentForm();
+            hideAddIncomeCategoryForm();
         }
 
         // 설정 리스트 렌더링
@@ -3773,6 +3932,21 @@
                         <span class="settings-item-name">${cat.name}</span>
                     </div>
                     <button class="settings-item-delete" onclick="removeCategory(${idx})" title="삭제">
+                        <i class="ri-delete-bin-line"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            // 수입 카테고리 리스트
+            const incomeCategoryList = document.getElementById('incomeCategorySettingsList');
+            const incomeCats = appSettings.incomeCategories || DEFAULT_SETTINGS.incomeCategories;
+            incomeCategoryList.innerHTML = incomeCats.map((cat, idx) => `
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <span class="settings-item-emoji">${cat.emoji}</span>
+                        <span class="settings-item-name">${cat.name}</span>
+                    </div>
+                    <button class="settings-item-delete" onclick="removeIncomeCategory(${idx})" title="삭제">
                         <i class="ri-delete-bin-line"></i>
                     </button>
                 </div>
@@ -3886,6 +4060,56 @@
                 saveSettings();
                 renderSettingsLists();
                 showToast(`'${pm.name}' 결제수단이 삭제되었습니다.`, 'success');
+            }
+        }
+
+        // 수입 카테고리 추가 폼 표시
+        function showAddIncomeCategoryForm() {
+            document.getElementById('addIncomeCategoryForm').classList.add('active');
+            document.getElementById('newIncomeCategoryName').focus();
+        }
+
+        // 수입 카테고리 추가 폼 숨김
+        function hideAddIncomeCategoryForm() {
+            document.getElementById('addIncomeCategoryForm').classList.remove('active');
+            document.getElementById('newIncomeCategoryName').value = '';
+            document.getElementById('newIncomeCategoryEmoji').value = '';
+        }
+
+        // 수입 카테고리 추가
+        function addIncomeCategory() {
+            const name = document.getElementById('newIncomeCategoryName').value.trim();
+            const emoji = document.getElementById('newIncomeCategoryEmoji').value.trim() || '💰';
+
+            if (!name) {
+                showToast('수입 카테고리 이름을 입력해주세요.', 'error');
+                return;
+            }
+
+            if (!appSettings.incomeCategories) {
+                appSettings.incomeCategories = [...DEFAULT_SETTINGS.incomeCategories];
+            }
+
+            if (appSettings.incomeCategories.some(c => c.name === name)) {
+                showToast('이미 존재하는 수입 카테고리입니다.', 'error');
+                return;
+            }
+
+            appSettings.incomeCategories.push({ name, emoji });
+            saveSettings();
+            renderSettingsLists();
+            hideAddIncomeCategoryForm();
+            showToast(`'${name}' 수입 카테고리가 추가되었습니다.`, 'success');
+        }
+
+        // 수입 카테고리 삭제
+        function removeIncomeCategory(index) {
+            const cat = appSettings.incomeCategories[index];
+            if (confirm(`'${cat.name}' 수입 카테고리를 삭제하시겠습니까?`)) {
+                appSettings.incomeCategories.splice(index, 1);
+                saveSettings();
+                renderSettingsLists();
+                showToast(`'${cat.name}' 수입 카테고리가 삭제되었습니다.`, 'success');
             }
         }
 
@@ -4114,25 +4338,7 @@
             const response = await fetch(url);
             const csvText = await response.text();
 
-            // 2026년 월별 시트에서 총 소득 파싱 (J열)
-            parseSheetIncome(csvText, monthKey);
-
             return parseCSVToExpenses(csvText, monthKey, gid);
-        }
-
-        // 월별 시트에서 총 소득 파싱 (J열, 2번째 행)
-        function parseSheetIncome(csvText, monthKey) {
-            const lines = csvText.split('\n');
-            if (lines.length >= 2) {
-                const columns = parseCSVLine(lines[1]); // 2번째 행
-                const incomeStr = columns[9]?.replace(/[",₩\s]/g, '').replace(/[()]/g, '-'); // J열 (인덱스 9)
-                const income = parseFloat(incomeStr);
-                if (!isNaN(income)) {
-                    // 월별 시트의 총 소득을 MONTHLY_INCOME에 저장 (2026년용)
-                    MONTHLY_INCOME[monthKey] = income;
-                    console.log(`Loaded income for ${monthKey} from sheet:`, income);
-                }
-            }
         }
 
         function parseCSVToExpenses(csvText, monthKey, gid) {
@@ -4195,8 +4401,7 @@
                 parseMonthlyData(csvText);
             } catch (e) {
                 console.warn('Failed to load MONTHLY sheet:', e);
-                // 폴백: 기본값 사용
-                MONTHLY_INCOME = { '2025-12': 3500000, '2026-01': 3500000 };
+                // 폴백: 수입은 트랜잭션 기반으로 calculateSummary()에서 계산
             }
         }
 
@@ -4215,16 +4420,6 @@
                 const firstCol = cols[0]?.trim();
                 const secondCol = cols[1]?.trim();
                 const thirdCol = cols[2]?.trim();
-
-                // 수입 합계 파싱
-                if (firstCol === '수입 합계') {
-                    for (let m = 1; m <= 12; m++) {
-                        const val = parseNumber(cols[monthColumns[m]]);
-                        if (val > 0) {
-                            MONTHLY_INCOME[`2025-${String(m).padStart(2, '0')}`] = val;
-                        }
-                    }
-                }
 
                 // 고정비 항목 파싱
                 if (firstCol === '시리_지출') currentPerson = '시리';
@@ -4282,16 +4477,6 @@
                     FIXED_EXPENSES['2026-02'] = JSON.parse(JSON.stringify(FIXED_EXPENSES['2025-12']));
                 }
             }
-            if (MONTHLY_INCOME['2025-12']) {
-                if (!MONTHLY_INCOME['2026-01']) {
-                    MONTHLY_INCOME['2026-01'] = MONTHLY_INCOME['2025-12'];
-                }
-                if (!MONTHLY_INCOME['2026-02']) {
-                    MONTHLY_INCOME['2026-02'] = MONTHLY_INCOME['2025-12'];
-                }
-            }
-
-            console.log('Loaded MONTHLY_INCOME:', MONTHLY_INCOME);
             console.log('Loaded FIXED_EXPENSES:', FIXED_EXPENSES);
         }
 
@@ -4307,9 +4492,19 @@
             const categoryBreakdown = {};
             const monthlyTotals = {};
 
+            // 수입 카테고리 트랜잭션으로 MONTHLY_INCOME 재계산
+            const incomeFromTransactions = {};
+
             expenses.forEach(exp => {
-                exp.isFixed = FIXED_CATEGORIES.includes(exp.category);
                 const monthKey = `${exp.year}-${String(exp.month).padStart(2, '0')}`;
+
+                // 수입 카테고리인 경우 → MONTHLY_INCOME에 합산, 지출 계산에서 제외
+                if (INCOME_CATEGORIES.has(exp.category)) {
+                    incomeFromTransactions[monthKey] = (incomeFromTransactions[monthKey] || 0) + exp.amount;
+                    return;
+                }
+
+                exp.isFixed = FIXED_CATEGORIES.includes(exp.category);
 
                 categoryBreakdown[exp.category] = (categoryBreakdown[exp.category] || 0) + exp.amount;
 
@@ -4322,9 +4517,17 @@
                 else monthlyTotals[monthKey].variable += exp.amount;
             });
 
+            // 트랜잭션 기반 수입이 있는 월은 해당 값으로 덮어쓰기
+            Object.keys(incomeFromTransactions).forEach(monthKey => {
+                MONTHLY_INCOME[monthKey] = incomeFromTransactions[monthKey];
+            });
+
+            // total_expenses에서도 수입 카테고리 제외
+            const expenseOnly = expenses.filter(e => !INCOME_CATEGORIES.has(e.category));
+
             expenseData.summary = {
-                total_expenses: expenses.reduce((sum, e) => sum + e.amount, 0),
-                total_transactions: expenses.length,
+                total_expenses: expenseOnly.reduce((sum, e) => sum + e.amount, 0),
+                total_transactions: expenseOnly.length,
                 category_breakdown: categoryBreakdown,
                 monthly_totals: monthlyTotals
             };
@@ -4498,7 +4701,8 @@
         function updateDailyHeatmap() {
             const currentKey = getSelectedKey();
             const currentExpenses = expenseData.expenses.filter(e =>
-                `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey
+                `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey &&
+                !INCOME_CATEGORIES.has(e.category)
             );
 
             // 일별 지출 합계 및 내역
@@ -4657,7 +4861,10 @@
             const currentTotal = currentVariable + currentFixed;
             const lastTotal = lastVariable + lastFixed;
 
-            const currentExpenses = expenseData.expenses.filter(e => `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey);
+            const currentExpenses = expenseData.expenses.filter(e =>
+                `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey &&
+                !INCOME_CATEGORIES.has(e.category)
+            );
 
             // === 변동비 메인 카드 ===
             document.getElementById('currentMonthVariable').textContent = formatCurrency(currentVariable);
@@ -4704,7 +4911,10 @@
         function updateExpenseSplit() {
             const currentKey = getSelectedKey();
             const currentData = expenseData.summary.monthly_totals[currentKey] || { total: 0, fixed: 0, variable: 0 };
-            const currentExpenses = expenseData.expenses.filter(e => `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey);
+            const currentExpenses = expenseData.expenses.filter(e =>
+                `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey &&
+                !INCOME_CATEGORIES.has(e.category)
+            );
 
             // 구글 시트에서 가져온 고정비 데이터 사용
             const sheetFixed = FIXED_EXPENSES[currentKey];
@@ -4756,7 +4966,10 @@
         // ===== 결제수단별 지출 =====
         function updatePaymentMethods() {
             const currentKey = getSelectedKey();
-            const currentExpenses = expenseData.expenses.filter(e => `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey);
+            const currentExpenses = expenseData.expenses.filter(e =>
+                `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey &&
+                !INCOME_CATEGORIES.has(e.category)
+            );
 
             // 결제수단별 집계
             const byPaymentMethod = {};
@@ -5002,7 +5215,10 @@
             const currentCats = expenseData.summary.monthly_totals[currentKey]?.categories || {};
             const lastCats = expenseData.summary.monthly_totals[lastKey]?.categories || {};
 
-            const currentExpenses = expenseData.expenses.filter(e => `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey);
+            const currentExpenses = expenseData.expenses.filter(e =>
+                `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey &&
+                !INCOME_CATEGORIES.has(e.category)
+            );
             const byCategory = {};
             currentExpenses.forEach(e => {
                 if (!byCategory[e.category]) byCategory[e.category] = [];
@@ -5385,7 +5601,9 @@
         // ===== 필터 및 테이블 =====
         function populateFilters() {
             const months = [...new Set(Object.keys(expenseData.summary.monthly_totals))].sort().reverse();
-            const categories = Object.keys(expenseData.summary.category_breakdown).sort();
+            const allCategoryNames = new Set(Object.keys(expenseData.summary.category_breakdown));
+            INCOME_CATEGORIES.forEach(c => allCategoryNames.add(c));
+            const categories = [...allCategoryNames].sort();
             const payments = (appSettings?.paymentMethods || []).map(p => p.name);
 
             const monthSelect = document.getElementById('filterMonth');
@@ -5497,7 +5715,8 @@
             }
 
             tbody.innerHTML = filtered.slice(0, 100).map((e, idx) => {
-                const color = categoryColors[e.category] || '#9CA3AF';
+                const isIncomeItem = INCOME_CATEGORIES.has(e.category);
+                const color = isIncomeItem ? 'var(--income)' : (categoryColors[e.category] || '#9CA3AF');
                 const deleteData = encodeURIComponent(JSON.stringify({
                     date: e.date,
                     category: e.category,
@@ -5505,17 +5724,18 @@
                     amount: e.amount
                 }));
                 return `
-                    <tr>
+                    <tr class="${isIncomeItem ? 'income-row' : ''}">
                         <td>${e.date}</td>
                         <td>
                             <span class="category-badge">
                                 <span class="dot" style="background: ${color};"></span>
                                 ${e.category}
                             </span>
-                            ${e.isFixed ? '<span class="fixed-badge">고정</span>' : ''}
+                            ${isIncomeItem ? '<span class="income-badge">수입</span>' : ''}
+                            ${!isIncomeItem && e.isFixed ? '<span class="fixed-badge">고정</span>' : ''}
                         </td>
                         <td>${e.description || '-'}</td>
-                        <td class="amount">${formatCurrency(e.amount)}</td>
+                        <td class="amount ${isIncomeItem ? 'income-amount' : ''}">${isIncomeItem ? '+' : ''}${formatCurrency(e.amount)}</td>
                         <td>${e.payment_method}</td>
                         <td>
                             <button class="delete-btn" onclick="deleteExpenseByData('${deleteData}', ${e.amount})" title="삭제">
@@ -5659,6 +5879,9 @@
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
 
+            // 입력 타입을 지출로 초기화
+            setInputType('expense');
+
             // PWA에서 모달 스크롤 활성화
             if (modalContent) {
                 modalContent.scrollTop = 0;
@@ -5722,6 +5945,7 @@
             const patternMap = new Map();
             expenseData.expenses.forEach(e => {
                 if (!e.category || !e.payment_method || !e.amount) return;
+                if (INCOME_CATEGORIES.has(e.category)) return;
                 // 메모가 있으면 메모 포함, 없으면 카테고리명 사용
                 const desc = e.description || e.category;
                 const key = `${desc}|${e.category}|${e.payment_method}|${e.amount}`;
@@ -5795,6 +6019,9 @@
 
             // 폼 리셋
             document.getElementById('expenseForm').reset();
+
+            // 입력 타입 초기화
+            currentInputType = 'expense';
         }
 
         function showToast(message, type = 'success', showUndo = false) {
@@ -5865,6 +6092,7 @@
             const amount = parseInt(document.getElementById('inputAmount').value);
             const description = document.getElementById('inputDescription').value || '';
             const payment = document.getElementById('inputPayment').value;
+            const isIncome = currentInputType === 'income';
 
             // 유효성 검사
             if (!date) {
@@ -5879,7 +6107,7 @@
                 showToast('금액을 입력해주세요', 'error');
                 return;
             }
-            if (!payment) {
+            if (!isIncome && !payment) {
                 showToast('결제수단을 선택해주세요', 'error');
                 return;
             }
@@ -5899,7 +6127,7 @@
                     date: date,
                     category: category,
                     item: description,
-                    person: payment,
+                    person: isIncome ? '수입' : payment,
                     amount: amount.toString()
                 });
 
@@ -5910,7 +6138,7 @@
                 });
 
                 // no-cors 모드에서는 응답을 읽을 수 없으므로 성공으로 간주
-                console.log('Expense submitted to Apps Script');
+                console.log(isIncome ? 'Income submitted to Apps Script' : 'Expense submitted to Apps Script');
 
                 // 로컬 데이터에도 추가 (즉시 반영)
                 const newExpense = {
@@ -5920,7 +6148,7 @@
                     category: category,
                     description: description,
                     amount: amount,
-                    payment_method: payment,
+                    payment_method: isIncome ? '수입' : payment,
                     isFixed: FIXED_CATEGORIES.includes(category),
                     id: `local_${Date.now()}`
                 };
@@ -5932,11 +6160,14 @@
                 // 캐시 업데이트
                 setCachedData(expenseData.expenses);
 
-                showToast(`${formatCurrency(amount)} 지출이 기록되었습니다`);
+                const toastMsg = isIncome
+                    ? `${formatCurrency(amount)} 수입이 기록되었습니다`
+                    : `${formatCurrency(amount)} 지출이 기록되었습니다`;
+                showToast(toastMsg);
                 closeInputModal();
 
             } catch (error) {
-                console.error('Error submitting expense:', error);
+                console.error('Error submitting:', error);
                 showToast('저장 중 오류가 발생했습니다', 'error');
             } finally {
                 submitBtn.classList.remove('loading');
