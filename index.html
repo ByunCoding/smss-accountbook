@@ -393,6 +393,18 @@
             color: var(--text-primary);
         }
 
+        [data-theme="dark"] .income-fixed-toggle {
+            background: var(--bg-secondary);
+            border-color: var(--border-color);
+            color: var(--gray-400);
+        }
+
+        [data-theme="dark"] .income-fixed-toggle.active {
+            background: var(--income);
+            color: white;
+            border-color: var(--income);
+        }
+
         [data-theme="dark"] .settings-item-amount input {
             border-color: var(--border-color);
             background: var(--bg-secondary);
@@ -3062,6 +3074,31 @@
             color: var(--expense);
         }
 
+        .income-fixed-toggle {
+            padding: 4px 10px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            background: var(--bg-card);
+            color: var(--gray-400);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 8px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .income-fixed-toggle.active {
+            background: var(--income);
+            color: white;
+            border-color: var(--income);
+        }
+
+        .income-fixed-toggle:hover {
+            border-color: var(--income);
+        }
+
         .settings-item-amount {
             display: flex;
             align-items: center;
@@ -3834,9 +3871,9 @@
                 '교통비': 0
             },
             incomeCategories: [
-                { name: '월급', emoji: '💰', amount: 0 },
-                { name: '디센터', emoji: '🏢', amount: 0 },
-                { name: '부수입', emoji: '🏠', amount: 0 }
+                { name: '월급', emoji: '💰', amount: 0, isFixed: false },
+                { name: '디센터', emoji: '🏢', amount: 0, isFixed: false },
+                { name: '부수입', emoji: '🏠', amount: 0, isFixed: false }
             ]
         };
 
@@ -4073,12 +4110,17 @@
                         <span class="settings-item-emoji">${cat.emoji}</span>
                         <span class="settings-item-name">${cat.name}</span>
                     </div>
+                    <button class="income-fixed-toggle ${cat.isFixed ? 'active' : ''}" onclick="toggleIncomeFixed(${idx})">
+                        고정
+                    </button>
+                    ${cat.isFixed ? `
                     <div class="settings-item-amount">
                         <input type="number" value="${cat.amount || 0}"
                                onchange="updateIncomeCategoryAmount(${idx}, this.value)"
                                min="0" step="10000" placeholder="0">
                         <span>원</span>
                     </div>
+                    ` : ''}
                     <button class="settings-item-delete" onclick="removeIncomeCategory(${idx})" title="삭제">
                         <i class="ri-delete-bin-line"></i>
                     </button>
@@ -4228,7 +4270,7 @@
                 return;
             }
 
-            appSettings.incomeCategories.push({ name, emoji, amount: 0 });
+            appSettings.incomeCategories.push({ name, emoji, amount: 0, isFixed: false });
             saveSettings();
             renderSettingsLists();
             hideAddIncomeCategoryForm();
@@ -4244,6 +4286,13 @@
                 renderSettingsLists();
                 showToast(`'${cat.name}' 수입 카테고리가 삭제되었습니다.`, 'success');
             }
+        }
+
+        function toggleIncomeFixed(index) {
+            if (!appSettings.incomeCategories) return;
+            appSettings.incomeCategories[index].isFixed = !appSettings.incomeCategories[index].isFixed;
+            saveSettings();
+            renderSettingsLists();
         }
 
         function updateIncomeCategoryAmount(index, value) {
@@ -4676,8 +4725,8 @@
                     if (transactionAmount !== undefined) {
                         monthIncome += transactionAmount; // 트랜잭션 있으면 사용
                         MONTHLY_INCOME_DETAIL[monthKey][cat.name] = { amount: transactionAmount, source: 'transaction' };
-                    } else if (cat.amount > 0) {
-                        monthIncome += cat.amount; // 없으면 고정 금액
+                    } else if (cat.isFixed && cat.amount > 0) {
+                        monthIncome += cat.amount; // 고정 수입만 자동 반영
                         MONTHLY_INCOME_DETAIL[monthKey][cat.name] = { amount: cat.amount, source: 'fixed' };
                     }
                     // amount가 0이고 트랜잭션도 없으면 DETAIL에 포함 안 함
@@ -4884,7 +4933,7 @@
             itemsEl.innerHTML = incomeCats.map(cat => {
                 const info = detail[cat.name];
                 const amount = info?.amount || 0;
-                const source = info?.source || (cat.amount > 0 ? 'fixed' : 'none');
+                const source = info?.source || (cat.isFixed && cat.amount > 0 ? 'fixed' : 'none');
                 const badgeText = source === 'transaction' ? '입력' : source === 'fixed' ? '고정' : '';
                 const badgeClass = source === 'transaction' ? 'transaction' : 'fixed';
 
