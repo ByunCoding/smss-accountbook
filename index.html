@@ -1307,6 +1307,24 @@
             box-shadow: 0 0 0 3px var(--primary-bg);
         }
 
+        .amount-range-inputs {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .amount-range-inputs input {
+            width: 90px;
+            min-width: 70px;
+            padding: 10px 10px;
+            text-align: center;
+        }
+
+        .amount-range-separator {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
+
         .hidden { display: none !important; }
 
         .no-data {
@@ -3154,15 +3172,13 @@
                                 <label>결제수단</label>
                                 <select id="filterPayment"><option value="">전체</option></select>
                             </div>
-                            <div class="filter-group">
+                            <div class="filter-group filter-amount-range">
                                 <label>금액</label>
-                                <select id="filterAmount">
-                                    <option value="">전체</option>
-                                    <option value="0-10000">1만원 이하</option>
-                                    <option value="10000-50000">1~5만원</option>
-                                    <option value="50000-100000">5~10만원</option>
-                                    <option value="100000-">10만원 이상</option>
-                                </select>
+                                <div class="amount-range-inputs">
+                                    <input type="number" id="filterAmountMin" placeholder="최소" inputmode="numeric">
+                                    <span class="amount-range-separator">~</span>
+                                    <input type="number" id="filterAmountMax" placeholder="최대" inputmode="numeric">
+                                </div>
                             </div>
                             <div class="filter-group">
                                 <label>검색</label>
@@ -5344,7 +5360,8 @@
             document.getElementById('filterMonth').onchange = renderExpenseTable;
             document.getElementById('filterCategory').onchange = renderExpenseTable;
             document.getElementById('filterPayment').onchange = renderExpenseTable;
-            document.getElementById('filterAmount').onchange = renderExpenseTable;
+            document.getElementById('filterAmountMin').oninput = renderExpenseTable;
+            document.getElementById('filterAmountMax').oninput = renderExpenseTable;
             document.getElementById('filterSearch').oninput = renderExpenseTable;
         }
 
@@ -5352,7 +5369,8 @@
             const month = document.getElementById('filterMonth').value;
             const category = document.getElementById('filterCategory').value;
             const payment = document.getElementById('filterPayment').value;
-            const amountRange = document.getElementById('filterAmount').value;
+            const amountMin = document.getElementById('filterAmountMin').value;
+            const amountMax = document.getElementById('filterAmountMax').value;
             const search = document.getElementById('filterSearch').value.toLowerCase();
 
             let filtered = [...expenseData.expenses];
@@ -5360,8 +5378,9 @@
             if (month) filtered = filtered.filter(e => `${e.year}-${String(e.month).padStart(2, '0')}` === month);
             if (category) filtered = filtered.filter(e => e.category === category);
             if (payment) filtered = filtered.filter(e => e.payment === payment);
-            if (amountRange) {
-                const [min, max] = amountRange.split('-').map(v => v === '' ? null : parseInt(v));
+            if (amountMin || amountMax) {
+                const min = amountMin ? parseInt(amountMin) : null;
+                const max = amountMax ? parseInt(amountMax) : null;
                 filtered = filtered.filter(e => {
                     if (min !== null && e.amount < min) return false;
                     if (max !== null && e.amount > max) return false;
