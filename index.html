@@ -348,13 +348,17 @@
             background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
         }
 
-        [data-theme="dark"] .month-selector {
+        [data-theme="dark"] .month-tabs-container {
             background: rgba(255,255,255,0.1);
         }
 
-        [data-theme="dark"] .month-selector select {
-            background: var(--gray-100);
-            color: var(--text-primary);
+        [data-theme="dark"] .month-tab {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        [data-theme="dark"] .month-tab:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
 
         [data-theme="dark"] .edit-budget-btn {
@@ -464,41 +468,6 @@
         .refresh-btn.spinning i { animation: spin 0.8s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* 월 선택기 */
-        .month-selector {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(255,255,255,0.15);
-            padding: 8px 16px;
-            border-radius: 10px;
-        }
-
-        .month-selector label {
-            font-size: 0.85rem;
-            opacity: 0.9;
-        }
-
-        .month-selector select {
-            padding: 8px 32px 8px 14px;
-            border: none;
-            border-radius: 8px;
-            background: white;
-            color: var(--gray-800);
-            font-size: 0.95rem;
-            font-weight: 500;
-            cursor: pointer;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23374151' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-        }
-
-        .month-selector select:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
-        }
-
         .month-nav-btn {
             background: rgba(255,255,255,0.2);
             border: none;
@@ -515,6 +484,97 @@
 
         .month-nav-btn:hover { background: rgba(255,255,255,0.3); }
         .month-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* 글로벌 로딩 오버레이 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .loading-text {
+            color: white;
+            margin-top: 16px;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        /* 월 탭 선택기 */
+        .month-tabs-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            max-width: 100%;
+        }
+
+        .month-tabs-scroll {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding: 4px 0;
+            max-width: 180px;
+        }
+
+        .month-tabs-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .month-tab {
+            flex-shrink: 0;
+            padding: 8px 14px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .month-tab:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .month-tab.active {
+            background: white;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        [data-theme="dark"] .month-tab.active {
+            background: var(--primary);
+            color: white;
+        }
 
         /* Navigation */
         .nav-tabs {
@@ -1771,15 +1831,18 @@
 
             .logo h1 { font-size: 1.2rem; }
 
-            .month-selector {
+            .month-tabs-container {
                 width: 100%;
                 justify-content: center;
-                padding: 10px 12px;
             }
 
-            .month-selector select {
-                flex: 1;
-                max-width: 200px;
+            .month-tabs-scroll {
+                max-width: calc(100vw - 120px);
+            }
+
+            .month-tab {
+                padding: 6px 12px;
+                font-size: 0.8rem;
             }
 
             .header-info {
@@ -2837,6 +2900,12 @@
     </style>
 </head>
 <body>
+<!-- 글로벌 로딩 오버레이 -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">데이터를 불러오는 중...</div>
+</div>
+
 <div id="app-wrapper">
     <header>
         <div class="container header-content">
@@ -2847,11 +2916,13 @@
                     <span id="headerDate">2026년 2월</span>
                 </div>
             </div>
-            <div class="month-selector">
+            <div class="month-tabs-container">
                 <button class="month-nav-btn" onclick="changeMonth(-1)" id="prevMonthBtn">
                     <i class="ri-arrow-left-s-line"></i>
                 </button>
-                <select id="monthSelect" onchange="onMonthChange()"></select>
+                <div class="month-tabs-scroll" id="monthTabsScroll">
+                    <!-- 월 탭들이 동적으로 생성됨 -->
+                </div>
                 <button class="month-nav-btn" onclick="changeMonth(1)" id="nextMonthBtn">
                     <i class="ri-arrow-right-s-line"></i>
                 </button>
@@ -3721,6 +3792,18 @@
             }
         }
 
+        // ===== 로딩 오버레이 =====
+        function showLoading(text = '데이터를 불러오는 중...') {
+            const overlay = document.getElementById('loadingOverlay');
+            const textEl = overlay.querySelector('.loading-text');
+            if (textEl) textEl.textContent = text;
+            overlay.classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+
         // ===== 데이터 로드 (최적화) =====
         async function loadData() {
             try {
@@ -3745,6 +3828,11 @@
                     lastUpdatedEl.textContent = '최신 데이터 확인 중...';
                 }
 
+                // 캐시가 없으면 로딩 스피너 표시
+                if (!cached || !cached.data || cached.data.length === 0) {
+                    showLoading('데이터를 불러오는 중...');
+                }
+
                 // 2. 시트 목록 동적 로드 (새 시트 자동 인식)
                 await loadSheetList();
 
@@ -3754,6 +3842,8 @@
             } catch (error) {
                 console.error('Error loading data:', error);
                 document.getElementById('lastUpdated').textContent = '데이터 로딩 실패';
+            } finally {
+                hideLoading();
             }
         }
 
@@ -3774,6 +3864,7 @@
 
             btn.classList.add('spinning');
             lastUpdatedEl.textContent = '새로고침 중...';
+            showLoading('새로고침 중...');
 
             try {
                 // 캐시 삭제
@@ -3791,6 +3882,7 @@
                 lastUpdatedEl.textContent = '새로고침 실패';
             } finally {
                 btn.classList.remove('spinning');
+                hideLoading();
             }
         }
 
@@ -4131,18 +4223,46 @@
             availableMonths = [...monthSet].sort().reverse();
         }
 
-        // 월 선택 드롭다운 채우기
+        // 월 탭 생성
         function populateMonthSelector() {
-            const select = document.getElementById('monthSelect');
+            const container = document.getElementById('monthTabsScroll');
             const selectedKey = `${selectedMonth.year}-${String(selectedMonth.month).padStart(2, '0')}`;
 
-            select.innerHTML = availableMonths.map(m => {
+            container.innerHTML = availableMonths.map(m => {
                 const [year, month] = m.split('-').map(Number);
-                return `<option value="${m}" ${m === selectedKey ? 'selected' : ''}>${year}년 ${month}월</option>`;
+                const isActive = m === selectedKey ? 'active' : '';
+                return `<button class="month-tab ${isActive}" data-month="${m}" onclick="selectMonthTab('${m}')">${month}월</button>`;
             }).join('');
 
             updateHeaderDate();
             updateNavButtons();
+            scrollToActiveTab();
+        }
+
+        // 월 탭 선택
+        function selectMonthTab(monthKey) {
+            const [year, month] = monthKey.split('-').map(Number);
+            selectedMonth = { year, month };
+
+            // 모든 탭에서 active 제거 후 선택된 탭에 추가
+            document.querySelectorAll('.month-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.month === monthKey);
+            });
+
+            updateHeaderDate();
+            updateNavButtons();
+            updateCountDisplay();
+            updateDashboard();
+            scrollToActiveTab();
+        }
+
+        // 활성 탭으로 스크롤
+        function scrollToActiveTab() {
+            const container = document.getElementById('monthTabsScroll');
+            const activeTab = container.querySelector('.month-tab.active');
+            if (activeTab) {
+                activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
         }
 
         // 헤더 날짜 업데이트
@@ -4174,30 +4294,13 @@
             document.getElementById('lastUpdated').textContent = `${selectedMonth.month}월 ${count}건`;
         }
 
-        // 월 변경 핸들러
-        function onMonthChange() {
-            const select = document.getElementById('monthSelect');
-            const [year, month] = select.value.split('-').map(Number);
-            selectedMonth = { year, month };
-            updateHeaderDate();
-            updateNavButtons();
-            updateCountDisplay();
-            updateDashboard();
-        }
-
         // 이전/다음 월 이동
         function changeMonth(direction) {
             const currentIndex = availableMonths.indexOf(getSelectedKey());
             const newIndex = currentIndex - direction;
 
             if (newIndex >= 0 && newIndex < availableMonths.length) {
-                const [year, month] = availableMonths[newIndex].split('-').map(Number);
-                selectedMonth = { year, month };
-                document.getElementById('monthSelect').value = availableMonths[newIndex];
-                updateHeaderDate();
-                updateNavButtons();
-                updateCountDisplay();
-                updateDashboard();
+                selectMonthTab(availableMonths[newIndex]);
             }
         }
 
@@ -5501,8 +5604,20 @@
             const payment = document.getElementById('inputPayment').value;
 
             // 유효성 검사
-            if (!date || !category || !amount || !payment) {
-                showToast('모든 필수 항목을 입력해주세요', 'error');
+            if (!date) {
+                showToast('날짜를 선택해주세요', 'error');
+                return;
+            }
+            if (!category) {
+                showToast('카테고리를 선택해주세요', 'error');
+                return;
+            }
+            if (!amount || amount <= 0) {
+                showToast('금액을 입력해주세요', 'error');
+                return;
+            }
+            if (!payment) {
+                showToast('결제수단을 선택해주세요', 'error');
                 return;
             }
 
