@@ -2482,6 +2482,216 @@
             color: var(--gray-400);
         }
 
+        /* ===== 커스텀 날짜 선택기 ===== */
+        .custom-date-picker {
+            position: relative;
+        }
+        .date-display {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            font-size: 1rem;
+            background: white;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .date-display:hover {
+            border-color: var(--gray-300);
+        }
+        .date-display.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .date-display-text {
+            font-weight: 500;
+        }
+        .date-display-icon {
+            color: var(--gray-400);
+            font-size: 1.2rem;
+        }
+        [data-theme="dark"] .date-display {
+            background: var(--gray-100);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .calendar-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            box-shadow: var(--shadow-md), 0 20px 40px rgba(0,0,0,0.08);
+            z-index: 100;
+            padding: 16px;
+            animation: calendarSlideIn 0.2s ease-out;
+        }
+        [data-theme="dark"] .calendar-dropdown {
+            border-color: var(--border-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .calendar-dropdown.open {
+            display: block;
+        }
+        @keyframes calendarSlideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .calendar-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .calendar-nav {
+            display: flex;
+            gap: 4px;
+        }
+        .calendar-nav-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            background: var(--gray-50);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.15s;
+        }
+        .calendar-nav-btn:hover {
+            background: var(--gray-200);
+            color: var(--text-primary);
+        }
+        .calendar-nav-btn:active {
+            transform: scale(0.92);
+        }
+        [data-theme="dark"] .calendar-nav-btn {
+            background: var(--gray-100);
+        }
+        [data-theme="dark"] .calendar-nav-btn:hover {
+            background: var(--gray-200);
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            margin-bottom: 4px;
+        }
+        .calendar-weekday {
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--gray-400);
+            padding: 4px 0 8px;
+        }
+        .calendar-weekday:first-child { color: var(--expense); }
+        .calendar-weekday:last-child { color: var(--primary); }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+        .calendar-day-btn {
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            position: relative;
+        }
+        .calendar-day-btn:hover:not(.disabled):not(.selected) {
+            background: var(--gray-100);
+        }
+        .calendar-day-btn:active:not(.disabled) {
+            transform: scale(0.88);
+        }
+        .calendar-day-btn.today:not(.selected) {
+            color: var(--primary);
+            font-weight: 700;
+        }
+        .calendar-day-btn.today:not(.selected)::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+        .calendar-day-btn.selected {
+            background: var(--primary);
+            color: white;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+        [data-theme="dark"] .calendar-day-btn.selected {
+            box-shadow: 0 2px 8px rgba(96, 165, 250, 0.3);
+        }
+        .calendar-day-btn.disabled {
+            color: var(--gray-300);
+            cursor: default;
+        }
+        .calendar-day-btn.sunday { color: var(--expense); }
+        .calendar-day-btn.saturday { color: var(--primary); }
+        .calendar-day-btn.sunday.selected,
+        .calendar-day-btn.saturday.selected { color: white; }
+        .calendar-day-btn.other-month {
+            color: var(--gray-300);
+        }
+
+        .calendar-footer {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--gray-100);
+        }
+        .calendar-today-btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary-bg);
+            color: var(--primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .calendar-today-btn:hover {
+            background: var(--accent-light);
+        }
+        [data-theme="dark"] .calendar-footer {
+            border-color: var(--border-color);
+        }
+
         .amount-input-wrapper {
             position: relative;
         }
@@ -3621,7 +3831,39 @@
                 <form id="expenseForm" onsubmit="submitExpense(event)">
                     <div class="input-form-group">
                         <label><i class="ri-calendar-line"></i> 날짜</label>
-                        <input type="date" id="inputDate" required>
+                        <input type="hidden" id="inputDate" required>
+                        <div class="custom-date-picker" id="customDatePicker">
+                            <div class="date-display" id="dateDisplay" onclick="toggleCalendar()">
+                                <span class="date-display-text" id="dateDisplayText">2026년 2월 4일 (화)</span>
+                                <i class="ri-calendar-line date-display-icon"></i>
+                            </div>
+                            <div class="calendar-dropdown" id="calendarDropdown">
+                                <div class="calendar-header">
+                                    <span class="calendar-title" id="calendarTitle">2026년 2월</span>
+                                    <div class="calendar-nav">
+                                        <button type="button" class="calendar-nav-btn" onclick="navigateCalendar(-1)">
+                                            <i class="ri-arrow-left-s-line"></i>
+                                        </button>
+                                        <button type="button" class="calendar-nav-btn" onclick="navigateCalendar(1)">
+                                            <i class="ri-arrow-right-s-line"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="calendar-weekdays">
+                                    <span class="calendar-weekday">일</span>
+                                    <span class="calendar-weekday">월</span>
+                                    <span class="calendar-weekday">화</span>
+                                    <span class="calendar-weekday">수</span>
+                                    <span class="calendar-weekday">목</span>
+                                    <span class="calendar-weekday">금</span>
+                                    <span class="calendar-weekday">토</span>
+                                </div>
+                                <div class="calendar-days" id="calendarDays"></div>
+                                <div class="calendar-footer">
+                                    <button type="button" class="calendar-today-btn" onclick="selectToday()">오늘</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="input-form-group">
                         <label><i class="ri-file-text-line"></i> 메모 (선택)</label>
@@ -6267,6 +6509,139 @@
             if (hintEl) hintEl.textContent = '';
         }
 
+        // ===== 커스텀 날짜 선택기 =====
+        let calendarViewYear = 2026;
+        let calendarViewMonth = 2; // 1-based
+        let calendarSelectedDate = null; // Date 객체
+
+        function toggleCalendar() {
+            const dropdown = document.getElementById('calendarDropdown');
+            const display = document.getElementById('dateDisplay');
+            if (dropdown.classList.contains('open')) {
+                closeCalendar();
+            } else {
+                dropdown.classList.add('open');
+                display.classList.add('active');
+            }
+        }
+
+        function closeCalendar() {
+            const dropdown = document.getElementById('calendarDropdown');
+            const display = document.getElementById('dateDisplay');
+            if (dropdown) dropdown.classList.remove('open');
+            if (display) display.classList.remove('active');
+        }
+
+        function navigateCalendar(direction) {
+            calendarViewMonth += direction;
+            if (calendarViewMonth > 12) {
+                calendarViewMonth = 1;
+                calendarViewYear++;
+            } else if (calendarViewMonth < 1) {
+                calendarViewMonth = 12;
+                calendarViewYear--;
+            }
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const titleEl = document.getElementById('calendarTitle');
+            const daysEl = document.getElementById('calendarDays');
+            if (!titleEl || !daysEl) return;
+
+            titleEl.textContent = `${calendarViewYear}년 ${calendarViewMonth}월`;
+
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const selectedStr = calendarSelectedDate
+                ? `${calendarSelectedDate.getFullYear()}-${String(calendarSelectedDate.getMonth() + 1).padStart(2, '0')}-${String(calendarSelectedDate.getDate()).padStart(2, '0')}`
+                : '';
+
+            // 해당 월의 첫째 날과 마지막 날
+            const firstDayOfMonth = new Date(calendarViewYear, calendarViewMonth - 1, 1);
+            const lastDayOfMonth = new Date(calendarViewYear, calendarViewMonth, 0);
+            const startDayOfWeek = firstDayOfMonth.getDay(); // 0=일, 6=토
+            const daysInMonth = lastDayOfMonth.getDate();
+
+            // 이전 달의 마지막 날들
+            const prevMonthLastDay = new Date(calendarViewYear, calendarViewMonth - 1, 0).getDate();
+
+            let html = '';
+
+            // 이전 달의 빈 칸
+            for (let i = startDayOfWeek - 1; i >= 0; i--) {
+                const day = prevMonthLastDay - i;
+                html += `<button type="button" class="calendar-day-btn other-month disabled" disabled>${day}</button>`;
+            }
+
+            // 현재 달의 날짜들
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${calendarViewYear}-${String(calendarViewMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayOfWeek = new Date(calendarViewYear, calendarViewMonth - 1, day).getDay();
+                let classes = 'calendar-day-btn';
+                if (dateStr === todayStr) classes += ' today';
+                if (dateStr === selectedStr) classes += ' selected';
+                if (dayOfWeek === 0) classes += ' sunday';
+                if (dayOfWeek === 6) classes += ' saturday';
+                html += `<button type="button" class="${classes}" onclick="pickDate(${calendarViewYear}, ${calendarViewMonth}, ${day})">${day}</button>`;
+            }
+
+            // 다음 달의 빈 칸
+            const totalCells = startDayOfWeek + daysInMonth;
+            const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+            for (let i = 1; i <= remainingCells; i++) {
+                html += `<button type="button" class="calendar-day-btn other-month disabled" disabled>${i}</button>`;
+            }
+
+            daysEl.innerHTML = html;
+        }
+
+        function pickDate(year, month, day) {
+            const date = new Date(year, month - 1, day);
+            selectCalendarDate(date);
+            closeCalendar();
+        }
+
+        function selectToday() {
+            const today = new Date();
+            calendarViewYear = today.getFullYear();
+            calendarViewMonth = today.getMonth() + 1;
+            selectCalendarDate(today);
+            closeCalendar();
+        }
+
+        function selectCalendarDate(date) {
+            calendarSelectedDate = date;
+            calendarViewYear = date.getFullYear();
+            calendarViewMonth = date.getMonth() + 1;
+
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
+
+            // hidden input 업데이트
+            document.getElementById('inputDate').value = dateStr;
+
+            // 표시 텍스트 업데이트
+            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+            const dayOfWeek = dayNames[date.getDay()];
+            const displayText = document.getElementById('dateDisplayText');
+            if (displayText) {
+                displayText.textContent = `${year}년 ${parseInt(month)}월 ${parseInt(day)}일 (${dayOfWeek})`;
+            }
+
+            renderCalendar();
+        }
+
+        // 캘린더 외부 클릭 시 닫기
+        document.addEventListener('click', (e) => {
+            const picker = document.getElementById('customDatePicker');
+            if (picker && !picker.contains(e.target)) {
+                closeCalendar();
+            }
+        });
+
         function openInputModal() {
             const modal = document.getElementById('inputModal');
             const modalContent = modal.querySelector('.input-modal');
@@ -6300,29 +6675,18 @@
                 submitBtn.innerHTML = '<i class="ri-save-line" style="color: #FFFFFF !important;"></i> 저장하기';
             }
 
-            // 오늘 날짜로 기본 설정
+            // 날짜 초기화
             const today = new Date();
-            const dateStr = today.toISOString().split('T')[0];
-            document.getElementById('inputDate').value = dateStr;
-
-            // 선택된 월이 있으면 해당 월의 마지막 날짜로 제한
+            let initDate = today;
             if (selectedMonth) {
-                const year = selectedMonth.year;
-                const month = selectedMonth.month;
-                const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
-                const lastDay = new Date(year, month, 0).getDate();
-                const lastDayStr = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-
-                document.getElementById('inputDate').min = firstDay;
-                document.getElementById('inputDate').max = lastDayStr;
-
-                // 오늘이 선택된 월에 포함되지 않으면 해당 월의 첫째 날로 설정
                 const todayMonth = today.getMonth() + 1;
                 const todayYear = today.getFullYear();
-                if (todayYear !== year || todayMonth !== month) {
-                    document.getElementById('inputDate').value = firstDay;
+                if (todayYear !== selectedMonth.year || todayMonth !== selectedMonth.month) {
+                    initDate = new Date(selectedMonth.year, selectedMonth.month - 1, 1);
                 }
             }
+            selectCalendarDate(initDate);
+            closeCalendar();
 
             // 자주 쓰는 지출 패턴 표시
             renderQuickSuggestions();
