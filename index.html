@@ -3383,18 +3383,18 @@
                         <input type="text" id="inputDescription" placeholder="ex) 스타벅스, 편의점..." oninput="suggestCategory(this.value)">
                     </div>
                     <div class="input-form-group">
-                        <label><i class="ri-folder-line"></i> 카테고리 <span class="auto-suggest-hint" id="autoSuggestHint"></span></label>
-                        <select id="inputCategory" required>
-                            <option value="">카테고리 선택</option>
-                            <!-- 동적으로 생성됨 -->
-                        </select>
-                    </div>
-                    <div class="input-form-group">
                         <label><i class="ri-money-dollar-circle-line"></i> 금액</label>
                         <div class="amount-input-wrapper">
                             <input type="number" id="inputAmount" placeholder="0" required min="1" inputmode="numeric">
                             <span class="currency">원</span>
                         </div>
+                    </div>
+                    <div class="input-form-group">
+                        <label><i class="ri-folder-line"></i> 카테고리 <span class="auto-suggest-hint" id="autoSuggestHint"></span></label>
+                        <select id="inputCategory" required>
+                            <option value="">카테고리 선택</option>
+                            <!-- 동적으로 생성됨 -->
+                        </select>
                     </div>
                     <div class="input-form-group">
                         <label><i class="ri-bank-card-line"></i> 결제수단</label>
