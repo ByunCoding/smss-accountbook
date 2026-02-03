@@ -4219,8 +4219,8 @@
             // GOOGLE_SHEETS에 정의된 월 추가
             Object.keys(GOOGLE_SHEETS).forEach(m => monthSet.add(m));
 
-            // 정렬 (최신순)
-            availableMonths = [...monthSet].sort().reverse();
+            // 정렬 (시간순: 과거 → 현재)
+            availableMonths = [...monthSet].sort();
         }
 
         // 월 탭 생성
@@ -4273,8 +4273,9 @@
         // 이전/다음 버튼 상태 업데이트
         function updateNavButtons() {
             const currentIndex = availableMonths.indexOf(getSelectedKey());
-            document.getElementById('prevMonthBtn').disabled = currentIndex >= availableMonths.length - 1;
-            document.getElementById('nextMonthBtn').disabled = currentIndex <= 0;
+            // 시간순: ← 과거, → 미래
+            document.getElementById('prevMonthBtn').disabled = currentIndex <= 0;
+            document.getElementById('nextMonthBtn').disabled = currentIndex >= availableMonths.length - 1;
         }
 
         // 선택된 월 키 반환
@@ -4294,10 +4295,10 @@
             document.getElementById('lastUpdated').textContent = `${selectedMonth.month}월 ${count}건`;
         }
 
-        // 이전/다음 월 이동
+        // 이전/다음 월 이동 (시간순: -1=과거, +1=미래)
         function changeMonth(direction) {
             const currentIndex = availableMonths.indexOf(getSelectedKey());
-            const newIndex = currentIndex - direction;
+            const newIndex = currentIndex + direction;
 
             if (newIndex >= 0 && newIndex < availableMonths.length) {
                 selectMonthTab(availableMonths[newIndex]);
