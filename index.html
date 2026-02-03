@@ -1316,6 +1316,122 @@
             font-size: 0.9rem;
         }
 
+        /* 빠른 입력 템플릿 */
+        .quick-templates {
+            margin-bottom: 20px;
+        }
+
+        .quick-templates-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .quick-templates-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--gray-600);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .quick-templates-title i {
+            color: var(--primary);
+        }
+
+        .quick-templates-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quick-template-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .quick-template-btn:hover {
+            background: var(--primary-bg);
+            border-color: var(--primary);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        .quick-template-btn:active {
+            transform: translateY(0);
+        }
+
+        .quick-template-btn .emoji {
+            font-size: 1.1rem;
+        }
+
+        .quick-template-btn .name {
+            font-weight: 500;
+        }
+
+        .quick-template-btn .amount {
+            color: var(--expense);
+            font-weight: 600;
+        }
+
+        .quick-template-add {
+            padding: 10px 16px;
+            background: var(--gray-100);
+            border: 1px dashed var(--gray-300);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            transition: all 0.2s;
+        }
+
+        .quick-template-add:hover {
+            background: var(--gray-200);
+            border-color: var(--gray-400);
+            color: var(--gray-700);
+        }
+
+        .quick-templates-empty {
+            padding: 16px;
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
+
+        /* 다크모드 - 빠른 입력 템플릿 */
+        [data-theme="dark"] .quick-template-btn {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .quick-template-btn:hover {
+            background: var(--gray-100);
+            border-color: var(--primary);
+        }
+
+        [data-theme="dark"] .quick-template-add {
+            background: var(--gray-100);
+            border-color: var(--gray-300);
+            color: var(--text-secondary);
+        }
+
+        [data-theme="dark"] .quick-templates-title {
+            color: var(--text-secondary);
+        }
+
         /* 인사이트 섹션 */
         .insights-container {
             display: flex;
@@ -2846,6 +2962,16 @@
                     </div>
                 </div>
 
+                <!-- 빠른 입력 -->
+                <div class="quick-templates" id="quickTemplatesSection">
+                    <div class="quick-templates-header">
+                        <span class="quick-templates-title"><i class="ri-flashlight-line"></i> 빠른 입력</span>
+                    </div>
+                    <div class="quick-templates-list" id="quickTemplatesList">
+                        <!-- 동적으로 생성됨 -->
+                    </div>
+                </div>
+
                 <!-- 인사이트 -->
                 <div class="insights-container" id="insightsContainer"></div>
 
@@ -3213,6 +3339,38 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 빠른 입력 템플릿 섹션 -->
+                <div class="settings-section">
+                    <div class="settings-section-title">
+                        <i class="ri-flashlight-line" style="color: var(--primary);"></i> 빠른 입력 템플릿
+                    </div>
+                    <div class="settings-list" id="templateSettingsList"></div>
+                    <button class="settings-add-btn" onclick="showAddTemplateForm()">
+                        <i class="ri-add-line"></i> 템플릿 추가
+                    </button>
+                    <div class="settings-add-form" id="addTemplateForm">
+                        <div class="settings-add-form-row">
+                            <input type="text" id="newTemplateEmoji" class="settings-add-form-emoji" placeholder="☕" maxlength="2">
+                            <input type="text" id="newTemplateName" placeholder="이름 (예: 커피)" style="flex: 1;">
+                        </div>
+                        <div class="settings-add-form-row">
+                            <select id="newTemplateCategory" style="flex: 1;">
+                                <option value="">카테고리 선택</option>
+                            </select>
+                            <select id="newTemplatePayment" style="flex: 1;">
+                                <option value="">결제수단 선택</option>
+                            </select>
+                        </div>
+                        <div class="settings-add-form-row">
+                            <input type="number" id="newTemplateAmount" placeholder="금액" style="flex: 1;" inputmode="numeric">
+                        </div>
+                        <div class="settings-add-form-row settings-add-form-actions">
+                            <button class="cancel-btn" onclick="hideAddTemplateForm()">취소</button>
+                            <button class="confirm-btn" onclick="addTemplate()">추가</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="input-modal-footer">
                 <button type="button" class="submit-btn" onclick="closeSettingsModal()">
@@ -3307,7 +3465,8 @@
                 { name: '국민행복카드', emoji: '🟢' },
                 { name: '계좌이체', emoji: '🏦' },
                 { name: '현금', emoji: '💵' }
-            ]
+            ],
+            quickTemplates: []
         };
 
         // 현재 설정
@@ -3351,6 +3510,11 @@
         function applySettings() {
             if (!appSettings) return;
 
+            // quickTemplates가 없으면 빈 배열로 초기화
+            if (!appSettings.quickTemplates) {
+                appSettings.quickTemplates = [];
+            }
+
             // categoryColors 업데이트
             categoryColors = {};
             appSettings.categories.forEach(cat => {
@@ -3360,6 +3524,9 @@
             // select 옵션 렌더링
             renderCategorySelect();
             renderPaymentSelect();
+
+            // 빠른 입력 템플릿 렌더링
+            renderQuickTemplates();
         }
 
         // 설정 저장 (Google Sheets에)
@@ -3470,6 +3637,9 @@
                     </button>
                 </div>
             `).join('');
+
+            // 템플릿 리스트
+            renderTemplateSettings();
         }
 
         // 카테고리 추가 폼 표시
@@ -3566,6 +3736,134 @@
                 renderSettingsLists();
                 showToast(`'${pm.name}' 결제수단이 삭제되었습니다.`, 'success');
             }
+        }
+
+        // ===== 빠른 입력 템플릿 =====
+        function showAddTemplateForm() {
+            const form = document.getElementById('addTemplateForm');
+            form.style.display = 'block';
+            // 카테고리/결제수단 옵션 채우기
+            const catSelect = document.getElementById('newTemplateCategory');
+            const paySelect = document.getElementById('newTemplatePayment');
+            catSelect.innerHTML = '<option value="">카테고리 선택</option>' +
+                appSettings.categories.map(c => `<option value="${c.name}">${c.emoji} ${c.name}</option>`).join('');
+            paySelect.innerHTML = '<option value="">결제수단 선택</option>' +
+                appSettings.paymentMethods.map(p => `<option value="${p.name}">${p.emoji} ${p.name}</option>`).join('');
+        }
+
+        function hideAddTemplateForm() {
+            const form = document.getElementById('addTemplateForm');
+            form.style.display = 'none';
+            document.getElementById('newTemplateEmoji').value = '';
+            document.getElementById('newTemplateName').value = '';
+            document.getElementById('newTemplateCategory').value = '';
+            document.getElementById('newTemplatePayment').value = '';
+            document.getElementById('newTemplateAmount').value = '';
+        }
+
+        function addTemplate() {
+            const emoji = document.getElementById('newTemplateEmoji').value.trim() || '📝';
+            const name = document.getElementById('newTemplateName').value.trim();
+            const category = document.getElementById('newTemplateCategory').value;
+            const payment = document.getElementById('newTemplatePayment').value;
+            const amount = parseInt(document.getElementById('newTemplateAmount').value) || 0;
+
+            if (!name) {
+                showToast('템플릿 이름을 입력하세요.', 'error');
+                return;
+            }
+            if (!category) {
+                showToast('카테고리를 선택하세요.', 'error');
+                return;
+            }
+            if (!payment) {
+                showToast('결제수단을 선택하세요.', 'error');
+                return;
+            }
+            if (amount <= 0) {
+                showToast('금액을 입력하세요.', 'error');
+                return;
+            }
+
+            if (!appSettings.quickTemplates) {
+                appSettings.quickTemplates = [];
+            }
+            appSettings.quickTemplates.push({ emoji, name, category, payment, amount });
+            saveSettings();
+            renderSettingsLists();
+            renderQuickTemplates();
+            hideAddTemplateForm();
+            showToast(`'${name}' 템플릿이 추가되었습니다.`, 'success');
+        }
+
+        function removeTemplate(index) {
+            const tpl = appSettings.quickTemplates[index];
+            if (confirm(`'${tpl.name}' 템플릿을 삭제하시겠습니까?`)) {
+                appSettings.quickTemplates.splice(index, 1);
+                saveSettings();
+                renderSettingsLists();
+                renderQuickTemplates();
+                showToast(`'${tpl.name}' 템플릿이 삭제되었습니다.`, 'success');
+            }
+        }
+
+        function renderQuickTemplates() {
+            const container = document.getElementById('quickTemplatesList');
+            const section = document.getElementById('quickTemplatesSection');
+            if (!container) return;
+
+            const templates = appSettings?.quickTemplates || [];
+
+            if (templates.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+
+            section.style.display = 'block';
+            container.innerHTML = templates.map((t, i) => `
+                <button class="quick-template-btn" onclick="openInputModalWithTemplate(${i})">
+                    <span class="emoji">${t.emoji}</span>
+                    <span class="name">${t.name}</span>
+                    <span class="amount">${formatCurrency(t.amount)}</span>
+                </button>
+            `).join('') + `
+                <button class="quick-template-add" onclick="openSettingsModal()">
+                    <i class="ri-add-line"></i> 추가
+                </button>
+            `;
+        }
+
+        function openInputModalWithTemplate(index) {
+            const template = appSettings.quickTemplates[index];
+            if (!template) return;
+
+            // 기본 입력 모달 열기
+            openInputModal();
+
+            // 템플릿 값으로 필드 채우기
+            setTimeout(() => {
+                document.getElementById('inputCategory').value = template.category;
+                document.getElementById('inputPayment').value = template.payment;
+                document.getElementById('inputDescription').value = template.name;
+                document.getElementById('inputAmount').value = template.amount;
+            }, 50);
+        }
+
+        function renderTemplateSettings() {
+            const list = document.getElementById('templateSettingsList');
+            if (!list) return;
+
+            const templates = appSettings?.quickTemplates || [];
+            list.innerHTML = templates.map((t, i) => `
+                <div class="settings-item">
+                    <span class="settings-item-emoji">${t.emoji}</span>
+                    <span class="settings-item-name">${t.name}</span>
+                    <span class="settings-item-detail" style="color: var(--expense); font-size: 0.85rem;">${formatCurrency(t.amount)}</span>
+                    <button class="settings-item-delete" onclick="removeTemplate(${i})">
+                        <i class="ri-delete-bin-line"></i>
+                    </button>
+                </div>
+            `).join('') || '<div style="padding: 12px; color: var(--gray-500); font-size: 0.9rem;">등록된 템플릿이 없습니다.</div>';
         }
 
         let expenseData = { expenses: [], summary: {} };
