@@ -415,11 +415,13 @@
             width: 100% !important;
             max-width: 100% !important;
             touch-action: pan-y pinch-zoom !important;
-            overscroll-behavior-x: none !important;
+            overscroll-behavior: none !important;
+            -webkit-overflow-scrolling: touch;
         }
 
         html {
-            overflow-y: scroll;
+            overflow-y: auto;
+            height: 100%;
         }
 
         body {
@@ -427,7 +429,23 @@
             background: var(--gray-100);
             color: var(--gray-800);
             line-height: 1.6;
-            min-height: 100vh;
+            min-height: 100%;
+            height: 100%;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* PWA standalone 모드에서 스크롤 개선 */
+        @media all and (display-mode: standalone) {
+            html, body {
+                overscroll-behavior-y: none;
+                position: fixed;
+                width: 100%;
+                height: 100%;
+            }
+            body {
+                overflow-y: auto;
+            }
         }
 
         .container { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
@@ -5329,11 +5347,13 @@
                 return;
             }
 
-            // 지출 패턴 분석: description + category + payment + amount 조합
+            // 지출 패턴 분석: category + payment + amount 조합 (메모는 옵션)
             const patternMap = new Map();
             expenseData.expenses.forEach(e => {
-                if (!e.description || !e.category || !e.payment) return;
-                const key = `${e.description}|${e.category}|${e.payment}|${e.amount}`;
+                if (!e.category || !e.payment || !e.amount) return;
+                // 메모가 있으면 메모 포함, 없으면 카테고리명 사용
+                const desc = e.description || e.category;
+                const key = `${desc}|${e.category}|${e.payment}|${e.amount}`;
                 const count = patternMap.get(key) || 0;
                 patternMap.set(key, count + 1);
             });
@@ -5342,7 +5362,7 @@
             const topPatterns = [...patternMap.entries()]
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 5)
-                .filter(([_, count]) => count >= 2) // 최소 2회 이상 사용된 패턴만
+                .filter(([_, count]) => count >= 1) // 1회 이상 사용된 패턴 (자주 쓰는 조합 보여주기)
                 .map(([key, count]) => {
                     const [description, category, payment, amount] = key.split('|');
                     const cat = appSettings?.categories?.find(c => c.name === category);
