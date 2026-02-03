@@ -3025,14 +3025,6 @@
                                 <select id="filterCategory"><option value="">전체</option></select>
                             </div>
                             <div class="filter-group">
-                                <label>지출 유형</label>
-                                <select id="filterType">
-                                    <option value="">전체</option>
-                                    <option value="fixed">고정비</option>
-                                    <option value="variable">변동비</option>
-                                </select>
-                            </div>
-                            <div class="filter-group">
                                 <label>검색</label>
                                 <input type="text" id="filterSearch" placeholder="내용 검색...">
                             </div>
@@ -5035,22 +5027,18 @@
 
             document.getElementById('filterMonth').onchange = renderExpenseTable;
             document.getElementById('filterCategory').onchange = renderExpenseTable;
-            document.getElementById('filterType').onchange = renderExpenseTable;
             document.getElementById('filterSearch').oninput = renderExpenseTable;
         }
 
         function renderExpenseTable() {
             const month = document.getElementById('filterMonth').value;
             const category = document.getElementById('filterCategory').value;
-            const type = document.getElementById('filterType').value;
             const search = document.getElementById('filterSearch').value.toLowerCase();
 
             let filtered = [...expenseData.expenses];
 
             if (month) filtered = filtered.filter(e => `${e.year}-${String(e.month).padStart(2, '0')}` === month);
             if (category) filtered = filtered.filter(e => e.category === category);
-            if (type === 'fixed') filtered = filtered.filter(e => e.isFixed);
-            if (type === 'variable') filtered = filtered.filter(e => !e.isFixed);
             if (search) filtered = filtered.filter(e => (e.description || '').toLowerCase().includes(search));
 
             filtered.sort((a, b) => b.date.localeCompare(a.date));
