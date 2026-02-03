@@ -3156,7 +3156,6 @@
                 <div class="section">
                     <div class="section-header">
                         <h2 class="section-title"><i class="ri-filter-3-fill"></i> 필터</h2>
-                        <span id="filteredCount" style="font-size: 0.85rem; color: var(--gray-500);"></span>
                     </div>
                     <div class="section-body">
                         <div class="filter-bar">
@@ -5435,9 +5434,6 @@
                     </tr>
                 `;
             }).join('');
-
-            const total = filtered.reduce((sum, e) => sum + e.amount, 0);
-            document.getElementById('filteredCount').textContent = `${filtered.length}건 · ${formatCurrency(total)}`;
         }
 
         function formatCurrency(amount) {
