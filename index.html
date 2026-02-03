@@ -5357,21 +5357,35 @@
             const paymentSelect = document.getElementById('filterPayment');
             paymentSelect.innerHTML = '<option value="">전체</option>' + payments.map(p => `<option value="${p}">${p}</option>`).join('');
 
-            document.getElementById('filterMonth').onchange = renderExpenseTable;
-            document.getElementById('filterCategory').onchange = renderExpenseTable;
-            document.getElementById('filterPayment').onchange = renderExpenseTable;
-            document.getElementById('filterAmountMin').oninput = renderExpenseTable;
-            document.getElementById('filterAmountMax').oninput = renderExpenseTable;
-            document.getElementById('filterSearch').oninput = renderExpenseTable;
+            const filterMonth = document.getElementById('filterMonth');
+            const filterCategory = document.getElementById('filterCategory');
+            const filterPayment = document.getElementById('filterPayment');
+            const filterAmountMin = document.getElementById('filterAmountMin');
+            const filterAmountMax = document.getElementById('filterAmountMax');
+            const filterSearch = document.getElementById('filterSearch');
+
+            if (filterMonth) filterMonth.onchange = renderExpenseTable;
+            if (filterCategory) filterCategory.onchange = renderExpenseTable;
+            if (filterPayment) filterPayment.onchange = renderExpenseTable;
+            if (filterAmountMin) filterAmountMin.oninput = renderExpenseTable;
+            if (filterAmountMax) filterAmountMax.oninput = renderExpenseTable;
+            if (filterSearch) filterSearch.oninput = renderExpenseTable;
         }
 
         function renderExpenseTable() {
-            const month = document.getElementById('filterMonth').value;
-            const category = document.getElementById('filterCategory').value;
-            const payment = document.getElementById('filterPayment').value;
-            const amountMin = document.getElementById('filterAmountMin').value;
-            const amountMax = document.getElementById('filterAmountMax').value;
-            const search = document.getElementById('filterSearch').value.toLowerCase();
+            const monthEl = document.getElementById('filterMonth');
+            const categoryEl = document.getElementById('filterCategory');
+            const paymentEl = document.getElementById('filterPayment');
+            const amountMinEl = document.getElementById('filterAmountMin');
+            const amountMaxEl = document.getElementById('filterAmountMax');
+            const searchEl = document.getElementById('filterSearch');
+
+            const month = monthEl ? monthEl.value : '';
+            const category = categoryEl ? categoryEl.value : '';
+            const payment = paymentEl ? paymentEl.value : '';
+            const amountMin = amountMinEl ? amountMinEl.value : '';
+            const amountMax = amountMaxEl ? amountMaxEl.value : '';
+            const search = searchEl ? searchEl.value.toLowerCase() : '';
 
             let filtered = [...expenseData.expenses];
 
