@@ -3025,6 +3025,20 @@
                                 <select id="filterCategory"><option value="">전체</option></select>
                             </div>
                             <div class="filter-group">
+                                <label>결제수단</label>
+                                <select id="filterPayment"><option value="">전체</option></select>
+                            </div>
+                            <div class="filter-group">
+                                <label>금액</label>
+                                <select id="filterAmount">
+                                    <option value="">전체</option>
+                                    <option value="0-10000">1만원 이하</option>
+                                    <option value="10000-50000">1~5만원</option>
+                                    <option value="50000-100000">5~10만원</option>
+                                    <option value="100000-">10만원 이상</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
                                 <label>검색</label>
                                 <input type="text" id="filterSearch" placeholder="내용 검색...">
                             </div>
@@ -5018,6 +5032,7 @@
         function populateFilters() {
             const months = [...new Set(Object.keys(expenseData.summary.monthly_totals))].sort().reverse();
             const categories = Object.keys(expenseData.summary.category_breakdown).sort();
+            const payments = settings.paymentMethods.map(p => p.name);
 
             const monthSelect = document.getElementById('filterMonth');
             monthSelect.innerHTML = '<option value="">전체</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
@@ -5025,20 +5040,36 @@
             const categorySelect = document.getElementById('filterCategory');
             categorySelect.innerHTML = '<option value="">전체</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
 
+            const paymentSelect = document.getElementById('filterPayment');
+            paymentSelect.innerHTML = '<option value="">전체</option>' + payments.map(p => `<option value="${p}">${p}</option>`).join('');
+
             document.getElementById('filterMonth').onchange = renderExpenseTable;
             document.getElementById('filterCategory').onchange = renderExpenseTable;
+            document.getElementById('filterPayment').onchange = renderExpenseTable;
+            document.getElementById('filterAmount').onchange = renderExpenseTable;
             document.getElementById('filterSearch').oninput = renderExpenseTable;
         }
 
         function renderExpenseTable() {
             const month = document.getElementById('filterMonth').value;
             const category = document.getElementById('filterCategory').value;
+            const payment = document.getElementById('filterPayment').value;
+            const amountRange = document.getElementById('filterAmount').value;
             const search = document.getElementById('filterSearch').value.toLowerCase();
 
             let filtered = [...expenseData.expenses];
 
             if (month) filtered = filtered.filter(e => `${e.year}-${String(e.month).padStart(2, '0')}` === month);
             if (category) filtered = filtered.filter(e => e.category === category);
+            if (payment) filtered = filtered.filter(e => e.payment === payment);
+            if (amountRange) {
+                const [min, max] = amountRange.split('-').map(v => v === '' ? null : parseInt(v));
+                filtered = filtered.filter(e => {
+                    if (min !== null && e.amount < min) return false;
+                    if (max !== null && e.amount > max) return false;
+                    return true;
+                });
+            }
             if (search) filtered = filtered.filter(e => (e.description || '').toLowerCase().includes(search));
 
             filtered.sort((a, b) => b.date.localeCompare(a.date));
