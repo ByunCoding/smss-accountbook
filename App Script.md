@@ -306,7 +306,7 @@ function getDefaultSettings() {
     incomeCategories: [
       { name: '월급', emoji: '💰', amount: 0 },
       { name: '디센터', emoji: '🏢', amount: 0 },
-      { name: '공유숙박', emoji: '🏠', amount: 0 }
+      { name: '부수입', emoji: '🏠', amount: 0 }
     ]
   };
 }
