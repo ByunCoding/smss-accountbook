@@ -1236,13 +1236,6 @@
         }
 
         /* 차트 */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 24px;
-            margin-bottom: 24px;
-        }
-
         .chart-container {
             height: 280px;
             position: relative;
@@ -1586,11 +1579,7 @@
         .heatmap-day .amount { font-size: 0.6rem; opacity: 0.8; }
 
         .heatmap-day.level-0 { background: var(--gray-100); color: var(--gray-400); }
-        .heatmap-day.level-1 { background: #DCFCE7; color: #166534; }
-        .heatmap-day.level-2 { background: #FEF9C3; color: #854D0E; }
-        .heatmap-day.level-3 { background: #FED7AA; color: #9A3412; }
-        .heatmap-day.level-4 { background: #FECACA; color: #991B1B; }
-        .heatmap-day.level-5 { background: #DC2626; color: white; }
+        .heatmap-day.has-expense { background: #3B82F6; color: white; }
 
         /* 일별 상세 모달 */
         .day-modal-overlay {
@@ -1741,21 +1730,6 @@
             display: block;
         }
 
-        .heatmap-legend {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 6px;
-            margin-top: 12px;
-            font-size: 0.75rem;
-            color: var(--gray-500);
-        }
-
-        .heatmap-legend-item {
-            width: 16px;
-            height: 16px;
-            border-radius: 4px;
-        }
 
         .weekday-labels {
             display: grid;
@@ -1945,11 +1919,6 @@
             }
 
             /* 차트 */
-            .charts-grid {
-                grid-template-columns: 1fr;
-                gap: 16px;
-            }
-
             .chart-container {
                 height: 220px;
             }
@@ -3104,6 +3073,16 @@
                 <!-- 인사이트 -->
                 <div class="insights-container" id="insightsContainer"></div>
 
+                <!-- 카테고리별 지출 -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-donut-chart-fill"></i> 카테고리별 지출</h2>
+                    </div>
+                    <div class="section-body">
+                        <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+                    </div>
+                </div>
+
                 <!-- 일별 지출 히트맵 -->
                 <div class="section">
                     <div class="section-header">
@@ -3115,15 +3094,6 @@
                             <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
                         </div>
                         <div class="daily-heatmap" id="dailyHeatmap"></div>
-                        <div class="heatmap-legend">
-                            <span>적음</span>
-                            <div class="heatmap-legend-item" style="background: #DCFCE7;"></div>
-                            <div class="heatmap-legend-item" style="background: #FEF9C3;"></div>
-                            <div class="heatmap-legend-item" style="background: #FED7AA;"></div>
-                            <div class="heatmap-legend-item" style="background: #FECACA;"></div>
-                            <div class="heatmap-legend-item" style="background: #DC2626;"></div>
-                            <span>많음</span>
-                        </div>
                     </div>
                 </div>
 
@@ -3203,23 +3173,13 @@
                     </div>
                 </div>
 
-                <!-- 차트 -->
-                <div class="charts-grid">
-                    <div class="section">
-                        <div class="section-header">
-                            <h2 class="section-title"><i class="ri-donut-chart-fill"></i> 카테고리별 지출</h2>
-                        </div>
-                        <div class="section-body">
-                            <div class="chart-container"><canvas id="categoryChart"></canvas></div>
-                        </div>
+                <!-- 월별 추이 차트 -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-line-chart-fill"></i> 월별 추이</h2>
                     </div>
-                    <div class="section">
-                        <div class="section-header">
-                            <h2 class="section-title"><i class="ri-line-chart-fill"></i> 월별 추이</h2>
-                        </div>
-                        <div class="section-body">
-                            <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
-                        </div>
+                    <div class="section-body">
+                        <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
                     </div>
                 </div>
             </div>
@@ -4456,20 +4416,9 @@
             // 전역으로 저장 (모달에서 사용)
             window.currentDailyData = dailyData;
 
-            // 지출 레벨 계산 (0-5)
+            // 지출 통계
             const amounts = Object.values(dailyData).map(d => d.total);
-            const maxAmount = Math.max(...amounts, 1);
             const avgAmount = amounts.length > 0 ? amounts.reduce((a, b) => a + b, 0) / amounts.length : 0;
-
-            const getLevel = (amount) => {
-                if (!amount || amount === 0) return 0;
-                const ratio = amount / maxAmount;
-                if (ratio <= 0.2) return 1;
-                if (ratio <= 0.4) return 2;
-                if (ratio <= 0.6) return 3;
-                if (ratio <= 0.8) return 4;
-                return 5;
-            };
 
             // 해당 월의 일수와 시작 요일
             const daysInMonth = new Date(selectedMonth.year, selectedMonth.month, 0).getDate();
@@ -4486,7 +4435,8 @@
             // 날짜별 셀
             for (let day = 1; day <= daysInMonth; day++) {
                 const data = dailyData[day] || { total: 0, items: [] };
-                const level = getLevel(data.total);
+                const hasExpense = data.total > 0;
+                const cssClass = hasExpense ? 'has-expense' : 'level-0';
 
                 // 가장 큰 지출 1개
                 const topItem = data.items.sort((a, b) => b.amount - a.amount)[0];
@@ -4498,12 +4448,12 @@
                     .slice(0, 3)
                     .map(i => `${i.category}: ${formatCurrency(i.amount)}`)
                     .join('\n');
-                const tooltip = data.total > 0
+                const tooltip = hasExpense
                     ? `${day}일 총 ${formatCurrency(data.total)}\n${tooltipItems}${data.items.length > 3 ? '\n...' : ''}`
                     : `${day}일: 지출 없음`;
 
                 html += `
-                    <div class="heatmap-day level-${level}" onclick="openDayModal(${day})" title="${tooltip}">
+                    <div class="heatmap-day ${cssClass}" onclick="openDayModal(${day})" title="${tooltip}">
                         <span class="date">${day}</span>
                         <span class="amount">${topLabel}</span>
                     </div>
