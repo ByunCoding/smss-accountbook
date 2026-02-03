@@ -2277,8 +2277,24 @@
             transform: translateY(0);
         }
 
-        /* PWA standalone 모드에서 모달 스크롤 강제 활성화 */
+        /* PWA standalone 모드에서 스크롤 최적화 */
         @media all and (display-mode: standalone) {
+            html {
+                height: 100%;
+                overflow: hidden;
+            }
+
+            body {
+                height: 100%;
+                overflow-y: scroll;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior-y: contain;
+            }
+
+            #app-wrapper {
+                min-height: 100%;
+            }
+
             .input-modal {
                 overflow-y: scroll !important;
                 -webkit-overflow-scrolling: touch !important;
