@@ -1,9 +1,3 @@
-# SMSS 가계부 - Google Apps Script
-
-> Google Apps Script 에디터에서 이 코드 전체를 복사해서 붙여넣기하면 됩니다.
-> 배포: 배포 > 배포 관리 > 연필 아이콘 > 버전: 새 버전 > 배포
-
-```javascript
 function doGet(e) {
   var action = e.parameter.action;
 
@@ -310,4 +304,3 @@ function getDefaultSettings() {
     ]
   };
 }
-```
