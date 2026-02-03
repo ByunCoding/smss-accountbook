@@ -5347,13 +5347,13 @@
                 return;
             }
 
-            // 지출 패턴 분석: category + payment + amount 조합 (메모는 옵션)
+            // 지출 패턴 분석: category + payment_method + amount 조합 (메모는 옵션)
             const patternMap = new Map();
             expenseData.expenses.forEach(e => {
-                if (!e.category || !e.payment || !e.amount) return;
+                if (!e.category || !e.payment_method || !e.amount) return;
                 // 메모가 있으면 메모 포함, 없으면 카테고리명 사용
                 const desc = e.description || e.category;
-                const key = `${desc}|${e.category}|${e.payment}|${e.amount}`;
+                const key = `${desc}|${e.category}|${e.payment_method}|${e.amount}`;
                 const count = patternMap.get(key) || 0;
                 patternMap.set(key, count + 1);
             });
@@ -5364,12 +5364,12 @@
                 .slice(0, 5)
                 .filter(([_, count]) => count >= 1) // 1회 이상 사용된 패턴 (자주 쓰는 조합 보여주기)
                 .map(([key, count]) => {
-                    const [description, category, payment, amount] = key.split('|');
+                    const [description, category, payment_method, amount] = key.split('|');
                     const cat = appSettings?.categories?.find(c => c.name === category);
                     return {
                         description,
                         category,
-                        payment,
+                        payment_method,
                         amount: parseInt(amount),
                         emoji: cat?.emoji || '📝',
                         count
@@ -5405,7 +5405,7 @@
             if (!pattern) return;
 
             document.getElementById('inputCategory').value = pattern.category;
-            document.getElementById('inputPayment').value = pattern.payment;
+            document.getElementById('inputPayment').value = pattern.payment_method;
             document.getElementById('inputDescription').value = pattern.description;
             document.getElementById('inputAmount').value = pattern.amount;
         }
