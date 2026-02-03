@@ -3545,8 +3545,8 @@
             '교통비': 0
         };
 
-        // localStorage에서 예산 로드 (없으면 기본값 사용)
-        let CATEGORY_BUDGETS = JSON.parse(localStorage.getItem('smss_budgets')) || { ...DEFAULT_BUDGETS };
+        // 예산 (loadSettings()에서 appSettings.budgets로 채워짐)
+        let CATEGORY_BUDGETS = { ...DEFAULT_BUDGETS };
 
         // 고정비로 분류할 카테고리 (지출 내역 시트 기준)
         const FIXED_CATEGORIES = ['관리비', '대출이자', '보험료', '통신비', '구독료', '교육비'];
@@ -3591,7 +3591,22 @@
                 { name: '국민행복카드', emoji: '🟢' },
                 { name: '계좌이체', emoji: '🏦' },
                 { name: '현금', emoji: '💵' }
-            ]
+            ],
+            budgets: {
+                '식비': 400000,
+                '외식': 300000,
+                '생활비': 300000,
+                '카페': 0,
+                '쇼핑': 0,
+                '병원비': 0,
+                '육아비': 0,
+                '약속': 0,
+                '여행비': 0,
+                '차량유지비': 0,
+                '관리비': 0,
+                '경조사비': 0,
+                '교통비': 0
+            }
         };
 
         // 현재 설정
@@ -3604,6 +3619,11 @@
                 const cached = localStorage.getItem(SETTINGS_KEY);
                 if (cached) {
                     appSettings = JSON.parse(cached);
+                    // 캐시에 예산 없으면 기본값 적용
+                    if (!appSettings.budgets) {
+                        const localBudgets = localStorage.getItem('smss_budgets');
+                        appSettings.budgets = localBudgets ? JSON.parse(localBudgets) : { ...DEFAULT_BUDGETS };
+                    }
                     applySettings();
                 }
 
@@ -3613,6 +3633,15 @@
 
                 if (result.success && result.settings) {
                     appSettings = result.settings;
+                    // 예산 마이그레이션: budgets 필드가 없으면 localStorage 또는 기본값으로 초기화
+                    if (!appSettings.budgets) {
+                        const localBudgets = localStorage.getItem('smss_budgets');
+                        appSettings.budgets = localBudgets ? JSON.parse(localBudgets) : { ...DEFAULT_BUDGETS };
+                        // 마이그레이션된 예산을 Google Sheets에 저장
+                        saveSettings();
+                    }
+                    // localStorage의 구 예산 키 정리
+                    localStorage.removeItem('smss_budgets');
                     // localStorage에 캐시 저장
                     localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
                     applySettings();
@@ -3627,6 +3656,11 @@
                 } else {
                     appSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
                 }
+                // 예산 마이그레이션 (오프라인 폴백)
+                if (!appSettings.budgets) {
+                    const localBudgets = localStorage.getItem('smss_budgets');
+                    appSettings.budgets = localBudgets ? JSON.parse(localBudgets) : { ...DEFAULT_BUDGETS };
+                }
                 applySettings();
             }
         }
@@ -3640,6 +3674,9 @@
             appSettings.categories.forEach(cat => {
                 categoryColors[cat.name] = cat.color;
             });
+
+            // 예산 적용
+            CATEGORY_BUDGETS = appSettings.budgets || { ...DEFAULT_BUDGETS };
 
             // select 옵션 렌더링
             renderCategorySelect();
@@ -5541,8 +5578,11 @@
                 }
             });
 
-            // localStorage에 저장
-            localStorage.setItem('smss_budgets', JSON.stringify(CATEGORY_BUDGETS));
+            // Google Sheets에 저장 (appSettings 통해 연동)
+            if (appSettings) {
+                appSettings.budgets = { ...CATEGORY_BUDGETS };
+                saveSettings();
+            }
 
             // UI 업데이트
             updateBudgetTab();
