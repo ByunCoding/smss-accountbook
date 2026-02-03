@@ -303,18 +303,6 @@
             color: var(--text-secondary);
         }
 
-        /* 수입 카드 다크모드 */
-        [data-theme="dark"] .income-card { background: var(--bg-secondary); }
-        [data-theme="dark"] .income-card-item { border-color: var(--border-color); }
-        [data-theme="dark"] .income-card-item-amount input {
-            background: var(--bg-card);
-            border-color: var(--border-color);
-        }
-        [data-theme="dark"] .income-card-item-badge.fixed {
-            background: var(--gray-700);
-            color: var(--gray-300);
-        }
-
         /* 캘린더 */
         [data-theme="dark"] .calendar-day {
             border-color: var(--border-color);
@@ -1914,80 +1902,6 @@
         }
 
         /* 이달의 수입 카드 */
-        .income-card {
-            background: var(--gray-50);
-            border-radius: var(--radius);
-            padding: 16px 20px;
-            margin-bottom: 20px;
-        }
-        .income-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        .income-card-header h3 {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .income-card-total {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--income);
-        }
-        .income-card-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--gray-200);
-        }
-        .income-card-item:last-child { border-bottom: none; }
-        .income-card-item-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .income-card-item-name { font-weight: 500; font-size: 0.9rem; }
-        .income-card-item-badge {
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 600;
-        }
-        .income-card-item-badge.fixed {
-            background: var(--gray-200);
-            color: var(--gray-600);
-        }
-        .income-card-item-badge.transaction {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--income);
-        }
-        .income-card-item-amount {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .income-card-item-amount input {
-            width: 110px;
-            padding: 6px 8px;
-            border: 1px solid var(--gray-300);
-            border-radius: 6px;
-            text-align: right;
-            font-size: 0.9rem;
-            font-weight: 600;
-            background: white;
-            color: var(--income);
-        }
-        .income-card-item-amount span {
-            color: var(--gray-500);
-            font-size: 0.85rem;
-        }
-
         /* 반응형 - 태블릿 */
         @media (max-width: 1200px) {
             .key-metrics {
@@ -3099,6 +3013,84 @@
             border-color: var(--income);
         }
 
+        /* 고정수입 체크박스 (입력 모달) */
+        .recurring-checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .recurring-checkbox-group:hover {
+            border-color: var(--income);
+            background: rgba(16, 185, 129, 0.05);
+        }
+        .recurring-checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--income);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .recurring-checkbox-group .recurring-label {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .recurring-checkbox-group .recurring-hint {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+        .recurring-checkbox-group.checked {
+            border-color: var(--income);
+            background: rgba(16, 185, 129, 0.08);
+        }
+
+        /* 고정수입 관리 섹션 (설정 모달) */
+        .recurring-income-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .recurring-income-item:last-child {
+            border-bottom: none;
+        }
+        .recurring-income-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .recurring-income-main {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .recurring-income-main .category {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .recurring-income-main .amount {
+            color: var(--income);
+            font-weight: 700;
+        }
+        .recurring-income-sub {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+        .recurring-income-empty {
+            padding: 20px;
+            text-align: center;
+            color: var(--gray-400);
+            font-size: 0.9rem;
+        }
+
         .settings-item-amount {
             display: flex;
             align-items: center;
@@ -3321,15 +3313,6 @@
                         <div class="label">잔액</div>
                         <div class="value" id="flowBalance">₩0</div>
                     </div>
-                </div>
-
-                <!-- 이달의 수입 -->
-                <div class="income-card" id="incomeCard" style="display:none;">
-                    <div class="income-card-header">
-                        <h3><i class="ri-money-dollar-circle-line"></i> 이달의 수입</h3>
-                        <span class="income-card-total" id="incomeCardTotal">₩0</span>
-                    </div>
-                    <div class="income-card-items" id="incomeCardItems"></div>
                 </div>
 
                 <!-- 카테고리별 지출 -->
@@ -3665,6 +3648,15 @@
                             <!-- 동적으로 생성됨 -->
                         </select>
                     </div>
+                    <div class="input-form-group" id="recurringIncomeGroup" style="display:none;">
+                        <div class="recurring-checkbox-group" id="recurringCheckboxLabel" onclick="toggleRecurringCheckbox()">
+                            <input type="checkbox" id="inputRecurring">
+                            <div>
+                                <div class="recurring-label"><i class="ri-repeat-fill"></i> 고정수입으로 등록</div>
+                                <div class="recurring-hint">매월 같은 날짜에 자동으로 수입이 등록됩니다</div>
+                            </div>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="input-modal-footer">
@@ -3729,6 +3721,16 @@
                             <button class="cancel-btn" onclick="hideAddIncomeCategoryForm()">취소</button>
                             <button class="confirm-btn" onclick="addIncomeCategory()">추가</button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- 고정수입 관리 섹션 -->
+                <div class="settings-section">
+                    <div class="settings-section-title">
+                        <i class="ri-repeat-fill" style="color: var(--income);"></i> 고정수입 관리
+                    </div>
+                    <div class="settings-list" id="recurringIncomeSettingsList">
+                        <div class="recurring-income-empty">등록된 고정수입이 없습니다</div>
                     </div>
                 </div>
 
@@ -4055,6 +4057,10 @@
                 // 결제수단 숨기고 required 해제
                 paymentGroup.style.display = 'none';
                 document.getElementById('inputPayment').required = false;
+                // 고정수입 체크박스 표시
+                document.getElementById('recurringIncomeGroup').style.display = '';
+                document.getElementById('inputRecurring').checked = false;
+                document.getElementById('recurringCheckboxLabel').classList.remove('checked');
                 // 수입 카테고리로 교체
                 renderIncomeCategorySelect();
                 // 헤더 변경
@@ -4065,6 +4071,9 @@
             } else {
                 paymentGroup.style.display = '';
                 document.getElementById('inputPayment').required = true;
+                // 고정수입 체크박스 숨기기
+                document.getElementById('recurringIncomeGroup').style.display = 'none';
+                document.getElementById('inputRecurring').checked = false;
                 renderCategorySelect();
                 titleEl.innerHTML = '<i class="ri-edit-line"></i> 지출 입력';
                 submitBtn.style.backgroundColor = '#2563EB';
@@ -4147,6 +4156,9 @@
                     </button>
                 </div>
             `).join('');
+
+            // 고정수입 관리 리스트
+            renderRecurringIncomeSettings();
         }
 
         // 카테고리 추가 폼 표시
@@ -4306,6 +4318,166 @@
             if (!appSettings.incomeCategories) return;
             appSettings.incomeCategories[index].amount = parseInt(value) || 0;
             saveSettings();
+        }
+
+        // ===== 고정수입 (Recurring Income) 관리 =====
+        const RECURRING_KEY = 'smss_recurring_incomes';
+
+        // 고정수입 목록 로드
+        function getRecurringIncomes() {
+            try {
+                const data = localStorage.getItem(RECURRING_KEY);
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                console.warn('Recurring incomes load error:', e);
+                return [];
+            }
+        }
+
+        // 고정수입 목록 저장
+        function saveRecurringIncomes(list) {
+            localStorage.setItem(RECURRING_KEY, JSON.stringify(list));
+        }
+
+        // 고정수입 등록
+        function addRecurringIncome(category, amount, description, dayOfMonth) {
+            const list = getRecurringIncomes();
+            list.push({
+                id: 'ri_' + Date.now(),
+                category,
+                amount,
+                description,
+                dayOfMonth,
+                createdMonths: [] // 이미 자동 생성된 월 목록
+            });
+            saveRecurringIncomes(list);
+        }
+
+        // 고정수입 삭제
+        function deleteRecurringIncome(id) {
+            const list = getRecurringIncomes();
+            const item = list.find(r => r.id === id);
+            if (!item) return;
+            if (!confirm(`'${item.category}' 고정수입 (${formatCurrency(item.amount)})을 삭제하시겠습니까?\n\n삭제하면 다음 달부터 자동 입력이 중단됩니다.`)) return;
+            const newList = list.filter(r => r.id !== id);
+            saveRecurringIncomes(newList);
+            renderSettingsLists();
+            showToast(`'${item.category}' 고정수입이 삭제되었습니다.`, 'success');
+        }
+
+        // 고정수입 체크박스 토글
+        function toggleRecurringCheckbox() {
+            const checkbox = document.getElementById('inputRecurring');
+            const label = document.getElementById('recurringCheckboxLabel');
+            checkbox.checked = !checkbox.checked;
+            label.classList.toggle('checked', checkbox.checked);
+        }
+
+
+        // 설정 모달에 고정수입 목록 렌더링
+        function renderRecurringIncomeSettings() {
+            const list = getRecurringIncomes();
+            const container = document.getElementById('recurringIncomeSettingsList');
+            if (!container) return;
+
+            if (list.length === 0) {
+                container.innerHTML = '<div class="recurring-income-empty">등록된 고정수입이 없습니다<br><span style="font-size:0.8rem;">수입 입력 시 "고정수입으로 등록"을 체크하면 추가됩니다</span></div>';
+                return;
+            }
+
+            const incomeCats = appSettings?.incomeCategories || DEFAULT_SETTINGS.incomeCategories;
+            container.innerHTML = list.map(item => {
+                const cat = incomeCats.find(c => c.name === item.category);
+                const emoji = cat?.emoji || '💰';
+                return `
+                    <div class="recurring-income-item">
+                        <div class="recurring-income-info">
+                            <div class="recurring-income-main">
+                                <span>${emoji}</span>
+                                <span class="category">${item.category}</span>
+                                <span class="amount">${formatCurrency(item.amount)}</span>
+                            </div>
+                            <div class="recurring-income-sub">
+                                매월 ${item.dayOfMonth}일${item.description ? ' · ' + item.description : ''}
+                            </div>
+                        </div>
+                        <button class="settings-item-delete" onclick="deleteRecurringIncome('${item.id}')" title="삭제">
+                            <i class="ri-delete-bin-line"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 앱 로드 시 고정수입 자동 생성
+        async function processRecurringIncomes() {
+            const list = getRecurringIncomes();
+            if (list.length === 0) return;
+
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+            const currentKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+
+            let hasChanges = false;
+
+            for (const item of list) {
+                // 이미 이번 달에 생성됐으면 스킵
+                if (item.createdMonths && item.createdMonths.includes(currentKey)) continue;
+
+                // 날짜 계산 (해당 월의 마지막 날을 초과하지 않도록)
+                const lastDay = new Date(currentYear, currentMonth, 0).getDate();
+                const day = Math.min(item.dayOfMonth, lastDay);
+                const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                try {
+                    // Google Apps Script로 전송
+                    const params = new URLSearchParams({
+                        action: 'add',
+                        year: currentYear.toString(),
+                        date: dateStr,
+                        category: item.category,
+                        item: item.description || '',
+                        person: '수입',
+                        amount: item.amount.toString()
+                    });
+
+                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
+                        method: 'GET',
+                        mode: 'no-cors'
+                    });
+
+                    // 로컬 데이터에도 추가
+                    expenseData.expenses.push({
+                        date: dateStr,
+                        year: currentYear,
+                        month: currentMonth,
+                        category: item.category,
+                        description: item.description || '',
+                        amount: item.amount,
+                        payment_method: '수입',
+                        isFixed: false,
+                        id: `recurring_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
+                    });
+
+                    // 생성된 월 기록
+                    if (!item.createdMonths) item.createdMonths = [];
+                    item.createdMonths.push(currentKey);
+                    hasChanges = true;
+
+                    console.log(`고정수입 자동 생성: ${item.category} ${formatCurrency(item.amount)} (${dateStr})`);
+                } catch (e) {
+                    console.error(`고정수입 자동 생성 실패: ${item.category}`, e);
+                }
+            }
+
+            if (hasChanges) {
+                saveRecurringIncomes(list);
+                calculateSummary();
+                updateDashboard();
+                setCachedData(expenseData.expenses);
+                showToast('고정수입이 자동으로 등록되었습니다', 'success');
+            }
         }
 
         let expenseData = { expenses: [], summary: {} };
@@ -4475,6 +4647,8 @@
 
             if (!isBackground) {
                 initializeDashboard();
+                // 데이터 로드 후 고정수입 자동 생성 처리
+                processRecurringIncomes();
             } else {
                 // 백그라운드 갱신 시 현재 탭만 업데이트
                 updateCurrentTab();
@@ -4884,7 +5058,6 @@
         // 대시보드 전체 업데이트
         function updateDashboard() {
             updateSummaryFlow();
-            updateIncomeCard();
             updateKeyMetrics();
             updateDailyHeatmap();
             generateInsights();
@@ -4917,78 +5090,6 @@
             balanceEl.textContent = formatCurrency(Math.abs(balance));
             balanceEl.style.color = balance >= 0 ? 'var(--income)' : 'var(--expense)';
             balanceEl.parentElement.querySelector('.label').textContent = balance >= 0 ? '잔액' : '초과';
-        }
-
-        // ===== 이달의 수입 카드 =====
-        function updateIncomeCard() {
-            const currentKey = getSelectedKey();
-            const incomeCats = appSettings?.incomeCategories || DEFAULT_SETTINGS.incomeCategories;
-            const detail = MONTHLY_INCOME_DETAIL[currentKey] || {};
-            const totalIncome = MONTHLY_INCOME[currentKey] || 0;
-            const card = document.getElementById('incomeCard');
-
-            // 수입 카테고리가 하나라도 있으면 카드 표시
-            if (incomeCats.length === 0) {
-                card.style.display = 'none';
-                return;
-            }
-            card.style.display = '';
-
-            document.getElementById('incomeCardTotal').textContent = formatCurrency(totalIncome);
-
-            const itemsEl = document.getElementById('incomeCardItems');
-            itemsEl.innerHTML = incomeCats.map(cat => {
-                const info = detail[cat.name];
-                const amount = info?.amount || 0;
-                const source = info?.source || (cat.isFixed && cat.amount > 0 ? 'fixed' : 'none');
-                const badgeText = source === 'transaction' ? '입력' : source === 'fixed' ? '고정' : '';
-                const badgeClass = source === 'transaction' ? 'transaction' : 'fixed';
-
-                return `
-                    <div class="income-card-item">
-                        <div class="income-card-item-info">
-                            <span>${cat.emoji}</span>
-                            <span class="income-card-item-name">${cat.name}</span>
-                            ${badgeText ? `<span class="income-card-item-badge ${badgeClass}">${badgeText}</span>` : ''}
-                        </div>
-                        <div class="income-card-item-amount">
-                            <input type="number" value="${amount}"
-                                   onchange="updateMonthlyIncome('${cat.name}', this.value)"
-                                   min="0" step="10000" placeholder="0">
-                            <span>원</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function updateMonthlyIncome(categoryName, value) {
-            const currentKey = getSelectedKey();
-            const amount = parseInt(value) || 0;
-
-            // MONTHLY_INCOME_DETAIL 갱신
-            if (!MONTHLY_INCOME_DETAIL[currentKey]) MONTHLY_INCOME_DETAIL[currentKey] = {};
-            if (amount > 0) {
-                MONTHLY_INCOME_DETAIL[currentKey][categoryName] = { amount, source: 'manual' };
-            } else {
-                delete MONTHLY_INCOME_DETAIL[currentKey][categoryName];
-            }
-
-            // MONTHLY_INCOME 재계산
-            let total = 0;
-            Object.values(MONTHLY_INCOME_DETAIL[currentKey] || {}).forEach(d => { total += d.amount; });
-            if (total > 0) {
-                MONTHLY_INCOME[currentKey] = total;
-            } else {
-                delete MONTHLY_INCOME[currentKey];
-            }
-
-            // 대시보드 갱신 (수입 카드 제외 - 이미 input에 값 있으므로)
-            updateSummaryFlow();
-            updateKeyMetrics();
-
-            // 총 수입 텍스트 갱신
-            document.getElementById('incomeCardTotal').textContent = formatCurrency(MONTHLY_INCOME[currentKey] || 0);
         }
 
         // ===== 일별 지출 히트맵 =====
@@ -6454,8 +6555,23 @@
                 // 캐시 업데이트
                 setCachedData(expenseData.expenses);
 
+                // 고정수입 등록 처리
+                const isRecurring = isIncome && document.getElementById('inputRecurring').checked;
+                if (isRecurring) {
+                    const dayOfMonth = parseInt(date.split('-')[2]);
+                    addRecurringIncome(category, amount, description, dayOfMonth);
+                    // 현재 월을 이미 생성된 것으로 기록
+                    const recurList = getRecurringIncomes();
+                    const lastItem = recurList[recurList.length - 1];
+                    const [y, m] = date.split('-').map(Number);
+                    const monthKey = `${y}-${String(m).padStart(2, '0')}`;
+                    if (!lastItem.createdMonths) lastItem.createdMonths = [];
+                    lastItem.createdMonths.push(monthKey);
+                    saveRecurringIncomes(recurList);
+                }
+
                 const toastMsg = isIncome
-                    ? `${formatCurrency(amount)} 수입이 기록되었습니다`
+                    ? `${formatCurrency(amount)} 수입이 기록되었습니다${isRecurring ? ' (고정수입 등록됨)' : ''}`
                     : `${formatCurrency(amount)} 지출이 기록되었습니다`;
                 showToast(toastMsg);
                 closeInputModal();
