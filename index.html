@@ -1299,6 +1299,43 @@
             color: white;
         }
 
+        /* 빈 상태 UI */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px !important;
+        }
+        .empty-state-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        .empty-state-content i {
+            font-size: 3rem;
+            color: var(--gray-300);
+        }
+        .empty-state-content p {
+            color: var(--gray-500);
+            font-size: 1rem;
+        }
+        .empty-state-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .empty-state-btn:hover {
+            background: var(--primary-dark);
+        }
+
         .category-badge {
             display: inline-flex;
             align-items: center;
@@ -2589,10 +2626,34 @@
             to { transform: rotate(360deg); }
         }
 
+        /* 필터 초기화 버튼 */
+        .filter-reset-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-reset-btn:hover {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+        [data-theme="dark"] .filter-reset-btn {
+            background: var(--gray-100);
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+
         /* 입력 성공/실패 토스트 */
         .toast {
             position: fixed;
-            bottom: 100px;
+            bottom: max(100px, calc(100px + env(safe-area-inset-bottom)));
             left: 50%;
             transform: translateX(-50%) translateY(100px);
             padding: 14px 24px;
@@ -2605,6 +2666,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            max-width: calc(100vw - 32px);
         }
 
         .toast.show {
@@ -3197,6 +3259,7 @@
                 <div class="section">
                     <div class="section-header">
                         <h2 class="section-title"><i class="ri-filter-3-fill"></i> 필터</h2>
+                        <button onclick="resetFilters()" class="filter-reset-btn"><i class="ri-refresh-line"></i> 초기화</button>
                     </div>
                     <div class="section-body">
                         <div class="filter-bar">
@@ -3323,7 +3386,7 @@
                     </div>
                     <div class="input-form-group">
                         <label><i class="ri-file-text-line"></i> 메모 (선택)</label>
-                        <input type="text" id="inputDescription" placeholder="ex) 점심 식사">
+                        <input type="text" id="inputDescription" placeholder="ex) 점심 식사" oninput="suggestCategory(this.value)">
                     </div>
                     <div class="input-form-group">
                         <label><i class="ri-bank-card-line"></i> 결제수단</label>
@@ -5272,9 +5335,40 @@
             if (filterMonth) filterMonth.onchange = renderExpenseTable;
             if (filterCategory) filterCategory.onchange = renderExpenseTable;
             if (filterPayment) filterPayment.onchange = renderExpenseTable;
-            if (filterAmountMin) filterAmountMin.oninput = renderExpenseTable;
-            if (filterAmountMax) filterAmountMax.oninput = renderExpenseTable;
-            if (filterSearch) filterSearch.oninput = renderExpenseTable;
+            // debounce 적용 (금액, 검색)
+            const debouncedRender = debounce(renderExpenseTable, 300);
+            if (filterAmountMin) filterAmountMin.oninput = debouncedRender;
+            if (filterAmountMax) filterAmountMax.oninput = debouncedRender;
+            if (filterSearch) filterSearch.oninput = debouncedRender;
+        }
+
+        // debounce 유틸리티
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        // 필터 초기화
+        function resetFilters() {
+            const filterMonth = document.getElementById('filterMonth');
+            const filterCategory = document.getElementById('filterCategory');
+            const filterPayment = document.getElementById('filterPayment');
+            const filterAmountMin = document.getElementById('filterAmountMin');
+            const filterAmountMax = document.getElementById('filterAmountMax');
+            const filterSearch = document.getElementById('filterSearch');
+
+            if (filterMonth) filterMonth.value = '';
+            if (filterCategory) filterCategory.value = '';
+            if (filterPayment) filterPayment.value = '';
+            if (filterAmountMin) filterAmountMin.value = '';
+            if (filterAmountMax) filterAmountMax.value = '';
+            if (filterSearch) filterSearch.value = '';
+
+            renderExpenseTable();
+            showToast('필터가 초기화되었습니다', 'success');
         }
 
         function renderExpenseTable() {
@@ -5311,6 +5405,25 @@
             filtered.sort((a, b) => b.date.localeCompare(a.date));
 
             const tbody = document.getElementById('expenseTableBody');
+
+            // 빈 상태 UI
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <div class="empty-state-content">
+                                <i class="ri-file-list-3-line"></i>
+                                <p>지출 내역이 없습니다</p>
+                                <button onclick="openInputModal()" class="empty-state-btn">
+                                    <i class="ri-add-line"></i> 첫 지출 기록하기
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
             tbody.innerHTML = filtered.slice(0, 100).map((e, idx) => {
                 const color = categoryColors[e.category] || '#9CA3AF';
                 const deleteData = encodeURIComponent(JSON.stringify({
@@ -5406,6 +5519,50 @@
 
         // ===== 지출 입력 모달 =====
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwg7wuVXbkdaua3yCqIWPyrjSXW8070LNCzkWidcLHy82VRctMYw554iyYGV2TqlDpdOQ/exec';
+
+        // 키워드 기반 카테고리 자동 추천 (데이터 분석 기반)
+        const CATEGORY_KEYWORDS = {
+            '카페': ['스타벅스', '메가커피', '폴바셋', '카페', '커피', '라떼', '아메리카노', '아아', '에그타르트', '베이글', '브롱스', '하삼동', '패턴커피', '우지커피', '로텐바우'],
+            '외식': ['쿠팡이츠', '배민', '요기요', '편의점', '맥도날드', '롯데리아', '버거킹', '한솥', '휴게소', '치킨', '피자', '떡볶이', '붕어빵', '김밥', '국밥', '짜장', '짬뽕', '돈까스', '초밥', '회', '고기', '삼겹살', '갈비', '냉면', '칼국수', '라면', '우동', '파스타', '스테이크', '샌드위치', '핫도그', '타코', '마이쮸', '빼빼로', '아이스크림', '배스킨'],
+            '식비': ['이마트', '코스트코', '홈플러스', '롯데마트', '하나로마트', '마켓컬리', 'gs25', 'cu', '세븐일레븐', '우유', '바나나', '과일', '채소', '정육'],
+            '차량유지비': ['주차', '주유', '기름', '세차', '톨게이트', '하이패스', '정비', '타이어', '엔진오일', '강남주차'],
+            '생활비': ['다이소', '이케아', '무인양품', '무지', '쿠팡_', '택시비', '택시', '헤어커트', '미용실', 'cgv', '영화', '메가박스', '롯데시네마', 'srt', 'ktx', '버스', '지하철'],
+            '병원비': ['병원', '의원', '치과', '약국', '진료', '검사', '세브란스', '아산', '삼성', '서울대'],
+            '육아비': ['행운이', '임산부', '아기', '기저귀', '분유', '유모차', '카시트', '하이체어', '욕조', '바디필로우'],
+            '쇼핑': ['올리브영', '러쉬', '옷', '신발', '가방', '악세사리', '화장품', '로션', '향수', '인강', '책', '액자', '케이스', '충전기'],
+            '여행비': ['호텔', '펜션', '숙소', '항공', '비행기', '에어비앤비', 'srt', '기차'],
+            '경조사비': ['축의금', '조의금', '선물', '집들이', '돌잔치', '생일'],
+            '약속': ['모임', '회식', '술자리', '친구', '동창']
+        };
+
+        // 메모 입력 시 카테고리 자동 추천
+        function suggestCategory(description) {
+            if (!description || description.length < 2) return;
+
+            const categorySelect = document.getElementById('inputCategory');
+            if (!categorySelect || categorySelect.value) return; // 이미 선택된 경우 무시
+
+            const lowerDesc = description.toLowerCase();
+
+            for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+                for (const keyword of keywords) {
+                    if (lowerDesc.includes(keyword.toLowerCase())) {
+                        // 해당 카테고리가 옵션에 있는지 확인
+                        const option = Array.from(categorySelect.options).find(opt => opt.value === category);
+                        if (option) {
+                            categorySelect.value = category;
+                            // 시각적 피드백
+                            categorySelect.style.transition = 'background 0.3s';
+                            categorySelect.style.background = 'var(--income-light)';
+                            setTimeout(() => {
+                                categorySelect.style.background = '';
+                            }, 500);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
 
         function openInputModal() {
             const modal = document.getElementById('inputModal');
