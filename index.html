@@ -3946,9 +3946,16 @@
             // 예산 적용
             CATEGORY_BUDGETS = appSettings.budgets || { ...DEFAULT_BUDGETS };
 
-            // 수입 카테고리 적용
-            const incomeCats = appSettings.incomeCategories || DEFAULT_SETTINGS.incomeCategories;
-            INCOME_CATEGORIES = new Set(incomeCats.map(c => c.name));
+            // 수입 카테고리 마이그레이션: appSettings에 없으면 기본값으로 초기화
+            if (!appSettings.incomeCategories) {
+                appSettings.incomeCategories = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.incomeCategories));
+            }
+            // isFixed 필드 마이그레이션: 기존 데이터에 없으면 false로 초기화
+            appSettings.incomeCategories.forEach(cat => {
+                if (cat.isFixed === undefined) cat.isFixed = false;
+            });
+
+            INCOME_CATEGORIES = new Set(appSettings.incomeCategories.map(c => c.name));
 
             // select 옵션 렌더링
             renderCategorySelect();
