@@ -303,6 +303,18 @@
             color: var(--text-secondary);
         }
 
+        /* 수입 카드 다크모드 */
+        [data-theme="dark"] .income-card { background: var(--bg-secondary); }
+        [data-theme="dark"] .income-card-item { border-color: var(--border-color); }
+        [data-theme="dark"] .income-card-item-amount input {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+        }
+        [data-theme="dark"] .income-card-item-badge.fixed {
+            background: var(--gray-700);
+            color: var(--gray-300);
+        }
+
         /* 캘린더 */
         [data-theme="dark"] .calendar-day {
             border-color: var(--border-color);
@@ -1889,6 +1901,81 @@
             color: var(--gray-300);
         }
 
+        /* 이달의 수입 카드 */
+        .income-card {
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+        .income-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .income-card-header h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .income-card-total {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--income);
+        }
+        .income-card-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .income-card-item:last-child { border-bottom: none; }
+        .income-card-item-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .income-card-item-name { font-weight: 500; font-size: 0.9rem; }
+        .income-card-item-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .income-card-item-badge.fixed {
+            background: var(--gray-200);
+            color: var(--gray-600);
+        }
+        .income-card-item-badge.transaction {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--income);
+        }
+        .income-card-item-amount {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .income-card-item-amount input {
+            width: 110px;
+            padding: 6px 8px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            text-align: right;
+            font-size: 0.9rem;
+            font-weight: 600;
+            background: white;
+            color: var(--income);
+        }
+        .income-card-item-amount span {
+            color: var(--gray-500);
+            font-size: 0.85rem;
+        }
+
         /* 반응형 - 태블릿 */
         @media (max-width: 1200px) {
             .key-metrics {
@@ -3199,6 +3286,15 @@
                     </div>
                 </div>
 
+                <!-- 이달의 수입 -->
+                <div class="income-card" id="incomeCard" style="display:none;">
+                    <div class="income-card-header">
+                        <h3><i class="ri-money-dollar-circle-line"></i> 이달의 수입</h3>
+                        <span class="income-card-total" id="incomeCardTotal">₩0</span>
+                    </div>
+                    <div class="income-card-items" id="incomeCardItems"></div>
+                </div>
+
                 <!-- 카테고리별 지출 -->
                 <div class="section">
                     <div class="section-header">
@@ -3648,6 +3744,7 @@
 
         // 구글 시트에서 가져온 데이터 (동적으로 채워짐)
         let MONTHLY_INCOME = {};
+        let MONTHLY_INCOME_DETAIL = {}; // { monthKey: { catName: { amount, source } } }
         let FIXED_EXPENSES = {}; // { '2026-01': { '시리': {...}, '상민': {...}, total: 0 } }
         let SIDE_INCOME = {}; // 부수입 (공유숙박, 디센터 등) { '2026-01': 313590 }
 
@@ -4568,15 +4665,22 @@
             Object.keys(GOOGLE_SHEETS).forEach(m => allMonths.add(m));
             Object.keys(incomeByMonthCategory).forEach(m => allMonths.add(m));
 
+            MONTHLY_INCOME_DETAIL = {}; // 초기화
+
             allMonths.forEach(monthKey => {
                 let monthIncome = 0;
+                MONTHLY_INCOME_DETAIL[monthKey] = {};
+
                 incomeCats.forEach(cat => {
                     const transactionAmount = incomeByMonthCategory[monthKey]?.[cat.name];
                     if (transactionAmount !== undefined) {
                         monthIncome += transactionAmount; // 트랜잭션 있으면 사용
+                        MONTHLY_INCOME_DETAIL[monthKey][cat.name] = { amount: transactionAmount, source: 'transaction' };
                     } else if (cat.amount > 0) {
                         monthIncome += cat.amount; // 없으면 고정 금액
+                        MONTHLY_INCOME_DETAIL[monthKey][cat.name] = { amount: cat.amount, source: 'fixed' };
                     }
+                    // amount가 0이고 트랜잭션도 없으면 DETAIL에 포함 안 함
                 });
                 if (monthIncome > 0) {
                     MONTHLY_INCOME[monthKey] = monthIncome;
@@ -4724,6 +4828,7 @@
         // 대시보드 전체 업데이트
         function updateDashboard() {
             updateSummaryFlow();
+            updateIncomeCard();
             updateKeyMetrics();
             updateDailyHeatmap();
             generateInsights();
@@ -4756,6 +4861,78 @@
             balanceEl.textContent = formatCurrency(Math.abs(balance));
             balanceEl.style.color = balance >= 0 ? 'var(--income)' : 'var(--expense)';
             balanceEl.parentElement.querySelector('.label').textContent = balance >= 0 ? '잔액' : '초과';
+        }
+
+        // ===== 이달의 수입 카드 =====
+        function updateIncomeCard() {
+            const currentKey = getSelectedKey();
+            const incomeCats = appSettings?.incomeCategories || DEFAULT_SETTINGS.incomeCategories;
+            const detail = MONTHLY_INCOME_DETAIL[currentKey] || {};
+            const totalIncome = MONTHLY_INCOME[currentKey] || 0;
+            const card = document.getElementById('incomeCard');
+
+            // 수입 카테고리가 하나라도 있으면 카드 표시
+            if (incomeCats.length === 0) {
+                card.style.display = 'none';
+                return;
+            }
+            card.style.display = '';
+
+            document.getElementById('incomeCardTotal').textContent = formatCurrency(totalIncome);
+
+            const itemsEl = document.getElementById('incomeCardItems');
+            itemsEl.innerHTML = incomeCats.map(cat => {
+                const info = detail[cat.name];
+                const amount = info?.amount || 0;
+                const source = info?.source || (cat.amount > 0 ? 'fixed' : 'none');
+                const badgeText = source === 'transaction' ? '입력' : source === 'fixed' ? '고정' : '';
+                const badgeClass = source === 'transaction' ? 'transaction' : 'fixed';
+
+                return `
+                    <div class="income-card-item">
+                        <div class="income-card-item-info">
+                            <span>${cat.emoji}</span>
+                            <span class="income-card-item-name">${cat.name}</span>
+                            ${badgeText ? `<span class="income-card-item-badge ${badgeClass}">${badgeText}</span>` : ''}
+                        </div>
+                        <div class="income-card-item-amount">
+                            <input type="number" value="${amount}"
+                                   onchange="updateMonthlyIncome('${cat.name}', this.value)"
+                                   min="0" step="10000" placeholder="0">
+                            <span>원</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateMonthlyIncome(categoryName, value) {
+            const currentKey = getSelectedKey();
+            const amount = parseInt(value) || 0;
+
+            // MONTHLY_INCOME_DETAIL 갱신
+            if (!MONTHLY_INCOME_DETAIL[currentKey]) MONTHLY_INCOME_DETAIL[currentKey] = {};
+            if (amount > 0) {
+                MONTHLY_INCOME_DETAIL[currentKey][categoryName] = { amount, source: 'manual' };
+            } else {
+                delete MONTHLY_INCOME_DETAIL[currentKey][categoryName];
+            }
+
+            // MONTHLY_INCOME 재계산
+            let total = 0;
+            Object.values(MONTHLY_INCOME_DETAIL[currentKey] || {}).forEach(d => { total += d.amount; });
+            if (total > 0) {
+                MONTHLY_INCOME[currentKey] = total;
+            } else {
+                delete MONTHLY_INCOME[currentKey];
+            }
+
+            // 대시보드 갱신 (수입 카드 제외 - 이미 input에 값 있으므로)
+            updateSummaryFlow();
+            updateKeyMetrics();
+
+            // 총 수입 텍스트 갱신
+            document.getElementById('incomeCardTotal').textContent = formatCurrency(MONTHLY_INCOME[currentKey] || 0);
         }
 
         // ===== 일별 지출 히트맵 =====
