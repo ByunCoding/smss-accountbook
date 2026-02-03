@@ -5346,7 +5346,7 @@
         function populateFilters() {
             const months = [...new Set(Object.keys(expenseData.summary.monthly_totals))].sort().reverse();
             const categories = Object.keys(expenseData.summary.category_breakdown).sort();
-            const payments = settings.paymentMethods.map(p => p.name);
+            const payments = (appSettings?.paymentMethods || []).map(p => p.name);
 
             const monthSelect = document.getElementById('filterMonth');
             monthSelect.innerHTML = '<option value="">전체</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
