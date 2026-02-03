@@ -407,17 +407,11 @@
 
         *, *::before, *::after {
             box-sizing: border-box;
-            touch-action: pan-y pinch-zoom;
-        }
-
-        html, body, #app-wrapper {
-            overflow-x: hidden !important;
-            width: 100% !important;
-            max-width: 100% !important;
         }
 
         html {
             height: 100%;
+            overflow-x: hidden;
         }
 
         body {
@@ -426,6 +420,8 @@
             color: var(--gray-800);
             line-height: 1.6;
             min-height: 100%;
+            overflow-x: hidden;
+            overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
 
@@ -2208,7 +2204,8 @@
             border-radius: 20px 20px 0 0;
             transform: translateY(100%);
             transition: transform 0.3s ease;
-            overflow: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .input-modal-overlay.active .input-modal {
@@ -2222,6 +2219,9 @@
             padding: 20px 24px;
             border-bottom: 1px solid var(--gray-100);
             background: var(--gray-50);
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         .input-modal-header h3 {
@@ -2254,8 +2254,6 @@
 
         .input-modal-body {
             padding: 24px;
-            overflow-y: auto;
-            max-height: calc(90vh - 160px);
         }
 
         .input-form-group {
