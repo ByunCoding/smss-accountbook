@@ -3039,6 +3039,30 @@
                     </div>
                 </div>
 
+                <!-- 카테고리별 지출 -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-donut-chart-fill"></i> 카테고리별 지출</h2>
+                    </div>
+                    <div class="section-body">
+                        <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- 일별 지출 히트맵 -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-calendar-fill"></i> 일별 지출 현황</h2>
+                        <span id="heatmapSummary" style="font-size: 0.85rem; color: var(--gray-500);"></span>
+                    </div>
+                    <div class="section-body">
+                        <div class="weekday-labels">
+                            <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+                        </div>
+                        <div class="daily-heatmap" id="dailyHeatmap"></div>
+                    </div>
+                </div>
+
                 <!-- 핵심 지표 -->
                 <div class="key-metrics">
                     <div class="metric-card main">
@@ -3072,30 +3096,6 @@
 
                 <!-- 인사이트 -->
                 <div class="insights-container" id="insightsContainer"></div>
-
-                <!-- 카테고리별 지출 -->
-                <div class="section">
-                    <div class="section-header">
-                        <h2 class="section-title"><i class="ri-donut-chart-fill"></i> 카테고리별 지출</h2>
-                    </div>
-                    <div class="section-body">
-                        <div class="chart-container"><canvas id="categoryChart"></canvas></div>
-                    </div>
-                </div>
-
-                <!-- 일별 지출 히트맵 -->
-                <div class="section">
-                    <div class="section-header">
-                        <h2 class="section-title"><i class="ri-calendar-fill"></i> 일별 지출 현황</h2>
-                        <span id="heatmapSummary" style="font-size: 0.85rem; color: var(--gray-500);"></span>
-                    </div>
-                    <div class="section-body">
-                        <div class="weekday-labels">
-                            <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
-                        </div>
-                        <div class="daily-heatmap" id="dailyHeatmap"></div>
-                    </div>
-                </div>
 
                 <!-- 고정비/변동비 분리 -->
                 <div class="section">
