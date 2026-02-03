@@ -3872,7 +3872,7 @@
                     <div class="input-form-group">
                         <label><i class="ri-money-dollar-circle-line"></i> 금액</label>
                         <div class="amount-input-wrapper">
-                            <input type="number" id="inputAmount" placeholder="0" required min="1" inputmode="numeric">
+                            <input type="text" id="inputAmount" placeholder="0" required inputmode="numeric" oninput="formatAmountInput(this)">
                             <span class="currency">원</span>
                         </div>
                     </div>
@@ -6467,6 +6467,32 @@
             '약속': ['모임', '회식', '술자리', '친구', '동창']
         };
 
+        // 금액 입력 시 천 단위 콤마 자동 포맷팅
+        function formatAmountInput(el) {
+            // 커서 위치 보존을 위한 처리
+            const cursorPos = el.selectionStart;
+            const oldLen = el.value.length;
+
+            // 숫자만 추출
+            const raw = el.value.replace(/[^0-9]/g, '');
+            const num = parseInt(raw) || 0;
+
+            // 0이면 빈칸으로
+            if (num === 0) {
+                el.value = '';
+                return;
+            }
+
+            // 콤마 포맷팅
+            el.value = num.toLocaleString();
+
+            // 커서 위치 조정 (콤마 추가/삭제로 길이가 변할 수 있으므로)
+            const newLen = el.value.length;
+            const diff = newLen - oldLen;
+            const newPos = Math.max(0, cursorPos + diff);
+            el.setSelectionRange(newPos, newPos);
+        }
+
         // 메모 입력 시 카테고리 자동 추천
         function suggestCategory(description) {
             const hintEl = document.getElementById('autoSuggestHint');
@@ -6761,7 +6787,7 @@
             document.getElementById('inputCategory').value = pattern.category;
             document.getElementById('inputPayment').value = pattern.payment_method;
             document.getElementById('inputDescription').value = pattern.description;
-            document.getElementById('inputAmount').value = pattern.amount;
+            document.getElementById('inputAmount').value = Number(pattern.amount).toLocaleString();
         }
 
         function closeInputModal(event) {
@@ -6848,7 +6874,7 @@
             const submitBtn = document.getElementById('submitBtn');
             const date = document.getElementById('inputDate').value;
             const category = document.getElementById('inputCategory').value;
-            const amount = parseInt(document.getElementById('inputAmount').value);
+            const amount = parseInt(document.getElementById('inputAmount').value.replace(/,/g, ''));
             const description = document.getElementById('inputDescription').value || '';
             const payment = document.getElementById('inputPayment').value;
             const isIncome = currentInputType === 'income';
