@@ -2626,6 +2626,14 @@
             to { transform: rotate(360deg); }
         }
 
+        /* 자동 추천 힌트 */
+        .auto-suggest-hint {
+            font-size: 0.75rem;
+            color: var(--income);
+            font-weight: 500;
+            margin-left: 8px;
+        }
+
         /* 필터 초기화 버튼 */
         .filter-reset-btn {
             display: flex;
@@ -3371,7 +3379,11 @@
                         <input type="date" id="inputDate" required>
                     </div>
                     <div class="input-form-group">
-                        <label><i class="ri-folder-line"></i> 카테고리</label>
+                        <label><i class="ri-file-text-line"></i> 메모 (선택)</label>
+                        <input type="text" id="inputDescription" placeholder="ex) 스타벅스, 편의점..." oninput="suggestCategory(this.value)">
+                    </div>
+                    <div class="input-form-group">
+                        <label><i class="ri-folder-line"></i> 카테고리 <span class="auto-suggest-hint" id="autoSuggestHint"></span></label>
                         <select id="inputCategory" required>
                             <option value="">카테고리 선택</option>
                             <!-- 동적으로 생성됨 -->
@@ -3383,10 +3395,6 @@
                             <input type="number" id="inputAmount" placeholder="0" required min="1" inputmode="numeric">
                             <span class="currency">원</span>
                         </div>
-                    </div>
-                    <div class="input-form-group">
-                        <label><i class="ri-file-text-line"></i> 메모 (선택)</label>
-                        <input type="text" id="inputDescription" placeholder="ex) 점심 식사" oninput="suggestCategory(this.value)">
                     </div>
                     <div class="input-form-group">
                         <label><i class="ri-bank-card-line"></i> 결제수단</label>
@@ -5537,10 +5545,15 @@
 
         // 메모 입력 시 카테고리 자동 추천
         function suggestCategory(description) {
-            if (!description || description.length < 2) return;
-
+            const hintEl = document.getElementById('autoSuggestHint');
             const categorySelect = document.getElementById('inputCategory');
-            if (!categorySelect || categorySelect.value) return; // 이미 선택된 경우 무시
+
+            if (!description || description.length < 2) {
+                if (hintEl) hintEl.textContent = '';
+                return;
+            }
+
+            if (!categorySelect) return;
 
             const lowerDesc = description.toLowerCase();
 
@@ -5550,18 +5563,26 @@
                         // 해당 카테고리가 옵션에 있는지 확인
                         const option = Array.from(categorySelect.options).find(opt => opt.value === category);
                         if (option) {
-                            categorySelect.value = category;
+                            // 카테고리가 비어있을 때만 자동 선택
+                            if (!categorySelect.value) {
+                                categorySelect.value = category;
+                            }
+                            // 힌트 표시
+                            if (hintEl) hintEl.textContent = '✨ 자동 추천';
                             // 시각적 피드백
                             categorySelect.style.transition = 'background 0.3s';
                             categorySelect.style.background = 'var(--income-light)';
                             setTimeout(() => {
                                 categorySelect.style.background = '';
-                            }, 500);
+                            }, 800);
                             return;
                         }
                     }
                 }
             }
+
+            // 매칭 안 되면 힌트 제거
+            if (hintEl) hintEl.textContent = '';
         }
 
         function openInputModal() {
