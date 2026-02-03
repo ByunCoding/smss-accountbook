@@ -414,13 +414,9 @@
             overflow-x: hidden !important;
             width: 100% !important;
             max-width: 100% !important;
-            touch-action: pan-y pinch-zoom !important;
-            overscroll-behavior: none !important;
-            -webkit-overflow-scrolling: touch;
         }
 
         html {
-            overflow-y: auto;
             height: 100%;
         }
 
@@ -430,22 +426,7 @@
             color: var(--gray-800);
             line-height: 1.6;
             min-height: 100%;
-            height: 100%;
-            overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-        }
-
-        /* PWA standalone 모드에서 스크롤 개선 */
-        @media all and (display-mode: standalone) {
-            html, body {
-                overscroll-behavior-y: none;
-                position: fixed;
-                width: 100%;
-                height: 100%;
-            }
-            body {
-                overflow-y: auto;
-            }
         }
 
         .container { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
