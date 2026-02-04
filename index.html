@@ -6706,8 +6706,8 @@
                         responsive: true, maintainAspectRatio: false,
                         plugins: { legend: { display: false } },
                         scales: {
-                            y: { beginAtZero: true, ticks: { callback: v => (v / 10000) + '만' } },
-                            x: { grid: { display: false } }
+                            y: { beginAtZero: true, ticks: { color: getChartThemeColors().text, callback: v => (v / 10000) + '만' }, grid: { color: getChartThemeColors().grid } },
+                            x: { grid: { display: false }, ticks: { color: getChartThemeColors().text } }
                         }
                     }
                 });
@@ -6723,6 +6723,7 @@
                 yoyData.push({ year, total: monthlyData[key]?.total || 0 });
             });
 
+            const theme = getChartThemeColors();
             charts.yoy = new Chart(document.getElementById('yoyChart'), {
                 type: 'bar',
                 data: {
@@ -6738,8 +6739,8 @@
                     responsive: true, maintainAspectRatio: false, indexAxis: 'y',
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { beginAtZero: true, ticks: { callback: v => (v / 10000) + '만' } },
-                        y: { grid: { display: false } }
+                        x: { beginAtZero: true, ticks: { color: theme.text, callback: v => (v / 10000) + '만' }, grid: { color: theme.grid } },
+                        y: { grid: { display: false }, ticks: { color: theme.text } }
                     }
                 }
             });
@@ -6840,13 +6841,12 @@
                     scales: {
                         y: {
                             beginAtZero: true,
-                            ticks: { callback: v => (v / 10000) + '만' }
+                            ticks: { color: getChartThemeColors().text, callback: v => (v / 10000) + '만' },
+                            grid: { color: getChartThemeColors().grid }
                         },
                         x: {
                             grid: { display: false },
-                            ticks: {
-                                maxTicksLimit: 10
-                            }
+                            ticks: { color: getChartThemeColors().text, maxTicksLimit: 10 }
                         }
                     }
                 }
@@ -7882,25 +7882,20 @@
         setTimeout(ensureFabVisible, 1000);
 
         // ===== 다크 모드 =====
-        function applyChartTheme() {
+        function getChartThemeColors() {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            const textColor = isDark ? '#d1d5db' : '#666';
-            const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-            Chart.defaults.color = textColor;
-            // 이미 생성된 차트 업데이트
-            Object.values(charts).forEach(chart => {
-                if (!chart) return;
-                if (chart.options.scales) {
-                    Object.keys(chart.options.scales).forEach(key => {
-                        const scale = chart.options.scales[key];
-                        if (!scale.ticks) scale.ticks = {};
-                        scale.ticks.color = textColor;
-                        if (!scale.grid) scale.grid = {};
-                        scale.grid.color = gridColor;
-                    });
-                }
-                chart.update('none');
+            return {
+                text: isDark ? '#d1d5db' : '#666',
+                grid: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+            };
+        }
+
+        function applyChartTheme() {
+            // 기존 차트 파괴 후 재생성 (Chart.js 프록시 재귀 방지)
+            Object.keys(charts).forEach(key => {
+                if (charts[key]) { charts[key].destroy(); charts[key] = null; }
             });
+            createChartsForActiveTab();
         }
 
         function toggleDarkMode() {
@@ -7931,7 +7926,6 @@
 
         // 테마 로드
         loadTheme();
-        applyChartTheme();
 
         // 모바일 스와이프로 월 전환
         (function initSwipe() {
