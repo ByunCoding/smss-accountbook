@@ -7887,16 +7887,18 @@
             const textColor = isDark ? '#d1d5db' : '#666';
             const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
             Chart.defaults.color = textColor;
-            Chart.defaults.scale.grid.color = gridColor;
             // 이미 생성된 차트 업데이트
             Object.values(charts).forEach(chart => {
                 if (!chart) return;
-                chart.options.scales && Object.values(chart.options.scales).forEach(scale => {
-                    scale.ticks = scale.ticks || {};
-                    scale.ticks.color = textColor;
-                    scale.grid = scale.grid || {};
-                    scale.grid.color = gridColor;
-                });
+                if (chart.options.scales) {
+                    Object.keys(chart.options.scales).forEach(key => {
+                        const scale = chart.options.scales[key];
+                        if (!scale.ticks) scale.ticks = {};
+                        scale.ticks.color = textColor;
+                        if (!scale.grid) scale.grid = {};
+                        scale.grid.color = gridColor;
+                    });
+                }
                 chart.update('none');
             });
         }
