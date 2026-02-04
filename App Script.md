@@ -17,7 +17,7 @@ function doGet(e) {
   }
 
   if (action === 'addIncome') {
-    var result = addIncome(e.parameter.date, e.parameter.category, e.parameter.item, e.parameter.amount);
+    var result = addIncome(e.parameter.date, e.parameter.category, e.parameter.item, e.parameter.amount, e.parameter.year);
     return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
   }
 
@@ -155,27 +155,28 @@ function deleteExpense(date, category, item, person, amount) {
   }
 }
 
-// ===== 수입 시트 관리 =====
+// ===== 수입 관리 (월별 시트 H-K열) =====
 
-function getOrCreateIncomeSheet() {
-  var ss = SpreadsheetApp.openById('1EuWNGb3fEpLEbZwocIk6afSmmjiSTo2-rAu5qqfFnbk');
-  var sheet = ss.getSheetByName('수입');
-  if (!sheet) {
-    sheet = ss.insertSheet('수입');
-    sheet.getRange('A1:D1').setValues([['날짜', '카테고리', '메모', '금액']]);
+function findNextEmptyRowInColumn(sheet, col, startRow) {
+  var colData = sheet.getRange(startRow, col, 200, 1).getValues();
+  for (var i = 0; i < colData.length; i++) {
+    if (colData[i][0] === '' || colData[i][0] === null) {
+      return startRow + i;
+    }
   }
-  return sheet;
+  return startRow + colData.length;
 }
 
-function addIncome(date, category, item, amount) {
+function addIncome(date, category, item, amount, year) {
   try {
-    var sheet = getOrCreateIncomeSheet();
-    var lastRow = sheet.getLastRow();
-    var newRow = lastRow + 1;
-    sheet.getRange(newRow, 1).setValue(date);
-    sheet.getRange(newRow, 2).setValue(category);
-    sheet.getRange(newRow, 3).setValue(item || '');
-    sheet.getRange(newRow, 4).setValue(Number(amount));
+    var ss = SpreadsheetApp.openById('1EuWNGb3fEpLEbZwocIk6afSmmjiSTo2-rAu5qqfFnbk');
+    var sheetName = getSheetNameFromDate(date, year);
+    var sheet = getOrCreateSheet(ss, sheetName);
+    var newRow = findNextEmptyRowInColumn(sheet, 8, 10); // H열(8) 기준
+    sheet.getRange(newRow, 8).setValue(date);       // H열: 날짜
+    sheet.getRange(newRow, 9).setValue(category);    // I열: 카테고리
+    sheet.getRange(newRow, 10).setValue(item || ''); // J열: 메모
+    sheet.getRange(newRow, 11).setValue(Number(amount)); // K열: 금액
     return {success: true, message: 'Income added', row: newRow};
   } catch (error) {
     return {success: false, error: error.toString()};
@@ -185,21 +186,31 @@ function addIncome(date, category, item, amount) {
 function deleteIncome(date, category, item, amount) {
   try {
     var ss = SpreadsheetApp.openById('1EuWNGb3fEpLEbZwocIk6afSmmjiSTo2-rAu5qqfFnbk');
-    var sheet = ss.getSheetByName('수입');
+    var dateParts = date.split('-');
+    var year = dateParts[0];
+    var month = parseInt(dateParts[1], 10);
+    var sheetName = year.slice(-2) + '.' + month;
+    var sheet = ss.getSheetByName(sheetName);
     if (!sheet) {
-      return {success: false, error: 'Income sheet not found'};
+      return {success: false, error: 'Sheet not found'};
     }
-    var data = sheet.getDataRange().getValues();
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 10) {
+      return {success: false, error: 'Not found'};
+    }
+    var data = sheet.getRange(10, 8, lastRow - 9, 4).getValues(); // H-K열, 10행부터
     var targetAmount = Number(amount);
 
-    for (var i = data.length - 1; i >= 1; i--) {
+    for (var i = data.length - 1; i >= 0; i--) {
       var row = data[i];
       var rowDate = normalizeDate(row[0]);
       var rowAmount = Number(String(row[3]).replace(/[,]/g, ''));
 
       if (rowDate === date && row[1] === category && rowAmount === targetAmount) {
-        sheet.deleteRow(i + 1);
-        return {success: true, message: 'Income deleted', row: i + 1};
+        var actualRow = 10 + i;
+        // 행 삭제 불가 (지출 데이터 보호) → H-K 셀만 클리어
+        sheet.getRange(actualRow, 8, 1, 4).clearContent();
+        return {success: true, message: 'Income deleted', row: actualRow};
       }
     }
     return {success: false, error: 'Not found'};
