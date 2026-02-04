@@ -5293,10 +5293,12 @@
             } catch (e) { return {}; }
         }
 
-        function setMonthExpenseCache(monthKey, data) {
+        function setMonthExpenseCache(monthKey, data, income) {
             try {
                 const cache = getMonthExpenseCache();
-                cache[monthKey] = { data, timestamp: Date.now() };
+                const entry = { data, timestamp: Date.now() };
+                if (income && income.length > 0) entry.income = income;
+                cache[monthKey] = entry;
                 localStorage.setItem(EXPENSE_MONTH_CACHE_KEY, JSON.stringify(cache));
             } catch (e) { console.warn('Month cache write error:', e); }
         }
@@ -5312,19 +5314,50 @@
         async function loadAllExpenses() {
             incomeEntries = []; // 매 로드 시 수입 데이터 초기화 (parseCSVToExpenses에서 채워짐)
             const allExpenses = [];
-            const jsonMonths = ['2025-01', '2025-05', '2025-06', '2025-07', '2025-08', '2025-09', '2025-10', '2025-11'];
             const monthCache = getMonthExpenseCache();
-            const MONTH_CACHE_EXPIRY = 30 * 60 * 1000; // 과거 월 30분 캐시
+            const MONTH_CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 과거 월 7일 캐시
+
+            // data/index.json에서 아카이브된 월 목록 동적 로드
+            const defaultJsonMonths = ['2025-01', '2025-05', '2025-06', '2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01'];
+            let jsonMonths;
+            try {
+                const resp = await fetch('data/index.json');
+                jsonMonths = await resp.json();
+                console.log('아카이브 월 목록 (index.json):', jsonMonths);
+            } catch (e) {
+                console.warn('index.json 로드 실패, 기본값 사용:', e);
+                jsonMonths = defaultJsonMonths;
+            }
+
+            // GOOGLE_SHEETS에 이미 있는 월은 JSON 로드에서 제외 (중복 방지)
+            const sheetMonths = new Set(Object.keys(GOOGLE_SHEETS));
+            const filteredJsonMonths = jsonMonths.filter(m => !sheetMonths.has(m));
 
             // JSON 파일들: 캐시 있으면 스킵, 없으면 로드
-            const jsonPromises = jsonMonths.map(month => {
+            const jsonPromises = filteredJsonMonths.map(month => {
                 const cached = monthCache[month];
                 if (cached && cached.data && (Date.now() - cached.timestamp < MONTH_CACHE_EXPIRY)) {
+                    // 캐시에 수입 데이터가 있으면 복원
+                    if (cached.income && cached.income.length > 0) {
+                        incomeEntries.push(...cached.income);
+                    }
                     return Promise.resolve(cached.data);
                 }
                 return fetch(`data/${month}.json`)
                     .then(r => r.json())
-                    .then(data => { setMonthExpenseCache(month, data); return data; })
+                    .then(data => {
+                        // { expenses: [], income: [] } 형태 처리
+                        if (data && data.expenses) {
+                            if (data.income && data.income.length > 0) {
+                                incomeEntries.push(...data.income);
+                            }
+                            setMonthExpenseCache(month, data.expenses, data.income);
+                            return data.expenses;
+                        }
+                        // 기존 배열 형태 (하위 호환)
+                        setMonthExpenseCache(month, data);
+                        return data;
+                    })
                     .catch(() => []);
             });
 
@@ -5332,6 +5365,10 @@
             const sheetPromises = Object.entries(GOOGLE_SHEETS).map(([month, gid]) => {
                 const cached = monthCache[month];
                 if (!isCurrentMonth(month) && cached && cached.data && (Date.now() - cached.timestamp < MONTH_CACHE_EXPIRY)) {
+                    // 캐시에 수입 데이터가 있으면 복원
+                    if (cached.income && cached.income.length > 0) {
+                        incomeEntries.push(...cached.income);
+                    }
                     return Promise.resolve(cached.data);
                 }
                 return loadFromGoogleSheets(gid, month)
