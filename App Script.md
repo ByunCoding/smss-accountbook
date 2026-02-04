@@ -2,8 +2,8 @@ function doGet(e) {
   var action = e.parameter.action;
 
   if (action === 'getSheetList') {
-    var sheetList = getSheetList();
-    return ContentService.createTextOutput(JSON.stringify({success: true, sheets: sheetList})).setMimeType(ContentService.MimeType.JSON);
+    var result = getSheetList();
+    return ContentService.createTextOutput(JSON.stringify({success: true, sheets: result.sheets, incomeSheetGid: result.incomeSheetGid})).setMimeType(ContentService.MimeType.JSON);
   }
 
   if (action === 'add') {
@@ -13,6 +13,16 @@ function doGet(e) {
 
   if (action === 'delete') {
     var result = deleteExpense(e.parameter.date, e.parameter.category, e.parameter.item, e.parameter.person, e.parameter.amount);
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'addIncome') {
+    var result = addIncome(e.parameter.date, e.parameter.category, e.parameter.item, e.parameter.amount);
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'deleteIncome') {
+    var result = deleteIncome(e.parameter.date, e.parameter.category, e.parameter.item, e.parameter.amount);
     return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
   }
 
@@ -34,6 +44,7 @@ function getSheetList() {
   var ss = SpreadsheetApp.openById('1EuWNGb3fEpLEbZwocIk6afSmmjiSTo2-rAu5qqfFnbk');
   var sheets = ss.getSheets();
   var sheetList = [];
+  var incomeSheetGid = null;
   for (var i = 0; i < sheets.length; i++) {
     var name = sheets[i].getName();
     if (/^\d{2}\.\d{1,2}$/.test(name)) {
@@ -42,8 +53,11 @@ function getSheetList() {
       var month = parts[1].length === 1 ? '0' + parts[1] : parts[1];
       sheetList.push({name: name, monthKey: year + '-' + month, gid: sheets[i].getSheetId()});
     }
+    if (name === '수입') {
+      incomeSheetGid = sheets[i].getSheetId();
+    }
   }
-  return sheetList;
+  return {sheets: sheetList, incomeSheetGid: incomeSheetGid};
 }
 
 function getSheetNameFromDate(dateStr, year) {
@@ -133,6 +147,59 @@ function deleteExpense(date, category, item, person, amount) {
       if (rowDate === targetDate && row[1] === category && rowAmount === targetAmount) {
         sheet.deleteRow(i + 1);
         return {success: true, message: 'Deleted', row: i + 1};
+      }
+    }
+    return {success: false, error: 'Not found'};
+  } catch (error) {
+    return {success: false, error: error.toString()};
+  }
+}
+
+// ===== 수입 시트 관리 =====
+
+function getOrCreateIncomeSheet() {
+  var ss = SpreadsheetApp.openById('1EuWNGb3fEpLEbZwocIk6afSmmjiSTo2-rAu5qqfFnbk');
+  var sheet = ss.getSheetByName('수입');
+  if (!sheet) {
+    sheet = ss.insertSheet('수입');
+    sheet.getRange('A1:D1').setValues([['날짜', '카테고리', '메모', '금액']]);
+  }
+  return sheet;
+}
+
+function addIncome(date, category, item, amount) {
+  try {
+    var sheet = getOrCreateIncomeSheet();
+    var lastRow = sheet.getLastRow();
+    var newRow = lastRow + 1;
+    sheet.getRange(newRow, 1).setValue(date);
+    sheet.getRange(newRow, 2).setValue(category);
+    sheet.getRange(newRow, 3).setValue(item || '');
+    sheet.getRange(newRow, 4).setValue(Number(amount));
+    return {success: true, message: 'Income added', row: newRow};
+  } catch (error) {
+    return {success: false, error: error.toString()};
+  }
+}
+
+function deleteIncome(date, category, item, amount) {
+  try {
+    var ss = SpreadsheetApp.openById('1EuWNGb3fEpLEbZwocIk6afSmmjiSTo2-rAu5qqfFnbk');
+    var sheet = ss.getSheetByName('수입');
+    if (!sheet) {
+      return {success: false, error: 'Income sheet not found'};
+    }
+    var data = sheet.getDataRange().getValues();
+    var targetAmount = Number(amount);
+
+    for (var i = data.length - 1; i >= 1; i--) {
+      var row = data[i];
+      var rowDate = normalizeDate(row[0]);
+      var rowAmount = Number(String(row[3]).replace(/[,]/g, ''));
+
+      if (rowDate === date && row[1] === category && rowAmount === targetAmount) {
+        sheet.deleteRow(i + 1);
+        return {success: true, message: 'Income deleted', row: i + 1};
       }
     }
     return {success: false, error: 'Not found'};

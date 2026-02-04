@@ -4052,6 +4052,10 @@
         // 수입 카테고리 Set (빠른 조회용)
         let INCOME_CATEGORIES = new Set();
 
+        // 수입 전용 시트 (별도 "수입" 시트)
+        let INCOME_SHEET_GID = null;
+        let incomeEntries = []; // { date, year, month, category, description, amount }
+
         // 입력 모달 타입 (expense / income)
         let currentInputType = 'expense';
 
@@ -4673,14 +4677,12 @@
                 const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
                 try {
-                    // Google Apps Script로 전송
+                    // Google Apps Script로 수입 시트에 전송
                     const params = new URLSearchParams({
-                        action: 'add',
-                        year: currentYear.toString(),
+                        action: 'addIncome',
                         date: dateStr,
                         category: item.category,
                         item: item.description || '',
-                        person: '수입',
                         amount: item.amount.toString()
                     });
 
@@ -4689,17 +4691,15 @@
                         mode: 'no-cors'
                     });
 
-                    // 로컬 데이터에도 추가
-                    expenseData.expenses.push({
+                    // incomeEntries에 추가
+                    incomeEntries.push({
                         date: dateStr,
                         year: currentYear,
                         month: currentMonth,
                         category: item.category,
                         description: item.description || '',
                         amount: item.amount,
-                        payment_method: '수입',
-                        isFixed: false,
-                        id: `recurring_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
+                        id: `recurring_income_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
                     });
 
                     // 생성된 월 기록
@@ -4737,9 +4737,9 @@
             try {
                 const cached = localStorage.getItem(CACHE_KEY);
                 if (cached) {
-                    const { data, timestamp, monthlyIncome, fixedExpenses } = JSON.parse(cached);
+                    const { data, timestamp, monthlyIncome, fixedExpenses, incomeData } = JSON.parse(cached);
                     const isExpired = Date.now() - timestamp > CACHE_EXPIRY;
-                    return { data, monthlyIncome, fixedExpenses, isExpired };
+                    return { data, monthlyIncome, fixedExpenses, incomeData, isExpired };
                 }
             } catch (e) { console.warn('Cache read error:', e); }
             return null;
@@ -4751,6 +4751,7 @@
                     data: expenses,
                     monthlyIncome: MONTHLY_INCOME,
                     fixedExpenses: FIXED_EXPENSES,
+                    incomeData: incomeEntries,
                     timestamp: Date.now()
                 }));
             } catch (e) { console.warn('Cache write error:', e); }
@@ -4770,6 +4771,11 @@
                             console.log(`새 시트 발견: ${sheet.monthKey} (GID: ${sheet.gid})`);
                         }
                     });
+                    // 수입 시트 GID 저장
+                    if (result.incomeSheetGid !== undefined && result.incomeSheetGid !== null) {
+                        INCOME_SHEET_GID = result.incomeSheetGid;
+                        console.log('수입 시트 GID:', INCOME_SHEET_GID);
+                    }
                     console.log('시트 목록 로드 완료:', Object.keys(GOOGLE_SHEETS));
                 }
             } catch (e) {
@@ -4800,6 +4806,7 @@
                     lastUpdatedEl.textContent = '캐시 데이터 표시 중...';
                     MONTHLY_INCOME = cached.monthlyIncome || {};
                     FIXED_EXPENSES = cached.fixedExpenses || {};
+                    incomeEntries = cached.incomeData || [];
                     expenseData.expenses = cached.data;
                     calculateSummary();
                     initializeDashboard();
@@ -4876,9 +4883,10 @@
             const lastUpdatedEl = document.getElementById('lastUpdated');
             if (!isBackground) lastUpdatedEl.textContent = '데이터 로딩 중...';
 
-            // MONTHLY 시트와 JSON/Google Sheets를 병렬로 로드
-            const [monthlyResult, expensesResult] = await Promise.all([
+            // MONTHLY 시트, 수입 시트, 지출 데이터를 병렬로 로드
+            const [monthlyResult, incomeResult, expensesResult] = await Promise.all([
                 loadMonthlySheet().catch(e => { console.warn('Monthly sheet error:', e); return null; }),
+                loadIncomeSheet().catch(e => { console.warn('Income sheet error:', e); return null; }),
                 loadAllExpenses()
             ]);
 
@@ -5099,6 +5107,60 @@
             return isNaN(num) ? 0 : Math.abs(num);
         }
 
+        // 수입 전용 시트 로드
+        async function loadIncomeSheet() {
+            if (INCOME_SHEET_GID === null) {
+                console.log('수입 시트 GID 없음 - 스킵');
+                return;
+            }
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${INCOME_SHEET_GID}`;
+                const response = await fetch(url);
+                const csvText = await response.text();
+                incomeEntries = parseIncomeCSV(csvText);
+                console.log('수입 시트 로드 완료:', incomeEntries.length, '건');
+            } catch (e) {
+                console.warn('수입 시트 로드 실패:', e);
+            }
+        }
+
+        function parseIncomeCSV(csvText) {
+            const lines = csvText.split('\n');
+            const entries = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const columns = parseCSVLine(lines[i]);
+                const dateStr = columns[0]?.trim();
+                if (!dateStr || !dateStr.match(/^\d{4}[\.\-]/)) continue;
+
+                const category = columns[1]?.trim();
+                const description = columns[2]?.trim();
+                const amountStr = columns[3]?.replace(/[",₩\s]/g, '');
+                const amount = parseFloat(amountStr);
+
+                if (!category || !amount || isNaN(amount)) continue;
+
+                let normalizedDate = dateStr.replace(/\.\s*/g, '-').replace(/-$/, '');
+                if (normalizedDate.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) {
+                    const parts = normalizedDate.split('-');
+                    normalizedDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                }
+
+                const [year, month] = normalizedDate.split('-').map(Number);
+
+                entries.push({
+                    date: normalizedDate,
+                    year,
+                    month,
+                    category,
+                    description: description || '',
+                    amount,
+                    id: `income_${INCOME_SHEET_GID}_${i}`
+                });
+            }
+            return entries;
+        }
+
         function calculateSummary() {
             const expenses = expenseData.expenses;
             const categoryBreakdown = {};
@@ -5131,11 +5193,21 @@
                 else monthlyTotals[monthKey].variable += exp.amount;
             });
 
-            // 고정 수입 + 트랜잭션 수입 병합
+            // 수입 시트 데이터를 월별/카테고리별로 집계
+            const incomeSheetByMonth = {}; // { monthKey: { catName: amount } }
+            incomeEntries.forEach(entry => {
+                const monthKey = `${entry.year}-${String(entry.month).padStart(2, '0')}`;
+                if (!incomeSheetByMonth[monthKey]) incomeSheetByMonth[monthKey] = {};
+                incomeSheetByMonth[monthKey][entry.category] =
+                    (incomeSheetByMonth[monthKey][entry.category] || 0) + entry.amount;
+            });
+
+            // 수입 병합: 수입 시트 > 레거시 트랜잭션 > 고정 수입 설정
             const incomeCats = appSettings?.incomeCategories || DEFAULT_SETTINGS.incomeCategories;
             const allMonths = new Set(Object.keys(monthlyTotals));
             Object.keys(GOOGLE_SHEETS).forEach(m => allMonths.add(m));
             Object.keys(incomeByMonthCategory).forEach(m => allMonths.add(m));
+            Object.keys(incomeSheetByMonth).forEach(m => allMonths.add(m));
 
             MONTHLY_INCOME_DETAIL = {}; // 초기화
 
@@ -5143,17 +5215,29 @@
                 let monthIncome = 0;
                 MONTHLY_INCOME_DETAIL[monthKey] = {};
 
-                incomeCats.forEach(cat => {
-                    const transactionAmount = incomeByMonthCategory[monthKey]?.[cat.name];
-                    if (transactionAmount !== undefined) {
-                        monthIncome += transactionAmount; // 트랜잭션 있으면 사용
-                        MONTHLY_INCOME_DETAIL[monthKey][cat.name] = { amount: transactionAmount, source: 'transaction' };
-                    } else if (cat.isFixed && cat.amount > 0) {
-                        monthIncome += cat.amount; // 고정 수입만 자동 반영
-                        MONTHLY_INCOME_DETAIL[monthKey][cat.name] = { amount: cat.amount, source: 'fixed' };
-                    }
-                    // amount가 0이고 트랜잭션도 없으면 DETAIL에 포함 안 함
-                });
+                // 수입 시트에 해당 월 데이터가 있으면 수입 시트를 primary로 사용
+                const hasIncomeSheetData = incomeSheetByMonth[monthKey] && Object.keys(incomeSheetByMonth[monthKey]).length > 0;
+
+                if (hasIncomeSheetData) {
+                    // 수입 시트의 모든 카테고리 반영
+                    Object.entries(incomeSheetByMonth[monthKey]).forEach(([catName, amount]) => {
+                        monthIncome += amount;
+                        MONTHLY_INCOME_DETAIL[monthKey][catName] = { amount, source: 'income_sheet' };
+                    });
+                } else {
+                    // 수입 시트에 데이터 없으면 레거시 로직 (지출 시트 트랜잭션 + 고정 수입 설정)
+                    incomeCats.forEach(cat => {
+                        const transactionAmount = incomeByMonthCategory[monthKey]?.[cat.name];
+                        if (transactionAmount !== undefined) {
+                            monthIncome += transactionAmount;
+                            MONTHLY_INCOME_DETAIL[monthKey][cat.name] = { amount: transactionAmount, source: 'transaction' };
+                        } else if (cat.isFixed && cat.amount > 0) {
+                            monthIncome += cat.amount;
+                            MONTHLY_INCOME_DETAIL[monthKey][cat.name] = { amount: cat.amount, source: 'fixed' };
+                        }
+                    });
+                }
+
                 if (monthIncome > 0) {
                     MONTHLY_INCOME[monthKey] = monthIncome;
                 }
@@ -5204,6 +5288,12 @@
 
             // 지출 데이터에서 월 추출
             expenseData.expenses.forEach(e => {
+                const key = `${e.year}-${String(e.month).padStart(2, '0')}`;
+                monthSet.add(key);
+            });
+
+            // 수입 데이터에서 월 추출
+            incomeEntries.forEach(e => {
                 const key = `${e.year}-${String(e.month).padStart(2, '0')}`;
                 monthSet.add(key);
             });
@@ -5278,7 +5368,9 @@
         // 현재 월 건수 가져오기
         function getCurrentMonthCount() {
             const currentKey = getSelectedKey();
-            return expenseData.expenses.filter(e => e.date && e.date.startsWith(currentKey)).length;
+            const expenseCount = expenseData.expenses.filter(e => e.date && e.date.startsWith(currentKey)).length;
+            const incomeCount = incomeEntries.filter(e => e.date && e.date.startsWith(currentKey)).length;
+            return expenseCount + incomeCount;
         }
 
         // 건수 표시 업데이트
@@ -6237,11 +6329,15 @@
 
         // ===== 필터 및 테이블 =====
         function populateFilters() {
-            const months = [...new Set(Object.keys(expenseData.summary.monthly_totals))].sort().reverse();
+            const monthSet = new Set(Object.keys(expenseData.summary.monthly_totals));
+            incomeEntries.forEach(e => monthSet.add(`${e.year}-${String(e.month).padStart(2, '0')}`));
+            const months = [...monthSet].sort().reverse();
             const allCategoryNames = new Set(Object.keys(expenseData.summary.category_breakdown));
             INCOME_CATEGORIES.forEach(c => allCategoryNames.add(c));
+            incomeEntries.forEach(e => allCategoryNames.add(e.category));
             const categories = [...allCategoryNames].sort();
             const payments = (appSettings?.paymentMethods || []).map(p => p.name);
+            if (incomeEntries.length > 0) payments.push('수입');
 
             const monthSelect = document.getElementById('filterMonth');
             monthSelect.innerHTML = '<option value="">전체</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
@@ -6313,11 +6409,18 @@
             const amountMax = amountMaxEl ? amountMaxEl.value : '';
             const search = searchEl ? searchEl.value.toLowerCase() : '';
 
-            let filtered = [...expenseData.expenses];
+            // 지출 데이터 + 수입 시트 데이터 합치기
+            const incomeItemsMapped = incomeEntries.map(e => ({
+                ...e,
+                payment_method: '수입',
+                isFixed: false,
+                isIncome: true
+            }));
+            let filtered = [...expenseData.expenses.map(e => ({...e, isIncome: false})), ...incomeItemsMapped];
 
             if (month) filtered = filtered.filter(e => `${e.year}-${String(e.month).padStart(2, '0')}` === month);
             if (category) filtered = filtered.filter(e => e.category === category);
-            if (payment) filtered = filtered.filter(e => e.payment === payment);
+            if (payment) filtered = filtered.filter(e => e.payment_method === payment);
             if (amountMin || amountMax) {
                 const min = amountMin ? parseInt(amountMin) : null;
                 const max = amountMax ? parseInt(amountMax) : null;
@@ -6328,6 +6431,16 @@
                 });
             }
             if (search) filtered = filtered.filter(e => (e.description || '').toLowerCase().includes(search));
+
+            // 수입 카테고리인 레거시 항목 제거 (수입 시트 데이터가 있는 월)
+            const incomeSheetMonths = new Set(incomeEntries.map(e => `${e.year}-${String(e.month).padStart(2, '0')}`));
+            filtered = filtered.filter(e => {
+                if (!e.isIncome && INCOME_CATEGORIES.has(e.category)) {
+                    const mk = `${e.year}-${String(e.month).padStart(2, '0')}`;
+                    if (incomeSheetMonths.has(mk)) return false; // 수입 시트에 해당 월 있으면 레거시 제외
+                }
+                return true;
+            });
 
             filtered.sort((a, b) => b.date.localeCompare(a.date));
 
@@ -6340,9 +6453,9 @@
                         <td colspan="6" class="empty-state">
                             <div class="empty-state-content">
                                 <i class="ri-file-list-3-line"></i>
-                                <p>지출 내역이 없습니다</p>
+                                <p>내역이 없습니다</p>
                                 <button onclick="openInputModal()" class="empty-state-btn">
-                                    <i class="ri-add-line"></i> 첫 지출 기록하기
+                                    <i class="ri-add-line"></i> 첫 기록하기
                                 </button>
                             </div>
                         </td>
@@ -6352,13 +6465,15 @@
             }
 
             tbody.innerHTML = filtered.slice(0, 100).map((e, idx) => {
-                const isIncomeItem = INCOME_CATEGORIES.has(e.category);
+                const isIncomeItem = e.isIncome || INCOME_CATEGORIES.has(e.category);
                 const color = isIncomeItem ? 'var(--income)' : (categoryColors[e.category] || '#9CA3AF');
                 const deleteData = encodeURIComponent(JSON.stringify({
                     date: e.date,
                     category: e.category,
                     description: e.description || '',
-                    amount: e.amount
+                    amount: e.amount,
+                    payment_method: e.payment_method || '',
+                    isIncome: e.isIncome || false
                 }));
                 return `
                     <tr class="${isIncomeItem ? 'income-row' : ''}">
@@ -6373,7 +6488,7 @@
                         </td>
                         <td>${e.description || '-'}</td>
                         <td class="amount ${isIncomeItem ? 'income-amount' : ''}">${isIncomeItem ? '+' : ''}${formatCurrency(e.amount)}</td>
-                        <td>${e.payment_method}</td>
+                        <td>${e.payment_method || '-'}</td>
                         <td>
                             <button class="delete-btn" onclick="deleteExpenseByData('${deleteData}', ${e.amount})" title="삭제">
                                 <i class="ri-delete-bin-line"></i>
@@ -6836,23 +6951,50 @@
             if (undoTimeout) clearTimeout(undoTimeout);
 
             try {
-                // 삭제된 항목 다시 저장
-                const params = new URLSearchParams({
-                    action: 'add',
-                    date: data.date,
-                    category: data.category,
-                    item: data.description || '',
-                    amount: data.amount.toString(),
-                    person: data.payment_method || ''
-                });
+                if (data.isIncome) {
+                    // 수입 시트에 다시 추가
+                    const params = new URLSearchParams({
+                        action: 'addIncome',
+                        date: data.date,
+                        category: data.category,
+                        item: data.description || '',
+                        amount: data.amount.toString()
+                    });
 
-                await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
-                    method: 'GET',
-                    mode: 'no-cors'
-                });
+                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
+                        method: 'GET',
+                        mode: 'no-cors'
+                    });
 
-                // 로컬 데이터에 다시 추가
-                expenseData.expenses.push(data);
+                    // incomeEntries에 다시 추가
+                    const [year, month] = data.date.split('-').map(Number);
+                    incomeEntries.push({
+                        date: data.date,
+                        year, month,
+                        category: data.category,
+                        description: data.description || '',
+                        amount: data.amount,
+                        id: `undo_income_${Date.now()}`
+                    });
+                } else {
+                    // 지출 시트에 다시 추가
+                    const params = new URLSearchParams({
+                        action: 'add',
+                        date: data.date,
+                        category: data.category,
+                        item: data.description || '',
+                        amount: data.amount.toString(),
+                        person: data.payment_method || ''
+                    });
+
+                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
+                        method: 'GET',
+                        mode: 'no-cors'
+                    });
+
+                    // 로컬 데이터에 다시 추가
+                    expenseData.expenses.push(data);
+                }
                 calculateSummary();
 
                 showToast('삭제가 취소되었습니다');
@@ -6905,40 +7047,69 @@
             try {
                 // Google Apps Script로 데이터 전송 (URL 파라미터 방식)
                 const [year, month] = date.split('-').map(Number);
-                const shortYear = String(year).slice(-2); // 2026 -> "26"
-                const params = new URLSearchParams({
-                    action: 'add',
-                    year: year.toString(),
-                    date: date,
-                    category: category,
-                    item: description,
-                    person: isIncome ? '수입' : payment,
-                    amount: amount.toString()
-                });
 
-                // GET 요청으로 전송 (CORS 문제 우회)
-                const response = await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
-                    method: 'GET',
-                    mode: 'no-cors'
-                });
+                if (isIncome) {
+                    // 수입은 별도 수입 시트에 저장
+                    const params = new URLSearchParams({
+                        action: 'addIncome',
+                        date: date,
+                        category: category,
+                        item: description,
+                        amount: amount.toString()
+                    });
 
-                // no-cors 모드에서는 응답을 읽을 수 없으므로 성공으로 간주
-                console.log(isIncome ? 'Income submitted to Apps Script' : 'Expense submitted to Apps Script');
+                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
+                        method: 'GET',
+                        mode: 'no-cors'
+                    });
 
-                // 로컬 데이터에도 추가 (즉시 반영)
-                const newExpense = {
-                    date: date,
-                    year: year,
-                    month: month,
-                    category: category,
-                    description: description,
-                    amount: amount,
-                    payment_method: isIncome ? '수입' : payment,
-                    isFixed: FIXED_CATEGORIES.includes(category),
-                    id: `local_${Date.now()}`
-                };
+                    console.log('Income submitted to income sheet');
 
-                expenseData.expenses.push(newExpense);
+                    // incomeEntries에 로컬 추가
+                    incomeEntries.push({
+                        date: date,
+                        year: year,
+                        month: month,
+                        category: category,
+                        description: description,
+                        amount: amount,
+                        id: `local_income_${Date.now()}`
+                    });
+                } else {
+                    // 지출은 기존 지출 시트에 저장
+                    const params = new URLSearchParams({
+                        action: 'add',
+                        year: year.toString(),
+                        date: date,
+                        category: category,
+                        item: description,
+                        person: payment,
+                        amount: amount.toString()
+                    });
+
+                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
+                        method: 'GET',
+                        mode: 'no-cors'
+                    });
+
+                    console.log('Expense submitted to Apps Script');
+
+                    // 로컬 데이터에도 추가 (즉시 반영)
+                    const newExpense = {
+                        date: date,
+                        year: year,
+                        month: month,
+                        category: category,
+                        description: description,
+                        amount: amount,
+                        payment_method: payment,
+                        isFixed: FIXED_CATEGORIES.includes(category),
+                        id: `local_${Date.now()}`
+                    };
+
+                    expenseData.expenses.push(newExpense);
+                }
+
                 calculateSummary();
                 updateDashboard();
 
@@ -6976,42 +7147,71 @@
             }
         }
 
-        // 지출 삭제 함수 (데이터 기반)
+        // 지출/수입 삭제 함수 (데이터 기반)
         async function deleteExpenseByData(encodedData, amount) {
-            if (!confirm(`₩${amount.toLocaleString()} 지출을 삭제하시겠습니까?`)) {
+            const data = JSON.parse(decodeURIComponent(encodedData));
+            const isIncomeItem = data.isIncome || false;
+
+            if (!confirm(`₩${amount.toLocaleString()} ${isIncomeItem ? '수입' : '지출'}을 삭제하시겠습니까?`)) {
                 return;
             }
 
             try {
-                const data = JSON.parse(decodeURIComponent(encodedData));
+                if (isIncomeItem) {
+                    // 수입 시트에서 삭제
+                    const params = new URLSearchParams({
+                        action: 'deleteIncome',
+                        date: data.date,
+                        category: data.category,
+                        item: data.description || '',
+                        amount: data.amount.toString()
+                    });
 
-                const params = new URLSearchParams({
-                    action: 'delete',
-                    date: data.date,
-                    category: data.category,
-                    item: data.description || '',
-                    person: data.payment_method || '',
-                    amount: data.amount.toString()
-                });
+                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
+                        method: 'GET',
+                        mode: 'no-cors'
+                    });
 
-                await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
-                    method: 'GET',
-                    mode: 'no-cors'
-                });
+                    // incomeEntries에서 제거
+                    const idx = incomeEntries.findIndex(e =>
+                        e.date === data.date &&
+                        e.category === data.category &&
+                        e.amount === data.amount &&
+                        (e.description || '') === (data.description || '')
+                    );
+                    if (idx !== -1) {
+                        incomeEntries.splice(idx, 1);
+                    }
+                } else {
+                    // 지출 시트에서 삭제
+                    const params = new URLSearchParams({
+                        action: 'delete',
+                        date: data.date,
+                        category: data.category,
+                        item: data.description || '',
+                        person: data.payment_method || '',
+                        amount: data.amount.toString()
+                    });
+
+                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
+                        method: 'GET',
+                        mode: 'no-cors'
+                    });
+
+                    // 로컬 데이터에서 제거
+                    const idx = expenseData.expenses.findIndex(e =>
+                        e.date === data.date &&
+                        e.category === data.category &&
+                        e.amount === data.amount &&
+                        (e.description || '') === (data.description || '')
+                    );
+                    if (idx !== -1) {
+                        expenseData.expenses.splice(idx, 1);
+                    }
+                }
 
                 // 되돌리기를 위해 삭제된 항목 저장
                 lastDeletedExpense = data;
-
-                // 로컬 데이터에서 제거
-                const idx = expenseData.expenses.findIndex(e =>
-                    e.date === data.date &&
-                    e.category === data.category &&
-                    e.amount === data.amount &&
-                    (e.description || '') === (data.description || '')
-                );
-                if (idx !== -1) {
-                    expenseData.expenses.splice(idx, 1);
-                }
 
                 // 캐시 무효화
                 localStorage.removeItem(CACHE_KEY);
