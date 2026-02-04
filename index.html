@@ -1903,6 +1903,11 @@
         }
 
         /* 이달의 수입 카드 */
+        /* 모바일 카드형 레이아웃 기본 숨김 (모바일 @media에서 표시) */
+        .expense-card-list {
+            display: none;
+        }
+
         /* 반응형 - 태블릿 */
         @media (max-width: 1200px) {
             .key-metrics {
@@ -2442,10 +2447,7 @@
             color: var(--expense);
         }
 
-        /* 모바일 카드형 레이아웃 (상세 내역) */
-        .expense-card-list {
-            display: none;
-        }
+        /* 모바일 카드형 레이아웃 (상세 내역) - 모바일 @media에서 display:block */
 
         .expense-card {
             background: var(--bg-card);
@@ -6027,22 +6029,31 @@
             const variableBudgetInfo = document.getElementById('variableBudgetInfo');
             if (totalIncome > 0) {
                 const variableBudget = totalIncome - currentFixed;
-                const variableUsagePercent = variableBudget > 0 ? (currentVariable / variableBudget) * 100 : 0;
-                const variableRemaining = variableBudget - currentVariable;
-
                 const fill = document.getElementById('variableBudgetFill');
                 const label = document.getElementById('variableBudgetLabel');
                 const remaining = document.getElementById('variableBudgetRemaining');
 
-                fill.style.width = Math.min(variableUsagePercent, 100) + '%';
-                fill.className = 'variable-budget-fill' +
-                    (variableUsagePercent >= 100 ? ' danger' : variableUsagePercent >= 80 ? ' warning' : '');
+                if (variableBudget <= 0) {
+                    // 고정비가 수입 이상 → 변동비 예산 없음
+                    fill.style.width = '100%';
+                    fill.className = 'variable-budget-fill danger';
+                    label.textContent = '고정비가 수입을 초과하여 변동비 여유 없음';
+                    remaining.textContent = `${formatCurrency(Math.abs(variableBudget) + currentVariable)} 초과`;
+                    remaining.className = 'remaining negative';
+                } else {
+                    const variableUsagePercent = (currentVariable / variableBudget) * 100;
+                    const variableRemaining = variableBudget - currentVariable;
 
-                label.textContent = `변동비 예산 ${formatCurrency(variableBudget)} 중 ${variableUsagePercent.toFixed(0)}% 사용`;
-                remaining.textContent = variableRemaining >= 0
-                    ? `${formatCurrency(variableRemaining)} 남음`
-                    : `${formatCurrency(Math.abs(variableRemaining))} 초과`;
-                remaining.className = 'remaining ' + (variableRemaining >= 0 ? 'positive' : 'negative');
+                    fill.style.width = Math.min(variableUsagePercent, 100) + '%';
+                    fill.className = 'variable-budget-fill' +
+                        (variableUsagePercent >= 100 ? ' danger' : variableUsagePercent >= 80 ? ' warning' : '');
+
+                    label.textContent = `변동비 예산 ${formatCurrency(variableBudget)} 중 ${variableUsagePercent.toFixed(0)}% 사용`;
+                    remaining.textContent = variableRemaining >= 0
+                        ? `${formatCurrency(variableRemaining)} 남음`
+                        : `${formatCurrency(Math.abs(variableRemaining))} 초과`;
+                    remaining.className = 'remaining ' + (variableRemaining >= 0 ? 'positive' : 'negative');
+                }
 
                 variableBudgetInfo.classList.add('visible');
             } else {
