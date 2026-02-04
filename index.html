@@ -7085,8 +7085,12 @@
 
         // PWA Service Worker 등록
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js')
-                .then(reg => console.log('Service Worker 등록 완료:', reg.scope))
+            navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
+                .then(reg => {
+                    console.log('Service Worker 등록 완료:', reg.scope);
+                    // 매번 업데이트 확인
+                    reg.update();
+                })
                 .catch(err => console.log('Service Worker 등록 실패:', err));
         }
 
