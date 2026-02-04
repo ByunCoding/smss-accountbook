@@ -5315,7 +5315,7 @@
             incomeEntries = []; // 매 로드 시 수입 데이터 초기화 (parseCSVToExpenses에서 채워짐)
             const allExpenses = [];
             const monthCache = getMonthExpenseCache();
-            const MONTH_CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 과거 월 7일 캐시
+            const MONTH_CACHE_EXPIRY = 30 * 24 * 60 * 60 * 1000; // 과거 월 30일 캐시
 
             // data/index.json에서 아카이브된 월 목록 동적 로드
             const defaultJsonMonths = ['2025-01', '2025-05', '2025-06', '2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01'];
