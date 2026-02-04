@@ -4795,12 +4795,13 @@
                 // 이미 이번 달에 생성됐으면 스킵 (localStorage 기록 확인)
                 if (item.createdMonths && item.createdMonths.includes(currentKey)) continue;
 
-                // 실제 incomeEntries에 이미 동일한 [고정] 항목이 있는지 확인 (멀티디바이스 중복 방지)
+                // 실제 incomeEntries에 이미 동일한 항목이 있는지 확인 (멀티디바이스 중복 방지)
+                // [고정] 접두사 OR 같은 카테고리+금액 매칭으로 중복 판별
                 const alreadyExists = incomeEntries.some(entry =>
                     entry.month === currentMonth &&
                     entry.year === currentYear &&
                     entry.category === item.category &&
-                    entry.description && entry.description.startsWith('[고정]')
+                    (entry.amount === item.amount || (entry.description && entry.description.startsWith('[고정]')))
                 );
                 if (alreadyExists) {
                     // localStorage의 createdMonths도 동기화
