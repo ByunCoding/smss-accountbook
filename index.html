@@ -197,7 +197,7 @@
         }
 
         /* 입력 폼 */
-        [data-theme="dark"] .input-form-group input,
+        [data-theme="dark"] .input-form-group input:not([type="checkbox"]),
         [data-theme="dark"] .input-form-group select {
             background: var(--gray-100);
             border-color: var(--border-color);
@@ -2460,7 +2460,7 @@
             color: var(--primary);
         }
 
-        .input-form-group input,
+        .input-form-group input:not([type="checkbox"]),
         .input-form-group select {
             width: 100%;
             padding: 14px 16px;
@@ -2471,14 +2471,14 @@
             background: white;
         }
 
-        .input-form-group input:focus,
+        .input-form-group input:not([type="checkbox"]):focus,
         .input-form-group select:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
-        .input-form-group input::placeholder {
+        .input-form-group input:not([type="checkbox"])::placeholder {
             color: var(--gray-400);
         }
 
