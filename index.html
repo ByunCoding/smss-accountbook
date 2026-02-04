@@ -3058,7 +3058,7 @@
                 width: 100% !important;
             }
 
-            .input-form-group input,
+            .input-form-group input:not([type="checkbox"]),
             .input-form-group select,
             .input-form-group input[type="date"] {
                 width: 100% !important;
@@ -7094,9 +7094,8 @@
                 .catch(err => console.log('Service Worker 등록 실패:', err));
         }
 
-        // 설정 로드 후 데이터 로드
-        loadSettings();
-        loadData();
+        // 설정 로드 완료 후 데이터 로드 (순서 보장)
+        loadSettings().then(() => loadData());
     </script>
 </div><!-- end app-wrapper -->
 </body>
