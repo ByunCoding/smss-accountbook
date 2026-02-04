@@ -4122,7 +4122,8 @@
                 { name: '월급', emoji: '💰', amount: 0, isFixed: false },
                 { name: '디센터', emoji: '🏢', amount: 0, isFixed: false },
                 { name: '부수입', emoji: '🏠', amount: 0, isFixed: false }
-            ]
+            ],
+            recurringIncomes: []
         };
 
         // 현재 설정
@@ -4155,6 +4156,19 @@
                         appSettings.budgets = localBudgets ? JSON.parse(localBudgets) : { ...DEFAULT_BUDGETS };
                         // 마이그레이션된 예산을 Google Sheets에 저장
                         saveSettings();
+                    }
+                    // 고정수입 동기화: 서버 데이터가 있으면 서버 우선, 없으면 localStorage 유지
+                    if (appSettings.recurringIncomes && appSettings.recurringIncomes.length > 0) {
+                        localStorage.setItem(RECURRING_KEY, JSON.stringify(appSettings.recurringIncomes));
+                    } else {
+                        // 서버에 없지만 localStorage에 있으면 서버에 올리기
+                        const localRecurring = getRecurringIncomes();
+                        if (localRecurring.length > 0) {
+                            appSettings.recurringIncomes = localRecurring;
+                            saveSettings();
+                        } else {
+                            appSettings.recurringIncomes = [];
+                        }
                     }
                     // localStorage의 구 예산 키 정리
                     localStorage.removeItem('smss_budgets');
@@ -4213,6 +4227,8 @@
         // 설정 저장 (Google Sheets에)
         async function saveSettings() {
             try {
+                // 고정수입 데이터를 appSettings에 동기화
+                appSettings.recurringIncomes = getRecurringIncomes();
                 // localStorage에 즉시 저장 (빠른 반영)
                 localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
                 applySettings();
@@ -4597,6 +4613,7 @@
                 createdMonths: [] // 이미 자동 생성된 월 목록
             });
             saveRecurringIncomes(list);
+            saveSettings(); // Google Sheets 동기화
         }
 
         // 고정수입 삭제
@@ -4607,8 +4624,28 @@
             if (!confirm(`'${item.category}' 고정수입 (${formatCurrency(item.amount)})을 삭제하시겠습니까?\n\n삭제하면 다음 달부터 자동 입력이 중단됩니다.`)) return;
             const newList = list.filter(r => r.id !== id);
             saveRecurringIncomes(newList);
+            saveSettings(); // Google Sheets 동기화
             renderSettingsLists();
             showToast(`'${item.category}' 고정수입이 삭제되었습니다.`, 'success');
+        }
+
+        // 고정수입 금액 수정
+        function editRecurringIncome(id) {
+            const list = getRecurringIncomes();
+            const item = list.find(r => r.id === id);
+            if (!item) return;
+            const input = prompt(`'${item.category}' 고정수입 금액을 수정하세요:`, item.amount);
+            if (input === null) return;
+            const newAmount = parseInt(input.replace(/[^0-9]/g, ''), 10);
+            if (isNaN(newAmount) || newAmount <= 0) {
+                showToast('올바른 금액을 입력해주세요.', 'error');
+                return;
+            }
+            item.amount = newAmount;
+            saveRecurringIncomes(list);
+            saveSettings(); // Google Sheets 동기화
+            renderSettingsLists();
+            showToast(`'${item.category}' 고정수입이 ${formatCurrency(newAmount)}으로 변경되었습니다.`, 'success');
         }
 
         // 고정수입 체크박스 토글
@@ -4647,9 +4684,14 @@
                                 매월 ${item.dayOfMonth}일${item.description ? ' · ' + item.description : ''}
                             </div>
                         </div>
-                        <button class="settings-item-delete" onclick="deleteRecurringIncome('${item.id}')" title="삭제">
-                            <i class="ri-delete-bin-line"></i>
-                        </button>
+                        <div style="display:flex;gap:4px;">
+                            <button class="settings-item-delete" onclick="editRecurringIncome('${item.id}')" title="수정" style="color:var(--primary);">
+                                <i class="ri-edit-line"></i>
+                            </button>
+                            <button class="settings-item-delete" onclick="deleteRecurringIncome('${item.id}')" title="삭제">
+                                <i class="ri-delete-bin-line"></i>
+                            </button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -4715,6 +4757,7 @@
 
             if (hasChanges) {
                 saveRecurringIncomes(list);
+                saveSettings(); // Google Sheets에 createdMonths 동기화
                 calculateSummary();
                 updateDashboard();
                 setCachedData(expenseData.expenses);

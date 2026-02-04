@@ -229,6 +229,7 @@ function getSettings() {
     var paymentMethods = [];
     var budgets = {};
     var incomeCategories = [];
+    var recurringIncomes = [];
 
     for (var i = 0; i < data.length; i++) {
       var type = data[i][0];
@@ -246,6 +247,20 @@ function getSettings() {
         budgets[name] = Number(color) || 0;
       } else if (type === 'income') {
         incomeCategories.push({ name: name, emoji: emoji || '💰', amount: Number(color) || 0 });
+      } else if (type === 'recurring') {
+        try {
+          var meta = JSON.parse(emoji);
+          recurringIncomes.push({
+            id: meta.id,
+            category: name,
+            amount: Number(color) || 0,
+            description: meta.description || '',
+            dayOfMonth: meta.dayOfMonth || 1,
+            createdMonths: meta.createdMonths || []
+          });
+        } catch (e) {
+          // JSON 파싱 실패 시 스킵
+        }
       }
     }
 
@@ -260,6 +275,7 @@ function getSettings() {
     if (incomeCategories.length > 0) {
       result.incomeCategories = incomeCategories;
     }
+    result.recurringIncomes = recurringIncomes;
     return { success: true, settings: result };
   } catch (error) {
     return { success: false, error: error.toString() };
@@ -306,6 +322,20 @@ function saveSettingsData(settings) {
       for (var m = 0; m < settings.incomeCategories.length; m++) {
         var ic = settings.incomeCategories[m];
         rows.push(['income', ic.name, ic.emoji, ic.amount || 0]);
+      }
+    }
+
+    // 고정수입 저장
+    if (settings.recurringIncomes) {
+      for (var r = 0; r < settings.recurringIncomes.length; r++) {
+        var ri = settings.recurringIncomes[r];
+        var meta = JSON.stringify({
+          id: ri.id,
+          description: ri.description || '',
+          dayOfMonth: ri.dayOfMonth || 1,
+          createdMonths: ri.createdMonths || []
+        });
+        rows.push(['recurring', ri.category, meta, ri.amount || 0]);
       }
     }
 
@@ -368,6 +398,7 @@ function getDefaultSettings() {
       { name: '월급', emoji: '💰', amount: 0 },
       { name: '디센터', emoji: '🏢', amount: 0 },
       { name: '부수입', emoji: '🏠', amount: 0 }
-    ]
+    ],
+    recurringIncomes: []
   };
 }
