@@ -5021,8 +5021,9 @@
             showLoading('새로고침 중...');
 
             try {
-                // 캐시 삭제
+                // 캐시 전부 삭제
                 localStorage.removeItem(CACHE_KEY);
+                localStorage.removeItem(EXPENSE_MONTH_CACHE_KEY);
 
                 // 시트 목록 + 데이터 병렬 로드 (시트목록은 캐시 무시)
                 await loadSheetList(true);
@@ -5043,12 +5044,16 @@
             const lastUpdatedEl = document.getElementById('lastUpdated');
             if (!isBackground) lastUpdatedEl.textContent = '데이터 로딩 중...';
 
+            const t0 = performance.now();
+
             // MONTHLY 시트, 수입 시트, 지출 데이터를 병렬로 로드
             const [monthlyResult, incomeResult, expensesResult] = await Promise.all([
                 loadMonthlySheet().catch(e => { console.warn('Monthly sheet error:', e); return null; }),
                 loadIncomeSheet().catch(e => { console.warn('Income sheet error:', e); return null; }),
                 loadAllExpenses()
             ]);
+
+            console.log(`[성능] 데이터 로드: ${Math.round(performance.now() - t0)}ms`);
 
             expenseData.expenses = expensesResult;
             setCachedData(expensesResult);
@@ -5067,23 +5072,60 @@
             updateCountDisplay();
         }
 
-        // 모든 지출 데이터 병렬 로드
+        // 월별 지출 캐시 (과거 월은 변하지 않으므로 세션 내 재사용)
+        const EXPENSE_MONTH_CACHE_KEY = 'smss_expense_month_cache';
+
+        function getMonthExpenseCache() {
+            try {
+                const cached = localStorage.getItem(EXPENSE_MONTH_CACHE_KEY);
+                return cached ? JSON.parse(cached) : {};
+            } catch (e) { return {}; }
+        }
+
+        function setMonthExpenseCache(monthKey, data) {
+            try {
+                const cache = getMonthExpenseCache();
+                cache[monthKey] = { data, timestamp: Date.now() };
+                localStorage.setItem(EXPENSE_MONTH_CACHE_KEY, JSON.stringify(cache));
+            } catch (e) { console.warn('Month cache write error:', e); }
+        }
+
+        // 현재 월인지 확인 (현재 월만 항상 새로 로드)
+        function isCurrentMonth(monthKey) {
+            const now = new Date();
+            const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            return monthKey === current;
+        }
+
+        // 모든 지출 데이터 병렬 로드 (월별 캐싱 적용)
         async function loadAllExpenses() {
             const allExpenses = [];
             const jsonMonths = ['2025-01', '2025-05', '2025-06', '2025-07', '2025-08', '2025-09', '2025-10', '2025-11'];
+            const monthCache = getMonthExpenseCache();
+            const MONTH_CACHE_EXPIRY = 30 * 60 * 1000; // 과거 월 30분 캐시
 
-            // JSON 파일들 병렬 로드
-            const jsonPromises = jsonMonths.map(month =>
-                fetch(`data/${month}.json`)
+            // JSON 파일들: 캐시 있으면 스킵, 없으면 로드
+            const jsonPromises = jsonMonths.map(month => {
+                const cached = monthCache[month];
+                if (cached && cached.data && (Date.now() - cached.timestamp < MONTH_CACHE_EXPIRY)) {
+                    return Promise.resolve(cached.data);
+                }
+                return fetch(`data/${month}.json`)
                     .then(r => r.json())
-                    .catch(() => [])
-            );
+                    .then(data => { setMonthExpenseCache(month, data); return data; })
+                    .catch(() => []);
+            });
 
-            // Google Sheets 병렬 로드
-            const sheetPromises = Object.entries(GOOGLE_SHEETS).map(([month, gid]) =>
-                loadFromGoogleSheets(gid, month)
-                    .catch(() => fetch(`data/${month}.json`).then(r => r.json()).catch(() => []))
-            );
+            // Google Sheets: 현재 월은 항상 새로 로드, 과거 월은 캐시
+            const sheetPromises = Object.entries(GOOGLE_SHEETS).map(([month, gid]) => {
+                const cached = monthCache[month];
+                if (!isCurrentMonth(month) && cached && cached.data && (Date.now() - cached.timestamp < MONTH_CACHE_EXPIRY)) {
+                    return Promise.resolve(cached.data);
+                }
+                return loadFromGoogleSheets(gid, month)
+                    .then(data => { setMonthExpenseCache(month, data); return data; })
+                    .catch(() => fetch(`data/${month}.json`).then(r => r.json()).catch(() => []));
+            });
 
             // 모든 요청 동시 실행
             const [jsonResults, sheetResults] = await Promise.all([
