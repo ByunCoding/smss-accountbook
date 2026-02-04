@@ -7882,6 +7882,25 @@
         setTimeout(ensureFabVisible, 1000);
 
         // ===== 다크 모드 =====
+        function applyChartTheme() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const textColor = isDark ? '#d1d5db' : '#666';
+            const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+            Chart.defaults.color = textColor;
+            Chart.defaults.scale.grid.color = gridColor;
+            // 이미 생성된 차트 업데이트
+            Object.values(charts).forEach(chart => {
+                if (!chart) return;
+                chart.options.scales && Object.values(chart.options.scales).forEach(scale => {
+                    scale.ticks = scale.ticks || {};
+                    scale.ticks.color = textColor;
+                    scale.grid = scale.grid || {};
+                    scale.grid.color = gridColor;
+                });
+                chart.update('none');
+            });
+        }
+
         function toggleDarkMode() {
             const html = document.documentElement;
             const isDark = html.getAttribute('data-theme') === 'dark';
@@ -7895,6 +7914,7 @@
                 localStorage.setItem('smss_theme', 'dark');
                 document.getElementById('darkModeIcon').className = 'ri-sun-line';
             }
+            applyChartTheme();
         }
 
         function loadTheme() {
@@ -7909,6 +7929,25 @@
 
         // 테마 로드
         loadTheme();
+        applyChartTheme();
+
+        // 모바일 스와이프로 월 전환
+        (function initSwipe() {
+            let startX = 0, startY = 0;
+            const main = document.querySelector('main');
+            main.addEventListener('touchstart', e => {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+            }, { passive: true });
+            main.addEventListener('touchend', e => {
+                const dx = e.changedTouches[0].clientX - startX;
+                const dy = e.changedTouches[0].clientY - startY;
+                // 수평 이동 60px 이상, 수직보다 수평이 더 큰 경우만
+                if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+                    changeMonth(dx < 0 ? 1 : -1); // 왼쪽 스와이프→다음 월, 오른쪽→이전 월
+                }
+            }, { passive: true });
+        })();
 
         // PWA Service Worker 등록
         if ('serviceWorker' in navigator) {
