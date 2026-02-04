@@ -4231,17 +4231,16 @@
                         // 마이그레이션된 예산을 Google Sheets에 저장
                         saveSettings();
                     }
-                    // 고정수입 동기화: 서버 데이터가 있으면 서버 우선, 없으면 localStorage 유지
-                    if (appSettings.recurringIncomes && appSettings.recurringIncomes.length > 0) {
-                        localStorage.setItem(RECURRING_KEY, JSON.stringify(appSettings.recurringIncomes));
+                    // 고정수입 동기화: 서버 데이터가 항상 우선 (멀티디바이스 동기화)
+                    if (appSettings.recurringIncomes !== undefined) {
+                        // 서버에 필드가 있으면 (빈 배열 포함) 서버 데이터로 localStorage 덮어쓰기
+                        localStorage.setItem(RECURRING_KEY, JSON.stringify(appSettings.recurringIncomes || []));
                     } else {
-                        // 서버에 없지만 localStorage에 있으면 서버에 올리기
+                        // 서버에 필드 자체가 없으면 (최초 마이그레이션) localStorage → 서버 업로드
                         const localRecurring = getRecurringIncomes();
+                        appSettings.recurringIncomes = localRecurring;
                         if (localRecurring.length > 0) {
-                            appSettings.recurringIncomes = localRecurring;
                             saveSettings();
-                        } else {
-                            appSettings.recurringIncomes = [];
                         }
                     }
                     // localStorage의 구 예산 키 정리
