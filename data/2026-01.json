@@ -1,14 +1,25 @@
 [
   {
+    "date": "2026-01-23",
+    "year": 2026,
+    "month": 1,
+    "category": "관리비",
+    "description": "",
+    "amount": 363830,
+    "payment_method": "현대카드_상민",
+    "isFixed": true,
+    "id": "legacy_000004"
+  },
+  {
     "date": "2026-01-15",
     "year": 2026,
     "month": 1,
     "category": "육아비",
     "description": "면세점_행운이 용품(1월까지 3개월/202,498원)",
-    "amount": 67500.0,
+    "amount": 67500,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000660"
+    "isFixed": false,
+    "id": "legacy_000005"
   },
   {
     "date": "2026-01-15",
@@ -16,10 +27,10 @@
     "month": 1,
     "category": "쇼핑",
     "description": "면세점_시리 로션(1월까지 3개월/100,931원)",
-    "amount": 33650.0,
+    "amount": 33650,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000661"
+    "isFixed": false,
+    "id": "legacy_000006"
   },
   {
     "date": "2026-01-02",
@@ -27,10 +38,10 @@
     "month": 1,
     "category": "외식",
     "description": "한솥",
-    "amount": 10700.0,
+    "amount": 10700,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000662"
+    "isFixed": false,
+    "id": "legacy_000008"
   },
   {
     "date": "2026-01-02",
@@ -38,10 +49,10 @@
     "month": 1,
     "category": "카페",
     "description": "로텐바우 카페",
-    "amount": 18300.0,
+    "amount": 18300,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000663"
+    "isFixed": false,
+    "id": "legacy_000009"
   },
   {
     "date": "2026-01-02",
@@ -49,10 +60,10 @@
     "month": 1,
     "category": "식비",
     "description": "이마트",
-    "amount": 2800.0,
+    "amount": 2800,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000664"
+    "isFixed": false,
+    "id": "legacy_000010"
   },
   {
     "date": "2026-01-03",
@@ -60,10 +71,10 @@
     "month": 1,
     "category": "식비",
     "description": "이마트",
-    "amount": 14180.0,
+    "amount": 14180,
     "payment_method": "현대카드_시리",
-    "sheet": "26.1",
-    "id": "legacy_000665"
+    "isFixed": false,
+    "id": "legacy_000011"
   },
   {
     "date": "2026-01-04",
@@ -71,10 +82,10 @@
     "month": 1,
     "category": "생활비",
     "description": "택시비",
-    "amount": 8700.0,
+    "amount": 8700,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000666"
+    "isFixed": false,
+    "id": "legacy_000012"
   },
   {
     "date": "2026-01-04",
@@ -82,10 +93,10 @@
     "month": 1,
     "category": "카페",
     "description": "브롱스베이글",
-    "amount": 19700.0,
+    "amount": 19700,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000667"
+    "isFixed": false,
+    "id": "legacy_000013"
   },
   {
     "date": "2026-01-04",
@@ -93,10 +104,10 @@
     "month": 1,
     "category": "외식",
     "description": "피자스쿨",
-    "amount": 20900.0,
+    "amount": 20900,
     "payment_method": "현대카드_시리",
-    "sheet": "26.1",
-    "id": "legacy_000668"
+    "isFixed": false,
+    "id": "legacy_000014"
   },
   {
     "date": "2026-01-05",
@@ -104,10 +115,10 @@
     "month": 1,
     "category": "식비",
     "description": "이마트트레이더스",
-    "amount": 106280.0,
+    "amount": 106280,
     "payment_method": "삼성카드",
-    "sheet": "26.1",
-    "id": "legacy_000669"
+    "isFixed": false,
+    "id": "legacy_000015"
   },
   {
     "date": "2026-01-06",
@@ -115,10 +126,10 @@
     "month": 1,
     "category": "병원비",
     "description": "세브란스 진료비",
-    "amount": 21600.0,
+    "amount": 21600,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000670"
+    "isFixed": false,
+    "id": "legacy_000016"
   },
   {
     "date": "2026-01-06",
@@ -126,10 +137,10 @@
     "month": 1,
     "category": "외식",
     "description": "붕어빵",
-    "amount": 8000.0,
+    "amount": 8000,
     "payment_method": "현금",
-    "sheet": "26.1",
-    "id": "legacy_000671"
+    "isFixed": false,
+    "id": "legacy_000017"
   },
   {
     "date": "2026-01-06",
@@ -137,10 +148,10 @@
     "month": 1,
     "category": "여행비",
     "description": "동탄-진주 srt",
-    "amount": 63800.0,
+    "amount": 63800,
     "payment_method": "현대카드_시리",
-    "sheet": "26.1",
-    "id": "legacy_000672"
+    "isFixed": false,
+    "id": "legacy_000018"
   },
   {
     "date": "2026-01-07",
@@ -148,10 +159,10 @@
     "month": 1,
     "category": "병원비",
     "description": "패스트본 정형외과",
-    "amount": 95500.0,
+    "amount": 95500,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000673"
+    "isFixed": false,
+    "id": "legacy_000019"
   },
   {
     "date": "2026-01-07",
@@ -159,10 +170,10 @@
     "month": 1,
     "category": "병원비",
     "description": "약국",
-    "amount": 9380.0,
+    "amount": 9380,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000674"
+    "isFixed": false,
+    "id": "legacy_000020"
   },
   {
     "date": "2026-01-07",
@@ -170,10 +181,10 @@
     "month": 1,
     "category": "외식",
     "description": "한솥",
-    "amount": 10400.0,
+    "amount": 10400,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000675"
+    "isFixed": false,
+    "id": "legacy_000021"
   },
   {
     "date": "2026-01-07",
@@ -181,10 +192,10 @@
     "month": 1,
     "category": "육아비",
     "description": "하이체어_싸이벡스 레모",
-    "amount": 532000.0,
+    "amount": 532000,
     "payment_method": "현금",
-    "sheet": "26.1",
-    "id": "legacy_000676"
+    "isFixed": false,
+    "id": "legacy_000022"
   },
   {
     "date": "2026-01-08",
@@ -192,10 +203,10 @@
     "month": 1,
     "category": "식비",
     "description": "이마트에브리데이",
-    "amount": 8680.0,
+    "amount": 8680,
     "payment_method": "현대카드_시리",
-    "sheet": "26.1",
-    "id": "legacy_000677"
+    "isFixed": false,
+    "id": "legacy_000023"
   },
   {
     "date": "2026-01-08",
@@ -203,10 +214,10 @@
     "month": 1,
     "category": "쇼핑",
     "description": "시리 임산부복",
-    "amount": 73180.0,
+    "amount": 73180,
     "payment_method": "현대카드_시리",
-    "sheet": "26.1",
-    "id": "legacy_000678"
+    "isFixed": false,
+    "id": "legacy_000024"
   },
   {
     "date": "2026-01-08",
@@ -214,10 +225,10 @@
     "month": 1,
     "category": "생활비",
     "description": "cgv",
-    "amount": 5500.0,
+    "amount": 5500,
     "payment_method": "현대카드_시리",
-    "sheet": "26.1",
-    "id": "legacy_000679"
+    "isFixed": false,
+    "id": "legacy_000025"
   },
   {
     "date": "2026-01-10",
@@ -225,10 +236,10 @@
     "month": 1,
     "category": "약속",
     "description": "브로스돈까스",
-    "amount": 33500.0,
+    "amount": 33500,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000680"
+    "isFixed": false,
+    "id": "legacy_000026"
   },
   {
     "date": "2026-01-10",
@@ -236,10 +247,10 @@
     "month": 1,
     "category": "약속",
     "description": "쿠팡이츠_어거스트치킨",
-    "amount": 52000.0,
+    "amount": 52000,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000681"
+    "isFixed": false,
+    "id": "legacy_000027"
   },
   {
     "date": "2026-01-11",
@@ -247,10 +258,10 @@
     "month": 1,
     "category": "약속",
     "description": "데이릿 음식점 + 알베르",
-    "amount": 74000.0,
+    "amount": 74000,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000682"
+    "isFixed": false,
+    "id": "legacy_000028"
   },
   {
     "date": "2026-01-11",
@@ -258,10 +269,10 @@
     "month": 1,
     "category": "외식",
     "description": "유가네",
-    "amount": 17000.0,
+    "amount": 17000,
     "payment_method": "현금",
-    "sheet": "26.1",
-    "id": "legacy_000683"
+    "isFixed": false,
+    "id": "legacy_000029"
   },
   {
     "date": "2026-01-11",
@@ -269,10 +280,10 @@
     "month": 1,
     "category": "외식",
     "description": "토스트 + 아이스티",
-    "amount": 7500.0,
+    "amount": 7500,
     "payment_method": "계좌이체",
-    "sheet": "26.1",
-    "id": "legacy_000684"
+    "isFixed": false,
+    "id": "legacy_000030"
   },
   {
     "date": "2026-01-12",
@@ -280,10 +291,10 @@
     "month": 1,
     "category": "외식",
     "description": "쿠팡이츠_오공김밥",
-    "amount": 16100.0,
+    "amount": 16100,
     "payment_method": "쿠팡와우카드",
-    "sheet": "26.1",
-    "id": "legacy_000685"
+    "isFixed": false,
+    "id": "legacy_000031"
   },
   {
     "date": "2026-01-13",
@@ -291,10 +302,10 @@
     "month": 1,
     "category": "외식",
     "description": "강남_사누키 제면소",
-    "amount": 24600.0,
+    "amount": 24600,
     "payment_method": "현금",
-    "sheet": "26.1",
-    "id": "legacy_000686"
+    "isFixed": false,
+    "id": "legacy_000032"
   },
   {
     "date": "2026-01-13",
@@ -302,10 +313,10 @@
     "month": 1,
     "category": "카페",
     "description": "메가커피",
-    "amount": 1400.0,
+    "amount": 1400,
     "payment_method": "현대카드_시리",
-    "sheet": "26.1",
-    "id": "legacy_000687"
+    "isFixed": false,
+    "id": "legacy_000033"
   },
   {
     "date": "2026-01-13",
@@ -313,10 +324,10 @@
     "month": 1,
     "category": "차량유지비",
     "description": "강남주차",
-    "amount": 4900.0,
+    "amount": 4900,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000688"
+    "isFixed": false,
+    "id": "legacy_000034"
   },
   {
     "date": "2026-01-14",
@@ -324,10 +335,10 @@
     "month": 1,
     "category": "차량유지비",
     "description": "택시비",
-    "amount": 7800.0,
+    "amount": 7800,
     "payment_method": "현대카드_시리",
-    "sheet": "26.1",
-    "id": "legacy_000689"
+    "isFixed": false,
+    "id": "legacy_000035"
   },
   {
     "date": "2026-01-14",
@@ -335,10 +346,10 @@
     "month": 1,
     "category": "외식",
     "description": "롯백_음료수",
-    "amount": 2700.0,
+    "amount": 2700,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000690"
+    "isFixed": false,
+    "id": "legacy_000036"
   },
   {
     "date": "2026-01-14",
@@ -346,10 +357,10 @@
     "month": 1,
     "category": "약속",
     "description": "이모, 할머니 집들이 선물_빵",
-    "amount": 16100.0,
+    "amount": 16100,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000691"
+    "isFixed": false,
+    "id": "legacy_000037"
   },
   {
     "date": "2026-01-14",
@@ -357,10 +368,10 @@
     "month": 1,
     "category": "병원비",
     "description": "치과",
-    "amount": 80000.0,
+    "amount": 80000,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000692"
+    "isFixed": false,
+    "id": "legacy_000038"
   },
   {
     "date": "2026-01-17",
@@ -368,10 +379,10 @@
     "month": 1,
     "category": "쇼핑",
     "description": "잠옷",
-    "amount": 45800.0,
+    "amount": 45800,
     "payment_method": "현대카드_시리",
-    "sheet": "26.1",
-    "id": "legacy_000693"
+    "isFixed": false,
+    "id": "legacy_000039"
   },
   {
     "date": "2026-01-17",
@@ -379,10 +390,10 @@
     "month": 1,
     "category": "외식",
     "description": "쿠팡이츠_제주올레국수",
-    "amount": 21300.0,
+    "amount": 21300,
     "payment_method": "쿠팡와우카드",
-    "sheet": "26.1",
-    "id": "legacy_000694"
+    "isFixed": false,
+    "id": "legacy_000040"
   },
   {
     "date": "2026-01-18",
@@ -390,10 +401,10 @@
     "month": 1,
     "category": "육아비",
     "description": "세면용 수전 필터",
-    "amount": 78000.0,
+    "amount": 78000,
     "payment_method": "현금",
-    "sheet": "26.1",
-    "id": "legacy_000695"
+    "isFixed": false,
+    "id": "legacy_000041"
   },
   {
     "date": "2026-01-18",
@@ -401,10 +412,10 @@
     "month": 1,
     "category": "육아비",
     "description": "슈너글 욕조",
-    "amount": 37000.0,
+    "amount": 37000,
     "payment_method": "현금",
-    "sheet": "26.1",
-    "id": "legacy_000696"
+    "isFixed": false,
+    "id": "legacy_000042"
   },
   {
     "date": "2026-01-18",
@@ -412,10 +423,10 @@
     "month": 1,
     "category": "외식",
     "description": "니뽕내뽕",
-    "amount": 23800.0,
+    "amount": 23800,
     "payment_method": "현금",
-    "sheet": "26.1",
-    "id": "legacy_000697"
+    "isFixed": false,
+    "id": "legacy_000043"
   },
   {
     "date": "2026-01-18",
@@ -423,10 +434,10 @@
     "month": 1,
     "category": "외식",
     "description": "피어커피",
-    "amount": 13100.0,
+    "amount": 13100,
     "payment_method": "현금",
-    "sheet": "26.1",
-    "id": "legacy_000698"
+    "isFixed": false,
+    "id": "legacy_000044"
   },
   {
     "date": "2026-01-18",
@@ -434,10 +445,10 @@
     "month": 1,
     "category": "외식",
     "description": "커피번",
-    "amount": 3900.0,
+    "amount": 3900,
     "payment_method": "현대카드_시리",
-    "sheet": "26.1",
-    "id": "legacy_000699"
+    "isFixed": false,
+    "id": "legacy_000045"
   },
   {
     "date": "2026-01-18",
@@ -445,10 +456,10 @@
     "month": 1,
     "category": "외식",
     "description": "물",
-    "amount": 1000.0,
+    "amount": 1000,
     "payment_method": "현금",
-    "sheet": "26.1",
-    "id": "legacy_000700"
+    "isFixed": false,
+    "id": "legacy_000046"
   },
   {
     "date": "2026-01-19",
@@ -456,10 +467,10 @@
     "month": 1,
     "category": "외식",
     "description": "쿠팡이츠_뽀빠이가든",
-    "amount": 13900.0,
+    "amount": 13900,
     "payment_method": "쿠팡와우카드",
-    "sheet": "26.1",
-    "id": "legacy_000701"
+    "isFixed": false,
+    "id": "legacy_000047"
   },
   {
     "date": "2026-01-20",
@@ -467,10 +478,10 @@
     "month": 1,
     "category": "식비",
     "description": "롯백_물",
-    "amount": 600.0,
+    "amount": 600,
     "payment_method": "현금",
-    "sheet": "26.1",
-    "id": "legacy_000702"
+    "isFixed": false,
+    "id": "legacy_000048"
   },
   {
     "date": "2026-01-20",
@@ -478,10 +489,10 @@
     "month": 1,
     "category": "외식",
     "description": "롯백_츄러스",
-    "amount": 10000.0,
+    "amount": 10000,
     "payment_method": "현대카드_시리",
-    "sheet": "26.1",
-    "id": "legacy_000703"
+    "isFixed": false,
+    "id": "legacy_000049"
   },
   {
     "date": "2026-01-21",
@@ -489,10 +500,10 @@
     "month": 1,
     "category": "쇼핑",
     "description": "노트북 고속충전기",
-    "amount": 78500.0,
+    "amount": 78500,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000704"
+    "isFixed": false,
+    "id": "legacy_000050"
   },
   {
     "date": "2026-01-21",
@@ -500,10 +511,10 @@
     "month": 1,
     "category": "카페",
     "description": "패턴커피",
-    "amount": 9500.0,
+    "amount": 9500,
     "payment_method": "현금",
-    "sheet": "26.1",
-    "id": "legacy_000705"
+    "isFixed": false,
+    "id": "legacy_000051"
   },
   {
     "date": "2026-01-22",
@@ -511,10 +522,10 @@
     "month": 1,
     "category": "외식",
     "description": "통영 맥도날드",
-    "amount": 9500.0,
+    "amount": 9500,
     "payment_method": "현대카드_상민",
-    "sheet": "26.1",
-    "id": "legacy_000706"
+    "isFixed": false,
+    "id": "legacy_000052"
   },
   {
     "date": "2026-01-22",
@@ -522,9 +533,251 @@
     "month": 1,
     "category": "카페",
     "description": "통영_하삼동 커피",
-    "amount": 1800.0,
+    "amount": 1800,
     "payment_method": "현금",
-    "sheet": "26.1",
-    "id": "legacy_000707"
+    "isFixed": false,
+    "id": "legacy_000053"
+  },
+  {
+    "date": "2026-01-25",
+    "year": 2026,
+    "month": 1,
+    "category": "카페",
+    "description": "통영_하삼동 커피",
+    "amount": 1800,
+    "payment_method": "현금",
+    "isFixed": false,
+    "id": "legacy_000054"
+  },
+  {
+    "date": "2026-01-25",
+    "year": 2026,
+    "month": 1,
+    "category": "식비",
+    "description": "하나로마트",
+    "amount": 9200,
+    "payment_method": "현금",
+    "isFixed": false,
+    "id": "legacy_000055"
+  },
+  {
+    "date": "2026-01-26",
+    "year": 2026,
+    "month": 1,
+    "category": "카페",
+    "description": "통영_더리터 커피",
+    "amount": 2000,
+    "payment_method": "현대카드_상민",
+    "isFixed": false,
+    "id": "legacy_000056"
+  },
+  {
+    "date": "2026-01-26",
+    "year": 2026,
+    "month": 1,
+    "category": "외식",
+    "description": "꼬마김밥",
+    "amount": 9000,
+    "payment_method": "현금",
+    "isFixed": false,
+    "id": "legacy_000057"
+  },
+  {
+    "date": "2026-01-26",
+    "year": 2026,
+    "month": 1,
+    "category": "외식",
+    "description": "편의점_물+보리차",
+    "amount": 3700,
+    "payment_method": "현대카드_시리",
+    "isFixed": false,
+    "id": "legacy_000058"
+  },
+  {
+    "date": "2026-01-26",
+    "year": 2026,
+    "month": 1,
+    "category": "외식",
+    "description": "쿠팡이츠_설빙",
+    "amount": 13000,
+    "payment_method": "쿠팡와우카드",
+    "isFixed": false,
+    "id": "legacy_000059"
+  },
+  {
+    "date": "2026-01-27",
+    "year": 2026,
+    "month": 1,
+    "category": "외식",
+    "description": "코스트코 푸트코트",
+    "amount": 6800,
+    "payment_method": "현대카드_상민",
+    "isFixed": false,
+    "id": "legacy_000060"
+  },
+  {
+    "date": "2026-01-27",
+    "year": 2026,
+    "month": 1,
+    "category": "식비",
+    "description": "코스트코",
+    "amount": 117510,
+    "payment_method": "현대카드_상민",
+    "isFixed": false,
+    "id": "legacy_000061"
+  },
+  {
+    "date": "2026-01-27",
+    "year": 2026,
+    "month": 1,
+    "category": "생활비",
+    "description": "코스트코",
+    "amount": 67180,
+    "payment_method": "현대카드_상민",
+    "isFixed": false,
+    "id": "legacy_000062"
+  },
+  {
+    "date": "2026-01-27",
+    "year": 2026,
+    "month": 1,
+    "category": "생활비",
+    "description": "쿠팡_브레빌 정수필터",
+    "amount": 30000,
+    "payment_method": "쿠팡와우카드",
+    "isFixed": false,
+    "id": "legacy_000063"
+  },
+  {
+    "date": "2026-01-27",
+    "year": 2026,
+    "month": 1,
+    "category": "생활비",
+    "description": "쿠팡",
+    "amount": 46470,
+    "payment_method": "쿠팡와우카드",
+    "isFixed": false,
+    "id": "legacy_000064"
+  },
+  {
+    "date": "2026-01-28",
+    "year": 2026,
+    "month": 1,
+    "category": "외식",
+    "description": "쿠팡이츠_맘스터치",
+    "amount": 14500,
+    "payment_method": "쿠팡와우카드",
+    "isFixed": false,
+    "id": "legacy_000065"
+  },
+  {
+    "date": "2026-01-28",
+    "year": 2026,
+    "month": 1,
+    "category": "카페",
+    "description": "투썸",
+    "amount": 3890,
+    "payment_method": "현대카드_상민",
+    "isFixed": false,
+    "id": "legacy_000066"
+  },
+  {
+    "date": "2026-01-28",
+    "year": 2026,
+    "month": 1,
+    "category": "차량유지비",
+    "description": "강남 주차비",
+    "amount": 7500,
+    "payment_method": "현대카드_상민",
+    "isFixed": false,
+    "id": "legacy_000067"
+  },
+  {
+    "date": "2026-01-28",
+    "year": 2026,
+    "month": 1,
+    "category": "쇼핑",
+    "description": "올리브영",
+    "amount": 39510,
+    "payment_method": "현대카드_시리",
+    "isFixed": false,
+    "id": "legacy_000068"
+  },
+  {
+    "date": "2026-01-29",
+    "year": 2026,
+    "month": 1,
+    "category": "식비",
+    "description": "이마트에브리데이",
+    "amount": 18460,
+    "payment_method": "현금",
+    "isFixed": false,
+    "id": "legacy_000069"
+  },
+  {
+    "date": "2026-01-29",
+    "year": 2026,
+    "month": 1,
+    "category": "쇼핑",
+    "description": "지혜 시온 선물",
+    "amount": 13560,
+    "payment_method": "쿠팡와우카드",
+    "isFixed": false,
+    "id": "legacy_000070"
+  },
+  {
+    "date": "2026-01-29",
+    "year": 2026,
+    "month": 1,
+    "category": "식비",
+    "description": "코스트코",
+    "amount": 6580,
+    "payment_method": "현금",
+    "isFixed": false,
+    "id": "legacy_000071"
+  },
+  {
+    "date": "2026-01-31",
+    "year": 2026,
+    "month": 1,
+    "category": "식비",
+    "description": "이마트에브리데이",
+    "amount": 8960,
+    "payment_method": "현금",
+    "isFixed": false,
+    "id": "legacy_000072"
+  },
+  {
+    "date": "2026-01-31",
+    "year": 2026,
+    "month": 1,
+    "category": "생활비",
+    "description": "쿠팡_구연산, 베이킹소다",
+    "amount": 12370,
+    "payment_method": "쿠팡와우카드",
+    "isFixed": false,
+    "id": "legacy_000073"
+  },
+  {
+    "date": "2026-01-31",
+    "year": 2026,
+    "month": 1,
+    "category": "식비",
+    "description": "치킨스톡",
+    "amount": 6730,
+    "payment_method": "쿠팡와우카드",
+    "isFixed": false,
+    "id": "legacy_000074"
+  },
+  {
+    "date": "2026-01-31",
+    "year": 2026,
+    "month": 1,
+    "category": "생활비",
+    "description": "튼살크림",
+    "amount": 25000,
+    "payment_method": "쿠팡와우카드",
+    "isFixed": false,
+    "id": "legacy_000075"
   }
 ]
