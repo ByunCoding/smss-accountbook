@@ -3122,9 +3122,58 @@
         .settings-btn:hover { background: rgba(255,255,255,0.3); }
 
         .settings-modal-body {
-            padding: 20px 24px;
+            padding: 0;
             overflow-y: auto;
             max-height: calc(90vh - 180px);
+        }
+
+        .settings-tabs {
+            display: flex;
+            border-bottom: 2px solid var(--gray-200);
+            background: var(--gray-50);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .settings-tab-btn {
+            flex: 1;
+            padding: 12px 4px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--gray-400);
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .settings-tab-btn i {
+            font-size: 1.2rem;
+        }
+
+        .settings-tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .settings-tab-btn:hover:not(.active) {
+            color: var(--gray-600);
+        }
+
+        .settings-tab-content {
+            display: none;
+            padding: 20px 24px;
+        }
+
+        .settings-tab-content.active {
+            display: block;
         }
 
         .settings-section {
@@ -3923,76 +3972,99 @@
                 </button>
             </div>
             <div class="settings-modal-body">
-                <!-- 카테고리 섹션 -->
-                <div class="settings-section">
-                    <div class="settings-section-title">
-                        <i class="ri-folder-line" style="color: var(--primary);"></i> 카테고리
-                    </div>
-                    <div class="settings-list" id="categorySettingsList"></div>
-                    <button class="settings-add-btn" onclick="showAddCategoryForm()">
-                        <i class="ri-add-line"></i> 카테고리 추가
+                <div class="settings-tabs">
+                    <button class="settings-tab-btn active" onclick="switchSettingsTab('category')">
+                        <i class="ri-folder-line"></i>카테고리
                     </button>
-                    <div class="settings-add-form" id="addCategoryForm">
-                        <div class="settings-add-form-row">
-                            <input type="text" id="newCategoryName" placeholder="카테고리 이름">
-                            <input type="text" id="newCategoryEmoji" class="settings-add-form-emoji" placeholder="🏷️" maxlength="2">
-                            <input type="color" id="newCategoryColor" value="#3B82F6">
+                    <button class="settings-tab-btn" onclick="switchSettingsTab('income')">
+                        <i class="ri-money-dollar-circle-line"></i>수입
+                    </button>
+                    <button class="settings-tab-btn" onclick="switchSettingsTab('recurring')">
+                        <i class="ri-repeat-fill"></i>고정수입
+                    </button>
+                    <button class="settings-tab-btn" onclick="switchSettingsTab('payment')">
+                        <i class="ri-bank-card-line"></i>결제수단
+                    </button>
+                </div>
+
+                <!-- 카테고리 탭 -->
+                <div class="settings-tab-content active" id="settingsTab-category">
+                    <div class="settings-section">
+                        <div class="settings-section-title">
+                            <i class="ri-folder-line" style="color: var(--primary);"></i> 지출 카테고리
                         </div>
-                        <div class="settings-add-form-row settings-add-form-actions">
-                            <button class="cancel-btn" onclick="hideAddCategoryForm()">취소</button>
-                            <button class="confirm-btn" onclick="addCategory()">추가</button>
+                        <div class="settings-list" id="categorySettingsList"></div>
+                        <button class="settings-add-btn" onclick="showAddCategoryForm()">
+                            <i class="ri-add-line"></i> 카테고리 추가
+                        </button>
+                        <div class="settings-add-form" id="addCategoryForm">
+                            <div class="settings-add-form-row">
+                                <input type="text" id="newCategoryName" placeholder="카테고리 이름">
+                                <input type="text" id="newCategoryEmoji" class="settings-add-form-emoji" placeholder="🏷️" maxlength="2">
+                                <input type="color" id="newCategoryColor" value="#3B82F6">
+                            </div>
+                            <div class="settings-add-form-row settings-add-form-actions">
+                                <button class="cancel-btn" onclick="hideAddCategoryForm()">취소</button>
+                                <button class="confirm-btn" onclick="addCategory()">추가</button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 수입 카테고리 섹션 -->
-                <div class="settings-section">
-                    <div class="settings-section-title">
-                        <i class="ri-money-dollar-circle-line" style="color: var(--income);"></i> 수입 카테고리
-                    </div>
-                    <div class="settings-list" id="incomeCategorySettingsList"></div>
-                    <button class="settings-add-btn" onclick="showAddIncomeCategoryForm()">
-                        <i class="ri-add-line"></i> 수입 카테고리 추가
-                    </button>
-                    <div class="settings-add-form" id="addIncomeCategoryForm">
-                        <div class="settings-add-form-row">
-                            <input type="text" id="newIncomeCategoryName" placeholder="수입 카테고리 이름">
-                            <input type="text" id="newIncomeCategoryEmoji" class="settings-add-form-emoji" placeholder="💰" maxlength="2">
+                <!-- 수입 카테고리 탭 -->
+                <div class="settings-tab-content" id="settingsTab-income">
+                    <div class="settings-section">
+                        <div class="settings-section-title">
+                            <i class="ri-money-dollar-circle-line" style="color: var(--income);"></i> 수입 카테고리
                         </div>
-                        <div class="settings-add-form-row settings-add-form-actions">
-                            <button class="cancel-btn" onclick="hideAddIncomeCategoryForm()">취소</button>
-                            <button class="confirm-btn" onclick="addIncomeCategory()">추가</button>
+                        <div class="settings-list" id="incomeCategorySettingsList"></div>
+                        <button class="settings-add-btn" onclick="showAddIncomeCategoryForm()">
+                            <i class="ri-add-line"></i> 수입 카테고리 추가
+                        </button>
+                        <div class="settings-add-form" id="addIncomeCategoryForm">
+                            <div class="settings-add-form-row">
+                                <input type="text" id="newIncomeCategoryName" placeholder="수입 카테고리 이름">
+                                <input type="text" id="newIncomeCategoryEmoji" class="settings-add-form-emoji" placeholder="💰" maxlength="2">
+                            </div>
+                            <div class="settings-add-form-row settings-add-form-actions">
+                                <button class="cancel-btn" onclick="hideAddIncomeCategoryForm()">취소</button>
+                                <button class="confirm-btn" onclick="addIncomeCategory()">추가</button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 고정수입 관리 섹션 -->
-                <div class="settings-section">
-                    <div class="settings-section-title">
-                        <i class="ri-repeat-fill" style="color: var(--income);"></i> 고정수입 관리
-                    </div>
-                    <div class="settings-list" id="recurringIncomeSettingsList">
-                        <div class="recurring-income-empty">등록된 고정수입이 없습니다</div>
+                <!-- 고정수입 관리 탭 -->
+                <div class="settings-tab-content" id="settingsTab-recurring">
+                    <div class="settings-section">
+                        <div class="settings-section-title">
+                            <i class="ri-repeat-fill" style="color: var(--income);"></i> 고정수입 관리
+                        </div>
+                        <div class="settings-list" id="recurringIncomeSettingsList">
+                            <div class="recurring-income-empty">등록된 고정수입이 없습니다</div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 결제수단 섹션 -->
-                <div class="settings-section">
-                    <div class="settings-section-title">
-                        <i class="ri-bank-card-line" style="color: var(--primary);"></i> 결제수단
-                    </div>
-                    <div class="settings-list" id="paymentSettingsList"></div>
-                    <button class="settings-add-btn" onclick="showAddPaymentForm()">
-                        <i class="ri-add-line"></i> 결제수단 추가
-                    </button>
-                    <div class="settings-add-form" id="addPaymentForm">
-                        <div class="settings-add-form-row">
-                            <input type="text" id="newPaymentName" placeholder="결제수단 이름">
-                            <input type="text" id="newPaymentEmoji" class="settings-add-form-emoji" placeholder="💳" maxlength="2">
+                <!-- 결제수단 탭 -->
+                <div class="settings-tab-content" id="settingsTab-payment">
+                    <div class="settings-section">
+                        <div class="settings-section-title">
+                            <i class="ri-bank-card-line" style="color: var(--primary);"></i> 결제수단
                         </div>
-                        <div class="settings-add-form-row settings-add-form-actions">
-                            <button class="cancel-btn" onclick="hideAddPaymentForm()">취소</button>
-                            <button class="confirm-btn" onclick="addPaymentMethod()">추가</button>
+                        <div class="settings-list" id="paymentSettingsList"></div>
+                        <button class="settings-add-btn" onclick="showAddPaymentForm()">
+                            <i class="ri-add-line"></i> 결제수단 추가
+                        </button>
+                        <div class="settings-add-form" id="addPaymentForm">
+                            <div class="settings-add-form-row">
+                                <input type="text" id="newPaymentName" placeholder="결제수단 이름">
+                                <input type="text" id="newPaymentEmoji" class="settings-add-form-emoji" placeholder="💳" maxlength="2">
+                            </div>
+                            <div class="settings-add-form-row settings-add-form-actions">
+                                <button class="cancel-btn" onclick="hideAddPaymentForm()">취소</button>
+                                <button class="confirm-btn" onclick="addPaymentMethod()">추가</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -4343,11 +4415,21 @@
             }
         }
 
+        // 설정 탭 전환
+        function switchSettingsTab(tabName) {
+            document.querySelectorAll('.settings-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.settings-tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelector(`.settings-tab-btn[onclick="switchSettingsTab('${tabName}')"]`).classList.add('active');
+            document.getElementById('settingsTab-' + tabName).classList.add('active');
+        }
+
         // 설정 모달 열기
         function openSettingsModal() {
             const modal = document.getElementById('settingsModal');
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
+            // 첫 번째 탭으로 초기화
+            switchSettingsTab('category');
             renderSettingsLists();
         }
 
