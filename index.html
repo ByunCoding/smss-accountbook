@@ -5048,10 +5048,7 @@
                         year: currentYear.toString()
                     });
 
-                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
-                        method: 'GET',
-                        mode: 'no-cors'
-                    });
+                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
 
                     // incomeEntries에 추가
                     incomeEntries.push({
@@ -5091,6 +5088,8 @@
         let availableMonths = []; // 데이터가 있는 월 목록
         let lastDeletedExpense = null; // 최근 삭제된 지출 (되돌리기용)
         let undoTimeout = null; // 되돌리기 타이머
+        let _tableDeleteData = []; // 테이블 삭제 데이터 저장소 (XSS 방지)
+        let _detailDisplayLimit = 50; // 상세 내역 초기 표시 건수
 
         // ===== 캐시 관리 =====
         const CACHE_KEY = 'smss_accountbook_cache_v2';
@@ -5236,6 +5235,7 @@
                 // 캐시 전부 삭제
                 localStorage.removeItem(CACHE_KEY);
                 localStorage.removeItem(EXPENSE_MONTH_CACHE_KEY);
+                localStorage.removeItem('smss_index_json_cache');
 
                 // 시트 목록 + 데이터 병렬 로드 (시트목록은 캐시 무시)
                 await loadSheetList(true);
@@ -5317,12 +5317,22 @@
             const monthCache = getMonthExpenseCache();
             const MONTH_CACHE_EXPIRY = 30 * 24 * 60 * 60 * 1000; // 과거 월 30일 캐시
 
-            // data/index.json에서 아카이브된 월 목록 동적 로드
+            // data/index.json에서 아카이브된 월 목록 동적 로드 (24시간 캐시)
             const defaultJsonMonths = ['2025-01', '2025-05', '2025-06', '2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01'];
             let jsonMonths;
             try {
-                const resp = await fetch('data/index.json');
-                jsonMonths = await resp.json();
+                const indexCache = localStorage.getItem('smss_index_json_cache');
+                if (indexCache) {
+                    const parsed = JSON.parse(indexCache);
+                    if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+                        jsonMonths = parsed.data;
+                    }
+                }
+                if (!jsonMonths) {
+                    const resp = await fetch('data/index.json');
+                    jsonMonths = await resp.json();
+                    localStorage.setItem('smss_index_json_cache', JSON.stringify({ data: jsonMonths, timestamp: Date.now() }));
+                }
                 console.log('아카이브 월 목록 (index.json):', jsonMonths);
             } catch (e) {
                 console.warn('index.json 로드 실패, 기본값 사용:', e);
@@ -5763,6 +5773,17 @@
             updateCountDisplay();
             updateDashboard();
             scrollToActiveTab();
+
+            // 상세 내역 탭이 활성화 상태면 필터도 업데이트
+            const activeTab = document.querySelector('.tab.active')?.textContent?.trim() || '';
+            if (activeTab.includes('상세')) {
+                const filterMonth = document.getElementById('filterMonth');
+                if (filterMonth) {
+                    filterMonth.value = monthKey;
+                    _detailDisplayLimit = 50;
+                    renderExpenseTable();
+                }
+            }
         }
 
         // 활성 탭으로 스크롤
@@ -5826,9 +5847,32 @@
             updatePaymentMethods();
             updateCategoryComparison();
             updateYoYComparison();
-            destroyCharts();
-            createCharts();
             updateBudgetTab();
+            // 차트는 현재 활성 탭의 것만 생성 (성능 최적화)
+            destroyCharts();
+            createChartsForActiveTab();
+        }
+
+        function createChartsForActiveTab() {
+            const activeTab = document.querySelector('.tab.active')?.textContent?.trim() || '';
+            if (activeTab.includes('월간')) {
+                createChartsForTab('overview');
+            } else if (activeTab.includes('지출')) {
+                createChartsForTab('budget');
+            }
+        }
+
+        function createChartsForTab(tabName) {
+            if (tabName === 'overview') {
+                const currentKey = getSelectedKey();
+                const currentCats = expenseData.summary.monthly_totals[currentKey]?.categories || {};
+                updateCategoryBarList(currentCats);
+                createMonthlyChart();
+                createYoYChartOnly();
+            } else if (tabName === 'budget') {
+                renderDailyExpenseChart();
+                renderTopExpenses();
+            }
         }
 
         // ===== 수입/지출 요약 플로우 =====
@@ -6642,14 +6686,8 @@
         }
 
         // ===== 차트 =====
-        function createCharts() {
-            const currentKey = getSelectedKey();
-            const currentCats = expenseData.summary.monthly_totals[currentKey]?.categories || {};
-
-            // 카테고리별 가로 바 리스트
-            updateCategoryBarList(currentCats);
-
-            // 월별 추이 차트
+        // 월별 추이 차트 생성
+        function createMonthlyChart() {
             const monthlyData = expenseData.summary.monthly_totals;
             const sortedMonths = Object.entries(monthlyData).sort((a, b) => a[0].localeCompare(b[0])).slice(-6);
             if (sortedMonths.length > 0) {
@@ -6674,8 +6712,11 @@
                     }
                 });
             }
+        }
 
-            // YoY 차트
+        // YoY 차트 생성
+        function createYoYChartOnly() {
+            const monthlyData = expenseData.summary.monthly_totals;
             const yoyData = [];
             [selectedMonth.year - 1, selectedMonth.year].forEach(year => {
                 const key = `${year}-${String(selectedMonth.month).padStart(2, '0')}`;
@@ -6702,12 +6743,6 @@
                     }
                 }
             });
-
-            // 일별 지출 추이 차트
-            renderDailyExpenseChart();
-
-            // 지출 TOP 5 업데이트
-            renderTopExpenses();
         }
 
         // 지출 TOP 5 렌더링
@@ -6846,11 +6881,12 @@
             const filterAmountMax = document.getElementById('filterAmountMax');
             const filterSearch = document.getElementById('filterSearch');
 
-            if (filterMonth) filterMonth.onchange = renderExpenseTable;
-            if (filterCategory) filterCategory.onchange = renderExpenseTable;
-            if (filterPayment) filterPayment.onchange = renderExpenseTable;
+            const resetAndRender = () => { _detailDisplayLimit = 50; renderExpenseTable(); };
+            if (filterMonth) filterMonth.onchange = resetAndRender;
+            if (filterCategory) filterCategory.onchange = resetAndRender;
+            if (filterPayment) filterPayment.onchange = resetAndRender;
             // debounce 적용 (금액, 검색)
-            const debouncedRender = debounce(renderExpenseTable, 300);
+            const debouncedRender = debounce(() => { _detailDisplayLimit = 50; renderExpenseTable(); }, 300);
             if (filterAmountMin) filterAmountMin.oninput = debouncedRender;
             if (filterAmountMax) filterAmountMax.oninput = debouncedRender;
             if (filterSearch) filterSearch.oninput = debouncedRender;
@@ -6881,6 +6917,7 @@
             if (filterAmountMax) filterAmountMax.value = '';
             if (filterSearch) filterSearch.value = '';
 
+            _detailDisplayLimit = 50;
             renderExpenseTable();
             showToast('필터가 초기화되었습니다', 'success');
         }
@@ -6996,20 +7033,20 @@
                 return;
             }
 
-            const sliced = filtered.slice(0, 100);
+            const sliced = filtered.slice(0, _detailDisplayLimit);
+
+            // 삭제 데이터 저장소 (inline onclick XSS 방지)
+            _tableDeleteData = sliced.map(e => ({
+                date: e.date, category: e.category,
+                description: e.description || '', amount: e.amount,
+                payment_method: e.payment_method || '',
+                isIncome: e.isIncome || false
+            }));
 
             // 테이블 렌더링 (데스크톱)
             tbody.innerHTML = sliced.map((e, idx) => {
                 const isIncomeItem = e.isIncome || INCOME_CATEGORIES.has(e.category);
                 const color = isIncomeItem ? 'var(--income)' : (categoryColors[e.category] || '#9CA3AF');
-                const deleteData = encodeURIComponent(JSON.stringify({
-                    date: e.date,
-                    category: e.category,
-                    description: e.description || '',
-                    amount: e.amount,
-                    payment_method: e.payment_method || '',
-                    isIncome: e.isIncome || false
-                }));
                 return `
                     <tr class="${isIncomeItem ? 'income-row' : ''}">
                         <td>${e.date}</td>
@@ -7025,7 +7062,7 @@
                         <td class="amount ${isIncomeItem ? 'income-amount' : ''}">${isIncomeItem ? '+' : ''}${formatCurrency(e.amount)}</td>
                         <td>${e.payment_method || '-'}</td>
                         <td>
-                            <button class="delete-btn" onclick="deleteExpenseByData('${deleteData}', ${e.amount})" title="삭제">
+                            <button class="delete-btn" onclick="deleteByIndex(${idx})" title="삭제">
                                 <i class="ri-delete-bin-line"></i>
                             </button>
                         </td>
@@ -7035,17 +7072,9 @@
 
             // 카드 렌더링 (모바일)
             if (cardList) {
-                cardList.innerHTML = sliced.map(e => {
+                cardList.innerHTML = sliced.map((e, idx) => {
                     const isIncomeItem = e.isIncome || INCOME_CATEGORIES.has(e.category);
                     const color = isIncomeItem ? 'var(--income)' : (categoryColors[e.category] || '#9CA3AF');
-                    const deleteData = encodeURIComponent(JSON.stringify({
-                        date: e.date,
-                        category: e.category,
-                        description: e.description || '',
-                        amount: e.amount,
-                        payment_method: e.payment_method || '',
-                        isIncome: e.isIncome || false
-                    }));
                     const shortDate = e.date.substring(5);
                     return `
                         <div class="expense-card ${isIncomeItem ? 'income-card' : ''}">
@@ -7065,7 +7094,7 @@
                                 <span class="memo">${e.description || '-'}</span>
                                 <div class="right">
                                     <span class="payment">${e.payment_method || ''}</span>
-                                    <button class="delete-btn" onclick="deleteExpenseByData('${deleteData}', ${e.amount})" title="삭제">
+                                    <button class="delete-btn" onclick="deleteByIndex(${idx})" title="삭제">
                                         <i class="ri-delete-bin-line"></i>
                                     </button>
                                 </div>
@@ -7073,6 +7102,14 @@
                         </div>
                     `;
                 }).join('');
+            }
+
+            // 더보기 버튼
+            if (filtered.length > _detailDisplayLimit) {
+                const moreCount = filtered.length - _detailDisplayLimit;
+                const moreBtnHtml = `<button onclick="_detailDisplayLimit += 50; renderExpenseTable();" style="padding:10px 20px; border:1px solid var(--gray-300); border-radius:10px; background:var(--bg-card); color:var(--text-primary); font-size:0.9rem; font-weight:600; cursor:pointer; transition:all 0.2s;"><i class="ri-arrow-down-line"></i> ${moreCount}건 더보기 (${_detailDisplayLimit}/${filtered.length})</button>`;
+                tbody.innerHTML += `<tr><td colspan="6" style="text-align:center; padding:16px;">${moreBtnHtml}</td></tr>`;
+                if (cardList) cardList.innerHTML += `<div style="text-align:center; padding:16px;">${moreBtnHtml}</div>`;
             }
         }
 
@@ -7085,6 +7122,22 @@
             document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
             document.querySelectorAll('[id$="-tab"]').forEach(t => t.classList.add('hidden'));
             document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+
+            // 상세 내역 탭 선택 시 현재 월로 자동 필터
+            if (tabName === 'details') {
+                const filterMonth = document.getElementById('filterMonth');
+                if (filterMonth) {
+                    filterMonth.value = getSelectedKey();
+                    _detailDisplayLimit = 50;
+                    renderExpenseTable();
+                }
+            }
+
+            // 탭 전환 시 해당 탭의 차트 생성
+            if (tabName === 'overview' || tabName === 'budget') {
+                destroyCharts();
+                createChartsForTab(tabName);
+            }
         }
 
         // ===== 예산 수정 모달 =====
@@ -7538,10 +7591,7 @@
                         amount: data.amount.toString()
                     });
 
-                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
-                        method: 'GET',
-                        mode: 'no-cors'
-                    });
+                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
 
                     // incomeEntries에 다시 추가
                     const [year, month] = data.date.split('-').map(Number);
@@ -7564,10 +7614,7 @@
                         person: data.payment_method || ''
                     });
 
-                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
-                        method: 'GET',
-                        mode: 'no-cors'
-                    });
+                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
 
                     // 로컬 데이터에 다시 추가
                     expenseData.expenses.push(data);
@@ -7636,10 +7683,7 @@
                         year: year.toString()
                     });
 
-                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
-                        method: 'GET',
-                        mode: 'no-cors'
-                    });
+                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
 
                     console.log('Income submitted to monthly sheet H-K');
 
@@ -7665,10 +7709,7 @@
                         amount: amount.toString()
                     });
 
-                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
-                        method: 'GET',
-                        mode: 'no-cors'
-                    });
+                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
 
                     console.log('Expense submitted to Apps Script');
 
@@ -7725,9 +7766,21 @@
             }
         }
 
+        // 인덱스 기반 삭제 (XSS 안전)
+        function deleteByIndex(idx) {
+            const data = _tableDeleteData[idx];
+            if (data) deleteExpenseByData(data);
+        }
+
         // 지출/수입 삭제 함수 (데이터 기반)
-        async function deleteExpenseByData(encodedData, amount) {
-            const data = JSON.parse(decodeURIComponent(encodedData));
+        async function deleteExpenseByData(dataOrEncoded, amount) {
+            let data;
+            if (typeof dataOrEncoded === 'string') {
+                data = JSON.parse(decodeURIComponent(dataOrEncoded));
+            } else {
+                data = dataOrEncoded;
+                amount = data.amount;
+            }
             const isIncomeItem = data.isIncome || false;
 
             if (!confirm(`₩${amount.toLocaleString()} ${isIncomeItem ? '수입' : '지출'}을 삭제하시겠습니까?`)) {
@@ -7745,10 +7798,7 @@
                         amount: data.amount.toString()
                     });
 
-                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
-                        method: 'GET',
-                        mode: 'no-cors'
-                    });
+                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
 
                     // incomeEntries에서 제거
                     const idx = incomeEntries.findIndex(e =>
@@ -7771,10 +7821,7 @@
                         amount: data.amount.toString()
                     });
 
-                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
-                        method: 'GET',
-                        mode: 'no-cors'
-                    });
+                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
 
                     // 로컬 데이터에서 제거
                     const idx = expenseData.expenses.findIndex(e =>
