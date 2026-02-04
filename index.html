@@ -4720,11 +4720,12 @@
 
                 try {
                     // Google Apps Script로 수입 시트에 전송
+                    const memo = '[고정] ' + (item.description || '');
                     const params = new URLSearchParams({
                         action: 'addIncome',
                         date: dateStr,
                         category: item.category,
-                        item: item.description || '',
+                        item: memo,
                         amount: item.amount.toString()
                     });
 
@@ -4739,7 +4740,7 @@
                         year: currentYear,
                         month: currentMonth,
                         category: item.category,
-                        description: item.description || '',
+                        description: memo,
                         amount: item.amount,
                         id: `recurring_income_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
                     });
