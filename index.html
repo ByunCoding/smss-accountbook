@@ -2049,11 +2049,13 @@
                 width: 100%;
             }
 
-            /* 테이블 */
-            .data-table th,
-            .data-table td {
-                padding: 10px 8px;
-                font-size: 0.8rem;
+            /* 테이블 → 카드 전환 (모바일) */
+            .data-table-wrapper {
+                display: none !important;
+            }
+
+            .expense-card-list {
+                display: block;
             }
 
             .category-badge {
@@ -2326,6 +2328,202 @@
             opacity: 1 !important;
             visibility: visible !important;
             z-index: 9999 !important;
+        }
+
+        .fab-icon {
+            color: #FFFFFF !important;
+            font-size: 2rem !important;
+            font-weight: bold !important;
+            line-height: 1 !important;
+        }
+
+        /* FAB 겹침 방지 - 탭 컨텐츠 하단 여백 */
+        #overview-tab,
+        #budget-tab,
+        #details-tab {
+            padding-bottom: 88px;
+        }
+
+        /* 필터 접기/펼치기 */
+        .filter-toggle-header {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .filter-toggle-icon {
+            transition: transform 0.3s ease;
+            font-size: 1.2rem;
+            color: var(--gray-400);
+        }
+
+        .filter-toggle-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .filter-badge {
+            background: var(--primary);
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 10px;
+            margin-left: 8px;
+            display: none;
+        }
+
+        .filter-badge.active {
+            display: inline-block;
+        }
+
+        .filter-body {
+            max-height: 500px;
+            opacity: 1;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease;
+        }
+
+        .filter-body.collapsed {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        /* 변동비 예산 잔액 프로그레스바 */
+        .variable-budget-info {
+            margin-top: 12px;
+            display: none;
+        }
+
+        .variable-budget-info.visible {
+            display: block;
+        }
+
+        .variable-budget-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        .variable-budget-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease, background-color 0.3s ease;
+            background: var(--income);
+        }
+
+        .variable-budget-fill.warning {
+            background: var(--warning);
+        }
+
+        .variable-budget-fill.danger {
+            background: var(--expense);
+        }
+
+        .variable-budget-text {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .variable-budget-text .remaining {
+            font-weight: 600;
+        }
+
+        .variable-budget-text .remaining.positive {
+            color: var(--income);
+        }
+
+        .variable-budget-text .remaining.negative {
+            color: var(--expense);
+        }
+
+        /* 모바일 카드형 레이아웃 (상세 내역) */
+        .expense-card-list {
+            display: none;
+        }
+
+        .expense-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-bottom: 10px;
+        }
+
+        .expense-card.income-card {
+            border-left: 3px solid var(--income);
+        }
+
+        .expense-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .expense-card-top .left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .expense-card-top .date {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .expense-card-top .amount {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .expense-card-top .amount.income-amount {
+            color: var(--income);
+        }
+
+        .expense-card-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .expense-card-bottom .memo {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .expense-card-bottom .right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .expense-card-bottom .payment {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+        }
+
+        .expense-card-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray-400);
+        }
+
+        .expense-card-empty i {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            display: block;
         }
 
         /* ===== 입력 모달 ===== */
@@ -3607,6 +3805,15 @@
                         <div class="label"><i class="ri-shopping-bag-fill"></i> 이번 달 변동비</div>
                         <div class="value" id="currentMonthVariable">₩0</div>
                         <div class="sub" id="currentMonthCount">0건의 지출</div>
+                        <div class="variable-budget-info" id="variableBudgetInfo">
+                            <div class="variable-budget-bar">
+                                <div class="variable-budget-fill" id="variableBudgetFill" style="width:0%"></div>
+                            </div>
+                            <div class="variable-budget-text">
+                                <span id="variableBudgetLabel">변동비 예산 대비</span>
+                                <span class="remaining" id="variableBudgetRemaining">₩0 남음</span>
+                            </div>
+                        </div>
                         <div class="total-reference" id="totalReference">
                             <span class="total-label">이번 달 지출</span>
                             <span class="total-value" id="currentMonthExpense">₩0</span>
@@ -3763,11 +3970,17 @@
             <!-- 상세 내역 탭 -->
             <div id="details-tab" class="hidden">
                 <div class="section">
-                    <div class="section-header">
-                        <h2 class="section-title"><i class="ri-filter-3-fill"></i> 필터</h2>
-                        <button onclick="resetFilters()" class="filter-reset-btn"><i class="ri-refresh-line"></i> 초기화</button>
+                    <div class="section-header filter-toggle-header" onclick="toggleFilter()">
+                        <h2 class="section-title">
+                            <i class="ri-filter-3-fill"></i> 필터
+                            <span class="filter-badge" id="filterBadge">0</span>
+                        </h2>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <button onclick="resetFilters(); event.stopPropagation();" class="filter-reset-btn"><i class="ri-refresh-line"></i> 초기화</button>
+                            <i class="ri-arrow-down-s-line filter-toggle-icon collapsed" id="filterToggleIcon"></i>
+                        </div>
                     </div>
-                    <div class="section-body">
+                    <div class="section-body filter-body collapsed" id="filterBody">
                         <div class="filter-bar">
                             <div class="filter-group">
                                 <label>월</label>
@@ -3796,6 +4009,10 @@
                         </div>
                     </div>
                 </div>
+                <!-- 모바일 카드형 리스트 -->
+                <div class="expense-card-list" id="expenseCardList"></div>
+
+                <!-- 데스크톱 테이블 -->
                 <div class="section">
                     <div class="section-body data-table-wrapper" style="padding: 0;">
                         <table class="data-table">
@@ -3836,9 +4053,8 @@
     </div>
 
     <!-- 플로팅 액션 버튼 -->
-    <div id="fabButton" class="fab" onclick="openInputModal()" title="지출 입력" aria-label="지출 입력" role="button" tabindex="0"
-        style="position:fixed !important; bottom:24px !important; right:24px !important; width:64px !important; height:64px !important; border-radius:50% !important; background-color:#2563EB !important; color:#FFFFFF !important; border:3px solid #FFFFFF !important; font-size:2rem !important; font-weight:bold !important; z-index:9999 !important; box-shadow:0 4px 20px rgba(37,99,235,0.6) !important; opacity:1 !important; visibility:visible !important; display:flex !important; align-items:center !important; justify-content:center !important; cursor:pointer !important;">
-        <span style="color:#FFFFFF !important; font-size:2rem !important; font-weight:bold !important; line-height:1 !important;">+</span>
+    <div id="fabButton" class="fab" onclick="openInputModal()" title="지출 입력" aria-label="지출 입력" role="button" tabindex="0">
+        <span class="fab-icon">+</span>
     </div>
 
     <!-- 예산 수정 모달 -->
@@ -5806,6 +6022,32 @@
             const circumference = 87.96;
             const offset = circumference - (Math.min(savingsRate, 100) / 100) * circumference;
             document.getElementById('savingsProgress').style.strokeDashoffset = offset;
+
+            // === 변동비 예산 잔액 ===
+            const variableBudgetInfo = document.getElementById('variableBudgetInfo');
+            if (totalIncome > 0) {
+                const variableBudget = totalIncome - currentFixed;
+                const variableUsagePercent = variableBudget > 0 ? (currentVariable / variableBudget) * 100 : 0;
+                const variableRemaining = variableBudget - currentVariable;
+
+                const fill = document.getElementById('variableBudgetFill');
+                const label = document.getElementById('variableBudgetLabel');
+                const remaining = document.getElementById('variableBudgetRemaining');
+
+                fill.style.width = Math.min(variableUsagePercent, 100) + '%';
+                fill.className = 'variable-budget-fill' +
+                    (variableUsagePercent >= 100 ? ' danger' : variableUsagePercent >= 80 ? ' warning' : '');
+
+                label.textContent = `변동비 예산 ${formatCurrency(variableBudget)} 중 ${variableUsagePercent.toFixed(0)}% 사용`;
+                remaining.textContent = variableRemaining >= 0
+                    ? `${formatCurrency(variableRemaining)} 남음`
+                    : `${formatCurrency(Math.abs(variableRemaining))} 초과`;
+                remaining.className = 'remaining ' + (variableRemaining >= 0 ? 'positive' : 'negative');
+
+                variableBudgetInfo.classList.add('visible');
+            } else {
+                variableBudgetInfo.classList.remove('visible');
+            }
         }
 
         // ===== 고정비/변동비 =====
@@ -5991,11 +6233,48 @@
                 }
             });
 
-            // 3. 저축률 인사이트
+            // 3. 변동비 예산 + 저축률 인사이트
             const income = MONTHLY_INCOME[currentKey] || 0;
             const fixedExpense = FIXED_EXPENSES[currentKey]?.total || 0;
-            const totalExpense = (currentData.total || 0) + fixedExpense;
+            const variableSpent = currentData.total || 0;
+            const totalExpense = variableSpent + fixedExpense;
             const savingsRate = income > 0 ? ((income - totalExpense) / income) * 100 : 0;
+
+            if (income > 0) {
+                // 고정비 과다 경고
+                if (fixedExpense > income) {
+                    insights.push({
+                        type: 'danger',
+                        icon: 'ri-lock-fill',
+                        title: '고정비 과다',
+                        desc: `고정비 ${formatCurrency(fixedExpense)}가 수입 ${formatCurrency(income)}을 초과합니다.`,
+                        action: '고정비 구조 점검'
+                    });
+                }
+
+                // 변동비 예산 기준 인사이트
+                const variableBudget = income - fixedExpense;
+                if (variableBudget > 0) {
+                    const variablePercent = (variableSpent / variableBudget) * 100;
+                    if (variablePercent >= 100) {
+                        insights.push({
+                            type: 'danger',
+                            icon: 'ri-error-warning-fill',
+                            title: '변동비 예산 초과',
+                            desc: `변동비 예산 ${formatCurrency(variableBudget)} 대비 ${formatCurrency(variableSpent)} 지출 (${variablePercent.toFixed(0)}%)`,
+                            action: '지출 점검 필요'
+                        });
+                    } else if (variablePercent >= 80) {
+                        insights.push({
+                            type: 'warning',
+                            icon: 'ri-alarm-warning-fill',
+                            title: '변동비 예산 80% 도달',
+                            desc: `남은 변동비 예산 ${formatCurrency(variableBudget - variableSpent)}. 신중하게 지출하세요.`,
+                            action: '남은 기간 고려'
+                        });
+                    }
+                }
+            }
 
             if (savingsRate >= 30) {
                 insights.push({
@@ -6005,21 +6284,13 @@
                     desc: `이번 달 저축률 ${savingsRate.toFixed(0)}%. 목표를 잘 달성하고 있습니다.`,
                     action: '계속 유지하세요'
                 });
-            } else if (savingsRate < 10 && savingsRate >= 0) {
+            } else if (income > 0 && savingsRate < 10 && savingsRate >= 0) {
                 insights.push({
                     type: 'warning',
                     icon: 'ri-funds-fill',
                     title: '저축률 주의',
                     desc: `저축률 ${savingsRate.toFixed(0)}%. 변동비 지출을 줄여보세요.`,
                     action: '지출 점검 필요'
-                });
-            } else if (savingsRate < 0) {
-                insights.push({
-                    type: 'danger',
-                    icon: 'ri-error-warning-fill',
-                    title: '예산 초과',
-                    desc: `수입 대비 ${formatCurrency(Math.abs(income - totalExpense))} 초과 지출`,
-                    action: '긴급 점검 필요'
                 });
             }
 
@@ -6566,7 +6837,37 @@
             showToast('필터가 초기화되었습니다', 'success');
         }
 
+        // ===== 필터 토글 =====
+        function toggleFilter() {
+            const body = document.getElementById('filterBody');
+            const icon = document.getElementById('filterToggleIcon');
+            if (!body || !icon) return;
+            body.classList.toggle('collapsed');
+            icon.classList.toggle('collapsed');
+        }
+
+        function updateFilterBadge() {
+            const badge = document.getElementById('filterBadge');
+            if (!badge) return;
+            let count = 0;
+            const filterMonth = document.getElementById('filterMonth');
+            const filterCategory = document.getElementById('filterCategory');
+            const filterPayment = document.getElementById('filterPayment');
+            const filterAmountMin = document.getElementById('filterAmountMin');
+            const filterAmountMax = document.getElementById('filterAmountMax');
+            const filterSearch = document.getElementById('filterSearch');
+            if (filterMonth && filterMonth.value) count++;
+            if (filterCategory && filterCategory.value) count++;
+            if (filterPayment && filterPayment.value) count++;
+            if (filterAmountMin && filterAmountMin.value) count++;
+            if (filterAmountMax && filterAmountMax.value) count++;
+            if (filterSearch && filterSearch.value) count++;
+            badge.textContent = count;
+            badge.classList.toggle('active', count > 0);
+        }
+
         function renderExpenseTable() {
+            updateFilterBadge();
             const monthEl = document.getElementById('filterMonth');
             const categoryEl = document.getElementById('filterCategory');
             const paymentEl = document.getElementById('filterPayment');
@@ -6617,6 +6918,8 @@
             filtered.sort((a, b) => b.date.localeCompare(a.date));
 
             const tbody = document.getElementById('expenseTableBody');
+            const cardList = document.getElementById('expenseCardList');
+            const isMobile = window.innerWidth <= 768;
 
             // 빈 상태 UI
             if (filtered.length === 0) {
@@ -6633,10 +6936,22 @@
                         </td>
                     </tr>
                 `;
+                if (cardList) cardList.innerHTML = `
+                    <div class="expense-card-empty">
+                        <i class="ri-file-list-3-line"></i>
+                        <p>내역이 없습니다</p>
+                        <button onclick="openInputModal()" class="empty-state-btn" style="margin-top:12px;">
+                            <i class="ri-add-line"></i> 첫 기록하기
+                        </button>
+                    </div>
+                `;
                 return;
             }
 
-            tbody.innerHTML = filtered.slice(0, 100).map((e, idx) => {
+            const sliced = filtered.slice(0, 100);
+
+            // 테이블 렌더링 (데스크톱)
+            tbody.innerHTML = sliced.map((e, idx) => {
                 const isIncomeItem = e.isIncome || INCOME_CATEGORIES.has(e.category);
                 const color = isIncomeItem ? 'var(--income)' : (categoryColors[e.category] || '#9CA3AF');
                 const deleteData = encodeURIComponent(JSON.stringify({
@@ -6669,6 +6984,48 @@
                     </tr>
                 `;
             }).join('');
+
+            // 카드 렌더링 (모바일)
+            if (cardList) {
+                cardList.innerHTML = sliced.map(e => {
+                    const isIncomeItem = e.isIncome || INCOME_CATEGORIES.has(e.category);
+                    const color = isIncomeItem ? 'var(--income)' : (categoryColors[e.category] || '#9CA3AF');
+                    const deleteData = encodeURIComponent(JSON.stringify({
+                        date: e.date,
+                        category: e.category,
+                        description: e.description || '',
+                        amount: e.amount,
+                        payment_method: e.payment_method || '',
+                        isIncome: e.isIncome || false
+                    }));
+                    const shortDate = e.date.substring(5);
+                    return `
+                        <div class="expense-card ${isIncomeItem ? 'income-card' : ''}">
+                            <div class="expense-card-top">
+                                <div class="left">
+                                    <span class="date">${shortDate}</span>
+                                    <span class="category-badge">
+                                        <span class="dot" style="background:${color};"></span>
+                                        ${e.category}
+                                    </span>
+                                    ${isIncomeItem ? '<span class="income-badge">수입</span>' : ''}
+                                    ${!isIncomeItem && e.isFixed ? '<span class="fixed-badge">고정</span>' : ''}
+                                </div>
+                                <span class="amount ${isIncomeItem ? 'income-amount' : ''}">${isIncomeItem ? '+' : ''}${formatCurrency(e.amount)}</span>
+                            </div>
+                            <div class="expense-card-bottom">
+                                <span class="memo">${e.description || '-'}</span>
+                                <div class="right">
+                                    <span class="payment">${e.payment_method || ''}</span>
+                                    <button class="delete-btn" onclick="deleteExpenseByData('${deleteData}', ${e.amount})" title="삭제">
+                                        <i class="ri-delete-bin-line"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
 
         function formatCurrency(amount) {
@@ -7417,8 +7774,10 @@
         // FAB 버튼 visibility 확보 (혹시 다른 스타일이 덮어쓸 경우를 대비)
         function ensureFabVisible() {
             const fab = document.getElementById('fabButton');
-            if (fab) {
-                fab.style.cssText = 'position:fixed !important; bottom:24px !important; right:24px !important; width:64px !important; height:64px !important; border-radius:50% !important; background-color:#2563EB !important; color:#FFFFFF !important; border:3px solid #FFFFFF !important; font-size:2rem !important; font-weight:bold !important; z-index:9999 !important; box-shadow:0 4px 20px rgba(37,99,235,0.6) !important; opacity:1 !important; visibility:visible !important; display:flex !important; align-items:center !important; justify-content:center !important; cursor:pointer !important;';
+            if (fab && !fab.classList.contains('fab-hidden')) {
+                fab.style.display = 'flex';
+                fab.style.visibility = 'visible';
+                fab.style.opacity = '1';
             }
         }
 
@@ -7465,6 +7824,23 @@
                     reg.update();
                 })
                 .catch(err => console.log('Service Worker 등록 실패:', err));
+        }
+
+        // resize 시 상세 내역 재렌더 (모바일 ↔ 데스크톱 전환 대응)
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (typeof renderExpenseTable === 'function') renderExpenseTable();
+            }, 250);
+        });
+
+        // 데스크톱이면 필터 기본 펼침
+        if (window.innerWidth > 768) {
+            const filterBody = document.getElementById('filterBody');
+            const filterIcon = document.getElementById('filterToggleIcon');
+            if (filterBody) filterBody.classList.remove('collapsed');
+            if (filterIcon) filterIcon.classList.remove('collapsed');
         }
 
         // 설정 + 시트목록 병렬 로드 후 데이터 로드
