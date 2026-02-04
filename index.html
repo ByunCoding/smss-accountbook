@@ -4794,8 +4794,25 @@
             let hasChanges = false;
 
             for (const item of list) {
-                // 이미 이번 달에 생성됐으면 스킵
+                // 이미 이번 달에 생성됐으면 스킵 (localStorage 기록 확인)
                 if (item.createdMonths && item.createdMonths.includes(currentKey)) continue;
+
+                // 실제 incomeEntries에 이미 동일한 [고정] 항목이 있는지 확인 (멀티디바이스 중복 방지)
+                const alreadyExists = incomeEntries.some(entry =>
+                    entry.month === currentMonth &&
+                    entry.year === currentYear &&
+                    entry.category === item.category &&
+                    entry.description && entry.description.startsWith('[고정]')
+                );
+                if (alreadyExists) {
+                    // localStorage의 createdMonths도 동기화
+                    if (!item.createdMonths) item.createdMonths = [];
+                    if (!item.createdMonths.includes(currentKey)) {
+                        item.createdMonths.push(currentKey);
+                        hasChanges = true;
+                    }
+                    continue;
+                }
 
                 // 날짜 계산 (해당 월의 마지막 날을 초과하지 않도록)
                 const lastDay = new Date(currentYear, currentMonth, 0).getDate();
