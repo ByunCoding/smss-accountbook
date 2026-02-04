@@ -3,7 +3,8 @@
 ## 프로젝트 개요
 SMSS 가계부 - GitHub Pages로 호스팅되는 PWA 가계부 앱
 - URL: https://byuncoding.github.io/smss-accountbook/
-- 단일 파일: `index.html` (약 5900줄)
+- 메인 파일: `index.html` (약 5900줄)
+- 아카이브: `data/*.json` (과거 월 정적 데이터), `data/index.json` (월 목록)
 
 ## 배포 규칙
 **중요: 모든 작업 완료 후 반드시 커밋 & 푸시**
@@ -20,6 +21,7 @@ git add index.html && git commit -m "메시지" && git push
 - Google Apps Script (백엔드 API)
 - Google Sheets (데이터 저장소)
 - PWA (manifest.json, service-worker.js)
+- GitHub Actions (매월 자동 아카이브)
 
 ## index.html 구조 (라인 번호 참조용)
 
@@ -58,11 +60,41 @@ git add index.html && git commit -m "메시지" && git push
 | 5600-5800 | 지출 저장/삭제 (submitExpense, deleteExpense) |
 | 5800-5900 | 초기화, 이벤트 리스너 |
 
+## 데이터 로딩 아키텍처
+
+### 데이터 소스 (2계층)
+- **정적 JSON** (`data/*.json`): 과거 월 아카이브. `data/index.json`에서 월 목록 동적 로드
+- **Google Sheets** (`GOOGLE_SHEETS`): 최근 월 + 현재 월. Apps Script API로 시트 목록 조회
+
+### 로딩 흐름 (`loadAllExpenses`)
+1. `data/index.json` fetch → 아카이브된 월 목록 확인
+2. `GOOGLE_SHEETS`에 있는 월은 JSON 로드에서 제외 (중복 방지)
+3. 과거 월: localStorage 캐시 히트 시 스킵 (30일 유효)
+4. 현재 월: 항상 Google Sheets에서 새로 로드 (`isCurrentMonth()` 체크)
+
+### 캐시 구조 (localStorage)
+| 키 | 용도 | 만료 |
+|----|------|------|
+| `smss_accountbook_cache_v2` | 전체 데이터 캐시 (즉시 표시용) | 5분 |
+| `smss_expense_month_cache` | 월별 개별 캐시 (과거 월 스킵용) | 30일 |
+| `smss_sheet_list_cache` | 시트 목록 캐시 | 5분 |
+
+### JSON 파일 형식
+- 기존: `[{expense}, ...]` (배열)
+- 수입 포함: `{ "expenses": [...], "income": [...] }`
+- 두 형식 모두 하위 호환 처리됨
+
+### 월별 자동 아카이브
+- `scripts/archive-month.js`: 지난달 Google Sheets → JSON 변환
+- `.github/workflows/archive-month.yml`: 매달 3일 자동 실행
+- 수동 실행: `node scripts/archive-month.js [YYYY-MM]`
+
 ## 자주 수정하는 함수들
 
 ### 데이터 관련
 - `loadData()` - 초기 데이터 로드
 - `loadFreshData()` - API에서 새 데이터 가져오기
+- `loadAllExpenses()` - 월별 병렬 로드 (JSON + Sheets, 캐시 적용)
 - `submitExpense()` - 지출 저장
 - `deleteExpenseByData()` - 지출 삭제
 
@@ -108,3 +140,6 @@ git add index.html && git commit -m "메시지" && git push
 - CSS 수정 시 다크모드 (`[data-theme="dark"]`) 함께 확인
 - 모바일 반응형 (`@media (max-width: 768px)`) 확인
 - PWA standalone 모드 스크롤 이슈 주의
+- `service-worker.js` 수정 시 `CACHE_NAME` 버전 올려야 기존 캐시 갱신됨
+- `data/index.json`에 새 월 추가 시 자동으로 JSON 로드 대상에 포함됨
+- `GOOGLE_SHEETS`에 있는 월은 JSON보다 Sheets 우선 로드 (중복 방지 자동 처리)
