@@ -4474,6 +4474,10 @@
                         const localBudgets = localStorage.getItem('smss_budgets');
                         appSettings.budgets = localBudgets ? JSON.parse(localBudgets) : { ...DEFAULT_BUDGETS };
                     }
+                    // 캐시에 고정비 없으면 기본값 적용
+                    if (!appSettings.fixedExpenses) {
+                        appSettings.fixedExpenses = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.fixedExpenses));
+                    }
                     applySettings();
                 }
 
@@ -4502,6 +4506,11 @@
                             saveSettings();
                         }
                     }
+                    // 고정비 마이그레이션: fixedExpenses 필드가 없으면 기본값 적용
+                    if (!appSettings.fixedExpenses) {
+                        appSettings.fixedExpenses = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.fixedExpenses));
+                        saveSettings();
+                    }
                     // localStorage의 구 예산 키 정리
                     localStorage.removeItem('smss_budgets');
                     // localStorage에 캐시 저장
@@ -4522,6 +4531,10 @@
                 if (!appSettings.budgets) {
                     const localBudgets = localStorage.getItem('smss_budgets');
                     appSettings.budgets = localBudgets ? JSON.parse(localBudgets) : { ...DEFAULT_BUDGETS };
+                }
+                // 고정비 마이그레이션 (오프라인 폴백)
+                if (!appSettings.fixedExpenses) {
+                    appSettings.fixedExpenses = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.fixedExpenses));
                 }
                 applySettings();
             }
