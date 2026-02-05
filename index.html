@@ -4454,8 +4454,24 @@
             ],
             recurringIncomes: [],
             fixedExpenses: [
+                // 시리
+                { name: '휴대폰 요금', amount: 123970, person: '시리', startMonth: '2025-01' },
+                { name: 'TV 인터넷 요금', amount: 33550, person: '시리', startMonth: '2025-01' },
+                { name: '모임회비', amount: 20000, person: '시리', startMonth: '2025-01' },
+                { name: 'LG 렌탈 케어', amount: 10500, person: '시리', startMonth: '2025-01' },
+                { name: '밀리의 서재', amount: 9900, person: '시리', startMonth: '2025-01' },
+                { name: '쿠팡 정기권', amount: 7890, person: '시리', startMonth: '2025-01' },
+                { name: '네이버 플러스 멤버십', amount: 4900, person: '시리', startMonth: '2025-01' },
+                { name: '아파트 전용 어플', amount: 1100, person: '시리', startMonth: '2025-01' },
+                { name: '행운이 보험 + 실비', amount: 94380, person: '시리', startMonth: '2025-10' },
+                // 상민
                 { name: '대출이자', amount: 1055985, person: '상민', startMonth: '2025-01' },
-                { name: '휴대폰 요금', amount: 123970, person: '시리', startMonth: '2025-01' }
+                { name: '휴대폰 요금', amount: 141100, person: '상민', startMonth: '2025-01' },
+                { name: '어도비(국민)', amount: 17603, person: '상민', startMonth: '2025-01' },
+                { name: '모임회비', amount: 40000, person: '상민', startMonth: '2025-01' },
+                { name: 'OTT', amount: 17000, person: '상민', startMonth: '2025-01' },
+                { name: 'YouTube', amount: 14900, person: '상민', startMonth: '2025-01' },
+                { name: '아이클라우드', amount: 11000, person: '상민', startMonth: '2025-01' }
             ]
         };
 
@@ -4474,8 +4490,8 @@
                         const localBudgets = localStorage.getItem('smss_budgets');
                         appSettings.budgets = localBudgets ? JSON.parse(localBudgets) : { ...DEFAULT_BUDGETS };
                     }
-                    // 캐시에 고정비 없으면 기본값 적용
-                    if (!appSettings.fixedExpenses) {
+                    // 캐시에 고정비 없거나 구버전(2개)이면 기본값 적용
+                    if (!appSettings.fixedExpenses || appSettings.fixedExpenses.length <= 2) {
                         appSettings.fixedExpenses = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.fixedExpenses));
                     }
                     applySettings();
@@ -4506,8 +4522,8 @@
                             saveSettings();
                         }
                     }
-                    // 고정비 마이그레이션: fixedExpenses 필드가 없으면 기본값 적용
-                    if (!appSettings.fixedExpenses) {
+                    // 고정비 마이그레이션: fixedExpenses 필드가 없거나 기존 2개 항목만 있으면 전체 목록으로 업데이트
+                    if (!appSettings.fixedExpenses || appSettings.fixedExpenses.length <= 2) {
                         appSettings.fixedExpenses = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.fixedExpenses));
                         saveSettings();
                     }
@@ -4533,7 +4549,7 @@
                     appSettings.budgets = localBudgets ? JSON.parse(localBudgets) : { ...DEFAULT_BUDGETS };
                 }
                 // 고정비 마이그레이션 (오프라인 폴백)
-                if (!appSettings.fixedExpenses) {
+                if (!appSettings.fixedExpenses || appSettings.fixedExpenses.length <= 2) {
                     appSettings.fixedExpenses = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.fixedExpenses));
                 }
                 applySettings();
