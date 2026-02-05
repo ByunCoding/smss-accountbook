@@ -7228,7 +7228,20 @@
                 return true;
             });
 
-            filtered.sort((a, b) => b.date.localeCompare(a.date));
+            // 정렬: 날짜 내림차순, 같은 날짜 내에서는 저장 순서 오름차순
+            filtered.sort((a, b) => {
+                const dateCompare = b.date.localeCompare(a.date);
+                if (dateCompare !== 0) return dateCompare;
+
+                // 같은 날짜면 id에서 순서 추출 (마지막 숫자)
+                const getOrder = (id) => {
+                    if (!id) return 0;
+                    const parts = id.split('_');
+                    return parseInt(parts[parts.length - 1]) || 0;
+                };
+
+                return getOrder(a.id) - getOrder(b.id);  // 오름차순: 먼저 저장한 게 위
+            });
 
             const tbody = document.getElementById('expenseTableBody');
             const cardList = document.getElementById('expenseCardList');
