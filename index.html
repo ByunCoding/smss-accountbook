@@ -4202,6 +4202,9 @@
                     <button class="settings-tab-btn" onclick="switchSettingsTab('recurring')">
                         <i class="ri-repeat-fill"></i>고정수입
                     </button>
+                    <button class="settings-tab-btn" onclick="switchSettingsTab('fixedExpense')">
+                        <i class="ri-lock-fill"></i>고정비
+                    </button>
                     <button class="settings-tab-btn" onclick="switchSettingsTab('payment')">
                         <i class="ri-bank-card-line"></i>결제수단
                     </button>
@@ -4262,6 +4265,41 @@
                         </div>
                         <div class="settings-list" id="recurringIncomeSettingsList">
                             <div class="recurring-income-empty">등록된 고정수입이 없습니다</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 고정비 관리 탭 -->
+                <div class="settings-tab-content" id="settingsTab-fixedExpense">
+                    <div class="settings-section">
+                        <div class="settings-section-title">
+                            <i class="ri-lock-fill" style="color: var(--expense);"></i> 고정비 관리
+                            <span style="font-size: 11px; color: var(--gray-400); font-weight: normal; margin-left: 8px;">매월 자동 반영</span>
+                        </div>
+                        <div class="settings-list" id="fixedExpenseSettingsList">
+                            <div class="recurring-income-empty">등록된 고정비가 없습니다</div>
+                        </div>
+                        <button class="settings-add-btn" onclick="showAddFixedExpenseForm()">
+                            <i class="ri-add-line"></i> 고정비 추가
+                        </button>
+                        <div class="settings-add-form" id="addFixedExpenseForm">
+                            <div class="settings-add-form-row">
+                                <input type="text" id="newFixedExpenseName" placeholder="항목 이름 (예: 대출이자)">
+                                <input type="number" id="newFixedExpenseAmount" placeholder="금액" style="width: 120px;">
+                            </div>
+                            <div class="settings-add-form-row">
+                                <select id="newFixedExpensePerson" style="flex: 1;">
+                                    <option value="">담당자 선택</option>
+                                    <option value="상민">상민</option>
+                                    <option value="시리">시리</option>
+                                    <option value="공동">공동</option>
+                                </select>
+                                <input type="month" id="newFixedExpenseStartMonth" style="flex: 1;">
+                            </div>
+                            <div class="settings-add-form-row settings-add-form-actions">
+                                <button class="cancel-btn" onclick="hideAddFixedExpenseForm()">취소</button>
+                                <button class="confirm-btn" onclick="addFixedExpense()">추가</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -4414,7 +4452,10 @@
                 { name: '디센터', emoji: '🏢', amount: 0, isFixed: false },
                 { name: '부수입', emoji: '🏠', amount: 0, isFixed: false }
             ],
-            recurringIncomes: []
+            recurringIncomes: [],
+            fixedExpenses: [
+                // { name: '대출이자', amount: 1055985, person: '상민', startMonth: '2025-01' }
+            ]
         };
 
         // 현재 설정
@@ -4508,6 +4549,11 @@
             });
 
             INCOME_CATEGORIES = new Set(appSettings.incomeCategories.map(c => c.name));
+
+            // fixedExpenses 마이그레이션
+            if (!appSettings.fixedExpenses) {
+                appSettings.fixedExpenses = [];
+            }
 
             // select 옵션 렌더링
             renderCategorySelect();
@@ -4660,6 +4706,7 @@
             hideAddCategoryForm();
             hideAddPaymentForm();
             hideAddIncomeCategoryForm();
+            hideAddFixedExpenseForm();
         }
 
         // 설정 리스트 렌더링
@@ -4721,6 +4768,9 @@
 
             // 고정수입 관리 리스트
             renderRecurringIncomeSettings();
+
+            // 고정비 관리 리스트
+            renderFixedExpenseSettings();
         }
 
         // 카테고리 추가 폼 표시
@@ -4997,6 +5047,149 @@
             }).join('');
         }
 
+        // ===== 고정비 관리 =====
+        // 고정비 목록 렌더링
+        function renderFixedExpenseSettings() {
+            const list = appSettings?.fixedExpenses || [];
+            const container = document.getElementById('fixedExpenseSettingsList');
+            if (!container) return;
+
+            if (list.length === 0) {
+                container.innerHTML = '<div class="recurring-income-empty">등록된 고정비가 없습니다<br><span style="font-size:0.8rem;">매월 자동으로 반영되는 고정 지출을 등록하세요</span></div>';
+                return;
+            }
+
+            container.innerHTML = list.map((item, idx) => `
+                <div class="recurring-income-item">
+                    <div class="recurring-income-info">
+                        <div class="recurring-income-main">
+                            <span>🔒</span>
+                            <span class="category">${item.name}</span>
+                            <span class="amount" style="color: var(--expense);">${formatCurrency(item.amount)}</span>
+                        </div>
+                        <div class="recurring-income-sub">
+                            담당: ${item.person || '미지정'}${item.startMonth ? ' · ' + item.startMonth + '부터' : ''}
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:4px;">
+                        <button class="settings-item-delete" onclick="editFixedExpense(${idx})" title="수정" style="color:var(--primary);">
+                            <i class="ri-edit-line"></i>
+                        </button>
+                        <button class="settings-item-delete" onclick="deleteFixedExpense(${idx})" title="삭제">
+                            <i class="ri-delete-bin-line"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showAddFixedExpenseForm() {
+            const form = document.getElementById('addFixedExpenseForm');
+            form.style.display = 'block';
+            document.getElementById('newFixedExpenseName').value = '';
+            document.getElementById('newFixedExpenseAmount').value = '';
+            document.getElementById('newFixedExpensePerson').value = '';
+            // 기본값: 현재 월
+            const now = new Date();
+            document.getElementById('newFixedExpenseStartMonth').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            document.getElementById('newFixedExpenseName').focus();
+        }
+
+        function hideAddFixedExpenseForm() {
+            document.getElementById('addFixedExpenseForm').style.display = 'none';
+        }
+
+        function addFixedExpense() {
+            const name = document.getElementById('newFixedExpenseName').value.trim();
+            const amount = parseInt(document.getElementById('newFixedExpenseAmount').value) || 0;
+            const person = document.getElementById('newFixedExpensePerson').value;
+            const startMonth = document.getElementById('newFixedExpenseStartMonth').value;
+
+            if (!name) {
+                showToast('항목 이름을 입력하세요', 'error');
+                return;
+            }
+            if (amount <= 0) {
+                showToast('금액을 입력하세요', 'error');
+                return;
+            }
+
+            if (!appSettings.fixedExpenses) appSettings.fixedExpenses = [];
+            appSettings.fixedExpenses.push({ name, amount, person, startMonth });
+
+            hideAddFixedExpenseForm();
+            renderFixedExpenseSettings();
+            rebuildFixedExpenses();
+            saveSettings();
+            showToast(`고정비 "${name}" 추가됨`, 'success');
+        }
+
+        function editFixedExpense(idx) {
+            const item = appSettings.fixedExpenses[idx];
+            if (!item) return;
+
+            const newName = prompt('항목 이름:', item.name);
+            if (newName === null) return;
+
+            const newAmount = prompt('금액:', item.amount);
+            if (newAmount === null) return;
+
+            const newPerson = prompt('담당자 (상민/시리/공동):', item.person || '');
+
+            item.name = newName.trim() || item.name;
+            item.amount = parseInt(newAmount) || item.amount;
+            item.person = newPerson?.trim() || item.person;
+
+            renderFixedExpenseSettings();
+            rebuildFixedExpenses();
+            saveSettings();
+            showToast('고정비 수정됨', 'success');
+        }
+
+        function deleteFixedExpense(idx) {
+            const item = appSettings.fixedExpenses[idx];
+            if (!item) return;
+
+            if (!confirm(`"${item.name}" 고정비를 삭제하시겠습니까?`)) return;
+
+            appSettings.fixedExpenses.splice(idx, 1);
+            renderFixedExpenseSettings();
+            rebuildFixedExpenses();
+            saveSettings();
+            showToast('고정비 삭제됨', 'success');
+        }
+
+        // appSettings.fixedExpenses를 기반으로 FIXED_EXPENSES 재구성
+        function rebuildFixedExpenses() {
+            const list = appSettings?.fixedExpenses || [];
+            // 모든 월에 대해 재구성 (최근 13개월)
+            const now = new Date();
+            for (let i = -12; i <= 1; i++) {
+                const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+                FIXED_EXPENSES[monthKey] = { 시리: {}, 상민: {}, 공동: {}, total: 0, items: [] };
+
+                list.forEach(item => {
+                    // startMonth 이후만 적용
+                    if (item.startMonth && monthKey < item.startMonth) return;
+
+                    const person = item.person || '공동';
+                    FIXED_EXPENSES[monthKey][person][item.name] = item.amount;
+                    FIXED_EXPENSES[monthKey].total += item.amount;
+                    FIXED_EXPENSES[monthKey].items.push({
+                        name: item.name,
+                        person: person,
+                        amount: item.amount
+                    });
+                });
+            }
+            // 대시보드 갱신
+            if (typeof updateDashboard === 'function') {
+                updateDashboard();
+            }
+        }
+
         // 앱 로드 시 고정수입 자동 생성
         async function processRecurringIncomes() {
             const list = getRecurringIncomes();
@@ -5270,6 +5463,11 @@
             setCachedData(expensesResult);
 
             calculateSummary();
+
+            // appSettings.fixedExpenses가 있으면 FIXED_EXPENSES 재구성 (우선순위)
+            if (appSettings?.fixedExpenses?.length > 0) {
+                rebuildFixedExpenses();
+            }
 
             if (!isBackground) {
                 initializeDashboard();

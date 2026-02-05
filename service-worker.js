@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smss-accountbook-v15';
+const CACHE_NAME = 'smss-accountbook-v16';
 const urlsToCache = [
   '/smss-accountbook/',
   '/smss-accountbook/index.html',
