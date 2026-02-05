@@ -5198,8 +5198,8 @@
                     });
                 });
             }
-            // 대시보드 갱신
-            if (typeof updateDashboard === 'function') {
+            // 대시보드 갱신 (selectedMonth가 초기화된 후에만)
+            if (typeof updateDashboard === 'function' && selectedMonth) {
                 updateDashboard();
             }
         }
