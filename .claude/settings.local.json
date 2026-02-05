@@ -9,7 +9,8 @@
       "Bash",
       "Glob",
       "Grep",
-      "Task"
+      "Task",
+      "mcp__text-memory__write_text_data"
     ]
   }
 }
