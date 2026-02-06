@@ -4633,6 +4633,15 @@
                 option.textContent = `${cat.emoji} ${cat.name}`;
                 select.appendChild(option);
             });
+
+            // "기타" 카테고리가 없으면 항상 추가
+            const hasEtc = appSettings.categories.some(cat => cat.name === '기타');
+            if (!hasEtc) {
+                const option = document.createElement('option');
+                option.value = '기타';
+                option.textContent = '📦 기타';
+                select.appendChild(option);
+            }
         }
 
         // 결제수단 select 옵션 렌더링
@@ -7169,7 +7178,8 @@
             const filterAmountMin = document.getElementById('filterAmountMin');
             const filterAmountMax = document.getElementById('filterAmountMax');
             const filterSearch = document.getElementById('filterSearch');
-            if (filterMonth && filterMonth.value) count++;
+            // 필터 월이 현재 선택된 월과 다를 때만 카운트 (같은 월 보기는 필터 사용이 아님)
+            if (filterMonth && filterMonth.value && filterMonth.value !== selectedMonth) count++;
             if (filterCategory && filterCategory.value) count++;
             if (filterPayment && filterPayment.value) count++;
             if (filterAmountMin && filterAmountMin.value) count++;
@@ -7228,7 +7238,7 @@
                 return true;
             });
 
-            // 정렬: 날짜 내림차순, 같은 날짜 내에서는 저장 순서 오름차순
+            // 정렬: 날짜 내림차순, 같은 날짜 내에서는 저장 순서 내림차순 (나중에 저장한 게 위)
             filtered.sort((a, b) => {
                 const dateCompare = b.date.localeCompare(a.date);
                 if (dateCompare !== 0) return dateCompare;
@@ -7240,7 +7250,7 @@
                     return parseInt(parts[parts.length - 1]) || 0;
                 };
 
-                return getOrder(a.id) - getOrder(b.id);  // 오름차순: 먼저 저장한 게 위
+                return getOrder(b.id) - getOrder(a.id);  // 내림차순: 나중에 저장한 게 위
             });
 
             const tbody = document.getElementById('expenseTableBody');
