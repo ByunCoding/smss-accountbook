@@ -1,8 +1,3 @@
-# Google Apps Script - Code.gs
-
-GitHub에서 아래 코드블록 우측 상단 **복사 버튼**을 클릭 후 Apps Script에 붙여넣기.
-
-```javascript
 function doGet(e) {
   var action = e.parameter.action;
 
@@ -334,7 +329,7 @@ function getDefaultSettings() {
       '\uBCD1\uC6D0\uBE44': 0,
       '\uC721\uC544\uBE44': 0,
       '\uC57D\uC18D': 0,
-      '\uC5EC\uD589\uBE14': 0,
+      '\uC5EC\uD589\uBE44': 0,
       '\uCC28\uB7C9\uC720\uC9C0\uBE44': 0,
       '\uAD00\uB9AC\uBE44': 0,
       '\uACBD\uC870\uC0AC\uBE44': 0,
@@ -348,4 +343,3 @@ function getDefaultSettings() {
     recurringIncomes: []
   };
 }
-```
