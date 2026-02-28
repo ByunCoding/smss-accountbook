@@ -1375,6 +1375,27 @@
             color: white;
         }
 
+        .edit-btn {
+            background: #DBEAFE;
+            color: #2563EB;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .edit-btn:hover {
+            background: #2563EB;
+            color: white;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 4px;
+        }
+
         /* 빈 상태 UI */
         .empty-state {
             text-align: center;
@@ -2151,8 +2172,8 @@
                 white-space: nowrap;
             }
 
-            /* 삭제 버튼 터치 영역 확대 */
-            .delete-btn {
+            /* 삭제/수정 버튼 터치 영역 확대 */
+            .delete-btn, .edit-btn {
                 width: 40px;
                 height: 40px;
                 min-width: 40px;
@@ -4387,6 +4408,8 @@
 
         // 입력 모달 타입 (expense / income)
         let currentInputType = 'expense';
+        // 수정 모드에서 원래 데이터 저장
+        let _editingOriginalData = null;
 
         // 고정비로 분류할 카테고리 (지출 내역 시트 기준)
         const FIXED_CATEGORIES = ['관리비', '대출이자', '보험료', '통신비', '구독료', '교육비'];
@@ -7313,9 +7336,14 @@
                         <td class="amount ${isIncomeItem ? 'income-amount' : ''}">${isIncomeItem ? '+' : ''}${formatCurrency(e.amount)}</td>
                         <td>${e.payment_method || '-'}</td>
                         <td>
-                            <button class="delete-btn" onclick="deleteByIndex(${idx})" title="삭제">
-                                <i class="ri-delete-bin-line"></i>
-                            </button>
+                            <div class="action-btns">
+                                <button class="edit-btn" onclick="editByIndex(${idx})" title="수정">
+                                    <i class="ri-edit-line"></i>
+                                </button>
+                                <button class="delete-btn" onclick="deleteByIndex(${idx})" title="삭제">
+                                    <i class="ri-delete-bin-line"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -7345,6 +7373,9 @@
                                 <span class="memo">${e.description || '-'}</span>
                                 <div class="right">
                                     <span class="payment">${e.payment_method || ''}</span>
+                                    <button class="edit-btn" onclick="editByIndex(${idx})" title="수정">
+                                        <i class="ri-edit-line"></i>
+                                    </button>
                                     <button class="delete-btn" onclick="deleteByIndex(${idx})" title="삭제">
                                         <i class="ri-delete-bin-line"></i>
                                     </button>
@@ -7803,6 +7834,9 @@
 
             // 입력 타입 초기화
             currentInputType = 'expense';
+
+            // 수정 모드 초기화
+            _editingOriginalData = null;
         }
 
         function showToast(message, type = 'success', showUndo = false) {
@@ -7920,6 +7954,44 @@
             submitBtn.innerHTML = '<i class="ri-loader-4-line"></i> 저장 중...';
 
             try {
+                // 수정 모드: 기존 항목 먼저 삭제
+                const originalData = _editingOriginalData;
+                _editingOriginalData = null;
+
+                if (originalData) {
+                    const origIsIncome = originalData.isIncome || false;
+                    if (origIsIncome) {
+                        const delParams = new URLSearchParams({
+                            action: 'deleteIncome',
+                            date: originalData.date,
+                            category: originalData.category,
+                            item: originalData.description || '',
+                            amount: originalData.amount.toString()
+                        });
+                        await fetch(`${APPS_SCRIPT_URL}?${delParams.toString()}`);
+                        const di = incomeEntries.findIndex(e =>
+                            e.date === originalData.date && e.category === originalData.category &&
+                            e.amount === originalData.amount && (e.description || '') === (originalData.description || '')
+                        );
+                        if (di !== -1) incomeEntries.splice(di, 1);
+                    } else {
+                        const delParams = new URLSearchParams({
+                            action: 'delete',
+                            date: originalData.date,
+                            category: originalData.category,
+                            item: originalData.description || '',
+                            person: originalData.payment_method || '',
+                            amount: originalData.amount.toString()
+                        });
+                        await fetch(`${APPS_SCRIPT_URL}?${delParams.toString()}`);
+                        const di = expenseData.expenses.findIndex(e =>
+                            e.date === originalData.date && e.category === originalData.category &&
+                            e.amount === originalData.amount && (e.description || '') === (originalData.description || '')
+                        );
+                        if (di !== -1) expenseData.expenses.splice(di, 1);
+                    }
+                }
+
                 // Google Apps Script로 데이터 전송 (URL 파라미터 방식)
                 const [year, month] = date.split('-').map(Number);
 
@@ -8001,11 +8073,14 @@
                     saveRecurringIncomes(recurList);
                 }
 
-                const toastMsg = isIncome
-                    ? `${formatCurrency(amount)} 수입이 기록되었습니다${isRecurring ? ' (고정수입 등록됨)' : ''}`
-                    : `${formatCurrency(amount)} 지출이 기록되었습니다`;
+                const toastMsg = originalData
+                    ? `${formatCurrency(amount)} ${isIncome ? '수입' : '지출'}이 수정되었습니다`
+                    : (isIncome
+                        ? `${formatCurrency(amount)} 수입이 기록되었습니다${isRecurring ? ' (고정수입 등록됨)' : ''}`
+                        : `${formatCurrency(amount)} 지출이 기록되었습니다`);
                 showToast(toastMsg);
                 closeInputModal();
+                renderExpenseTable(); // 상세 내역 탭 즉시 갱신
 
             } catch (error) {
                 console.error('Error submitting:', error);
@@ -8021,6 +8096,72 @@
         function deleteByIndex(idx) {
             const data = _tableDeleteData[idx];
             if (data) deleteExpenseByData(data);
+        }
+
+        // 인덱스 기반 수정
+        function editByIndex(idx) {
+            const data = _tableDeleteData[idx];
+            if (!data) return;
+            openEditModal(data);
+        }
+
+        // 수정 모달 열기 (기존 데이터로 폼 채우기)
+        function openEditModal(data) {
+            _editingOriginalData = data;
+
+            const modal = document.getElementById('inputModal');
+            const modalContent = modal.querySelector('.input-modal');
+            const fab = document.getElementById('fabButton');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            if (fab) fab.classList.add('fab-hidden');
+
+            // 수입/지출 타입 설정 (카테고리 옵션 렌더링 포함)
+            const isIncome = data.isIncome || false;
+            setInputType(isIncome ? 'income' : 'expense');
+
+            // 모달 제목 변경
+            const titleEl = document.getElementById('inputModalTitle');
+            if (titleEl) titleEl.innerHTML = '<i class="ri-edit-2-line"></i> 내역 수정';
+
+            // 저장 버튼 텍스트 변경
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('loading');
+                submitBtn.innerHTML = '<i class="ri-save-line" style="color:#FFFFFF !important;"></i> 수정하기';
+            }
+
+            // 날짜 설정
+            document.getElementById('inputDate').value = data.date;
+            const dateObj = new Date(data.date + 'T00:00:00');
+            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+            const dayOfWeek = dayNames[dateObj.getDay()];
+            const [yr, mo, dy] = data.date.split('-');
+            const displayText = document.getElementById('dateDisplayText');
+            if (displayText) {
+                displayText.textContent = `${yr}년 ${parseInt(mo)}월 ${parseInt(dy)}일 (${dayOfWeek})`;
+            }
+
+            // 카테고리/결제수단 설정 (renderCategorySelect 후 동기 적용)
+            document.getElementById('inputCategory').value = data.category;
+            if (!isIncome) {
+                document.getElementById('inputPayment').value = data.payment_method || '';
+            }
+
+            // 메모/금액 설정
+            document.getElementById('inputDescription').value = data.description || '';
+            document.getElementById('inputAmount').value = Number(data.amount).toLocaleString();
+
+            // PWA 스크롤 활성화
+            if (modalContent) {
+                modalContent.scrollTop = 0;
+                setTimeout(() => {
+                    modalContent.style.overflow = 'auto';
+                    modalContent.style.webkitOverflowScrolling = 'touch';
+                }, 100);
+            }
         }
 
         // 지출/수입 삭제 함수 (데이터 기반)
