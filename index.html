@@ -7602,9 +7602,15 @@
         }
 
         // 메모 입력 시 카테고리 자동 추천
+        // 메모 키워드 → 결제수단 자동 매핑
+        const PAYMENT_KEYWORDS = {
+            '쿠팡와우카드': ['쿠팡'],
+        };
+
         function suggestCategory(description) {
             const hintEl = document.getElementById('autoSuggestHint');
             const categorySelect = document.getElementById('inputCategory');
+            const paymentSelect = document.getElementById('inputPayment');
 
             if (!description || description.length < 2) {
                 if (hintEl) hintEl.textContent = '';
@@ -7614,6 +7620,24 @@
             if (!categorySelect) return;
 
             const lowerDesc = description.toLowerCase();
+
+            // 결제수단 자동 추천
+            if (paymentSelect && !paymentSelect.value) {
+                for (const [payment, keywords] of Object.entries(PAYMENT_KEYWORDS)) {
+                    for (const keyword of keywords) {
+                        if (lowerDesc.includes(keyword.toLowerCase())) {
+                            const option = Array.from(paymentSelect.options).find(opt => opt.value === payment);
+                            if (option) {
+                                paymentSelect.value = payment;
+                                paymentSelect.style.transition = 'background 0.3s';
+                                paymentSelect.style.background = 'var(--income-light)';
+                                setTimeout(() => { paymentSelect.style.background = ''; }, 800);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
 
             for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
                 for (const keyword of keywords) {
