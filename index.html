@@ -2976,6 +2976,68 @@
             font-weight: 600;
         }
 
+        /* ===== 할부 선택 ===== */
+        .amount-installment-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .amount-installment-row .amount-input-wrapper {
+            flex: 1;
+        }
+
+        .installment-select {
+            flex-shrink: 0;
+            padding: 12px 10px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 10px;
+            background: var(--bg-card);
+            color: var(--gray-700);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+            min-width: 72px;
+        }
+
+        .installment-select:focus {
+            border-color: var(--primary);
+        }
+
+        .installment-preview {
+            margin-top: 6px;
+            padding: 8px 12px;
+            background: rgba(37,99,235,0.08);
+            border-radius: 8px;
+            font-size: 0.82rem;
+            color: var(--primary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        [data-theme="dark"] .installment-select {
+            background: var(--bg-card);
+            border-color: var(--gray-600);
+            color: var(--gray-200);
+        }
+
+        [data-theme="dark"] .installment-preview {
+            background: rgba(37,99,235,0.15);
+            color: #93c5fd;
+        }
+
+        @media (max-width: 768px) {
+            .installment-select {
+                min-width: 64px;
+                font-size: 0.85rem;
+                padding: 12px 8px;
+            }
+        }
+
         .input-modal-footer {
             padding: 16px 24px 24px;
             border-top: 1px solid var(--gray-100);
