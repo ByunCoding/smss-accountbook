@@ -2985,6 +2985,12 @@
 
         .amount-installment-row .amount-input-wrapper {
             flex: 1;
+            min-width: 0;
+            width: 100%;
+        }
+
+        .amount-installment-row .amount-input-wrapper input {
+            width: 100%;
         }
 
         .installment-select {
@@ -2999,7 +3005,7 @@
             cursor: pointer;
             outline: none;
             transition: border-color 0.2s;
-            min-width: 72px;
+            width: auto;
         }
 
         .installment-select:focus {
@@ -3032,7 +3038,6 @@
 
         @media (max-width: 768px) {
             .installment-select {
-                min-width: 64px;
                 font-size: 0.85rem;
                 padding: 12px 8px;
             }
