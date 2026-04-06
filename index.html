@@ -8252,35 +8252,90 @@
                         id: `local_income_${Date.now()}`
                     });
                 } else {
-                    // 지출은 기존 지출 시트에 저장
-                    const params = new URLSearchParams({
-                        action: 'add',
-                        year: year.toString(),
-                        date: date,
-                        category: category,
-                        item: description,
-                        person: payment,
-                        amount: amount.toString()
-                    });
+                    // 지출 저장 (일시불 또는 할부)
+                    const months = parseInt(document.getElementById('inputInstallment')?.value || '1');
+                    const [origYear, origMonth, origDay] = date.split('-').map(Number);
 
-                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
+                    if (months <= 1) {
+                        // 일시불: 기존 로직 그대로
+                        const params = new URLSearchParams({
+                            action: 'add',
+                            year: year.toString(),
+                            date: date,
+                            category: category,
+                            item: description,
+                            person: payment,
+                            amount: amount.toString()
+                        });
+                        await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
+                        console.log('Expense submitted to Apps Script');
 
-                    console.log('Expense submitted to Apps Script');
+                        expenseData.expenses.push({
+                            date: date,
+                            year: year,
+                            month: month,
+                            category: category,
+                            description: description,
+                            amount: amount,
+                            payment_method: payment,
+                            isFixed: FIXED_CATEGORIES.includes(category),
+                            id: `local_${Date.now()}_0`
+                        });
+                    } else {
+                        // 할부: N번 순차 호출
+                        const monthlyAmount = Math.floor(amount / months);
+                        let savedCount = 0;
 
-                    // 로컬 데이터에도 추가 (즉시 반영)
-                    const newExpense = {
-                        date: date,
-                        year: year,
-                        month: month,
-                        category: category,
-                        description: description,
-                        amount: amount,
-                        payment_method: payment,
-                        isFixed: FIXED_CATEGORIES.includes(category),
-                        id: `local_${Date.now()}`
-                    };
+                        for (let n = 0; n < months; n++) {
+                            const installmentDate = new Date(origYear, origMonth - 1 + n, origDay);
+                            const iYear = installmentDate.getFullYear();
+                            const iMonth = installmentDate.getMonth() + 1;
+                            const iDay = installmentDate.getDate();
+                            const iDateStr = iYear + '-' + String(iMonth).padStart(2, '0') + '-' + String(iDay).padStart(2, '0');
+                            const iAmount = (n === months - 1)
+                                ? amount - monthlyAmount * (months - 1)
+                                : monthlyAmount;
+                            const iDesc = (description ? description + ' ' : '') + '(' + (n + 1) + '/' + months + ')';
 
-                    expenseData.expenses.push(newExpense);
+                            try {
+                                const params = new URLSearchParams({
+                                    action: 'add',
+                                    year: iYear.toString(),
+                                    date: iDateStr,
+                                    category: category,
+                                    item: iDesc,
+                                    person: payment,
+                                    amount: iAmount.toString()
+                                });
+                                await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
+
+                                expenseData.expenses.push({
+                                    date: iDateStr,
+                                    year: iYear,
+                                    month: iMonth,
+                                    category: category,
+                                    description: iDesc,
+                                    amount: iAmount,
+                                    payment_method: payment,
+                                    isFixed: FIXED_CATEGORIES.includes(category),
+                                    id: 'local_' + Date.now() + '_' + n
+                                });
+                                savedCount++;
+                            } catch (e) {
+                                showToast(savedCount + '/' + months + '개월 저장 중 오류 발생. 일부만 저장되었을 수 있습니다.', 'error');
+                                throw e;
+                            }
+                        }
+
+                        // 할부 성공: 직접 마무리 처리 후 return
+                        calculateSummary();
+                        updateDashboard();
+                        setCachedData(expenseData.expenses);
+                        showToast(amount.toLocaleString() + '원 → ' + months + '개월 할부로 저장되었습니다 (월 ' + monthlyAmount.toLocaleString() + '원)');
+                        closeInputModal();
+                        renderExpenseTable();
+                        return;
+                    }
                 }
 
                 calculateSummary();
