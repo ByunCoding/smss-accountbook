@@ -3390,7 +3390,7 @@
             }
 
             .input-form-group input:not([type="checkbox"]),
-            .input-form-group select,
+            .input-form-group select:not(.installment-select),
             .input-form-group input[type="date"] {
                 width: 100% !important;
                 max-width: 100% !important;
@@ -3401,8 +3401,21 @@
                 box-sizing: border-box !important;
             }
 
-            .amount-input-wrapper {
-                width: 100% !important;
+            .amount-installment-row {
+                display: flex !important;
+                gap: 8px !important;
+                align-items: center !important;
+            }
+
+            .amount-installment-row .amount-input-wrapper {
+                flex: 1 !important;
+                width: auto !important;
+                min-width: 0 !important;
+            }
+
+            .amount-installment-row .installment-select {
+                flex: 0 0 auto !important;
+                width: auto !important;
             }
         }
 
