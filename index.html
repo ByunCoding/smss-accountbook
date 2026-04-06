@@ -8096,6 +8096,38 @@
             }
         }
 
+        // 할부 미리보기 업데이트 (DOM API 사용)
+        function updateInstallmentPreview() {
+            const installmentEl = document.getElementById('inputInstallment');
+            const preview = document.getElementById('installmentPreview');
+            if (!preview || !installmentEl) return;
+
+            const months = parseInt(installmentEl.value || '1');
+            if (months <= 1) {
+                preview.style.display = 'none';
+                return;
+            }
+
+            const rawAmount = (document.getElementById('inputAmount').value || '').replace(/,/g, '');
+            const total = parseInt(rawAmount) || 0;
+            if (total <= 0) {
+                preview.style.display = 'none';
+                return;
+            }
+
+            const monthly = Math.floor(total / months);
+
+            preview.textContent = '';
+            const icon = document.createElement('i');
+            icon.className = 'ri-bank-card-line';
+            const text = document.createTextNode(
+                ' 월 ' + monthly.toLocaleString() + '원 \u00d7 ' + months + '개월 = ' + total.toLocaleString() + '원'
+            );
+            preview.appendChild(icon);
+            preview.appendChild(text);
+            preview.style.display = 'flex';
+        }
+
         async function submitExpense(event) {
             event.preventDefault();
 
