@@ -4848,6 +4848,9 @@
                 // 저장 버튼 색상 변경
                 submitBtn.style.backgroundColor = 'var(--income)';
                 submitBtn.style.borderColor = 'var(--income)';
+                // 할부 숨기기
+                const installmentFormGroup = document.getElementById('installmentFormGroup');
+                if (installmentFormGroup) installmentFormGroup.style.display = 'none';
             } else {
                 paymentGroup.style.display = '';
                 document.getElementById('inputPayment').required = true;
@@ -4858,6 +4861,13 @@
                 titleEl.innerHTML = '<i class="ri-edit-line"></i> 지출 입력';
                 submitBtn.style.backgroundColor = '#2563EB';
                 submitBtn.style.borderColor = '#2563EB';
+                // 할부 표시 및 초기화
+                const installmentFormGroup = document.getElementById('installmentFormGroup');
+                if (installmentFormGroup) installmentFormGroup.style.display = '';
+                const installmentEl = document.getElementById('inputInstallment');
+                if (installmentEl) installmentEl.value = '1';
+                const previewEl = document.getElementById('installmentPreview');
+                if (previewEl) previewEl.style.display = 'none';
             }
         }
 
@@ -7918,6 +7928,12 @@
             selectCalendarDate(initDate);
             closeCalendar();
 
+            // 할부 초기화
+            const installmentEl = document.getElementById('inputInstallment');
+            if (installmentEl) installmentEl.value = '1';
+            const previewEl = document.getElementById('installmentPreview');
+            if (previewEl) previewEl.style.display = 'none';
+
             // 자주 쓰는 지출 패턴 표시
             renderQuickSuggestions();
         }
@@ -7992,6 +8008,12 @@
             document.getElementById('inputPayment').value = pattern.payment_method;
             document.getElementById('inputDescription').value = pattern.description;
             document.getElementById('inputAmount').value = Number(pattern.amount).toLocaleString();
+
+            // 할부 초기화
+            const installmentEl = document.getElementById('inputInstallment');
+            if (installmentEl) installmentEl.value = '1';
+            const previewEl = document.getElementById('installmentPreview');
+            if (previewEl) previewEl.style.display = 'none';
         }
 
         function closeInputModal(event) {
@@ -8362,6 +8384,12 @@
             // 메모/금액 설정
             document.getElementById('inputDescription').value = data.description || '';
             document.getElementById('inputAmount').value = Number(data.amount).toLocaleString();
+
+            // 할부 초기화 (수정 시 항상 일시불로)
+            const installmentEl = document.getElementById('inputInstallment');
+            if (installmentEl) installmentEl.value = '1';
+            const previewEl = document.getElementById('installmentPreview');
+            if (previewEl) previewEl.style.display = 'none';
 
             // PWA 스크롤 활성화
             if (modalContent) {
