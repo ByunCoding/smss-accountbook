@@ -4207,12 +4207,22 @@
                         <label><i class="ri-file-text-line"></i> 메모 (선택)</label>
                         <input type="text" id="inputDescription" placeholder="ex) 스타벅스, 편의점..." oninput="suggestCategory(this.value)">
                     </div>
-                    <div class="input-form-group">
+                    <div class="input-form-group" id="installmentFormGroup">
                         <label><i class="ri-money-dollar-circle-line"></i> 금액</label>
-                        <div class="amount-input-wrapper">
-                            <input type="text" id="inputAmount" placeholder="0" required inputmode="numeric" oninput="formatAmountInput(this)">
-                            <span class="currency">원</span>
+                        <div class="amount-installment-row">
+                            <div class="amount-input-wrapper">
+                                <input type="text" id="inputAmount" placeholder="0" required inputmode="numeric" oninput="formatAmountInput(this); updateInstallmentPreview();">
+                                <span class="currency">원</span>
+                            </div>
+                            <select id="inputInstallment" class="installment-select" onchange="updateInstallmentPreview()">
+                                <option value="1">일시불</option>
+                                <option value="2">2개월</option>
+                                <option value="3">3개월</option>
+                                <option value="6">6개월</option>
+                                <option value="12">12개월</option>
+                            </select>
                         </div>
+                        <div class="installment-preview" id="installmentPreview" style="display:none;"></div>
                     </div>
                     <div class="input-form-group">
                         <label><i class="ri-folder-line"></i> 카테고리 <span class="auto-suggest-hint" id="autoSuggestHint"></span></label>
