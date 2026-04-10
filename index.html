@@ -4863,9 +4863,11 @@
                 // 저장 버튼 색상 변경
                 submitBtn.style.backgroundColor = 'var(--income)';
                 submitBtn.style.borderColor = 'var(--income)';
-                // 할부 숨기기
-                const installmentFormGroup = document.getElementById('installmentFormGroup');
-                if (installmentFormGroup) installmentFormGroup.style.display = 'none';
+                // 할부만 숨기기 (금액 입력란은 유지)
+                const installmentEl2 = document.getElementById('inputInstallment');
+                if (installmentEl2) installmentEl2.style.display = 'none';
+                const previewEl2 = document.getElementById('installmentPreview');
+                if (previewEl2) previewEl2.style.display = 'none';
             } else {
                 paymentGroup.style.display = '';
                 document.getElementById('inputPayment').required = true;
@@ -4877,10 +4879,8 @@
                 submitBtn.style.backgroundColor = '#2563EB';
                 submitBtn.style.borderColor = '#2563EB';
                 // 할부 표시 및 초기화
-                const installmentFormGroup = document.getElementById('installmentFormGroup');
-                if (installmentFormGroup) installmentFormGroup.style.display = '';
                 const installmentEl = document.getElementById('inputInstallment');
-                if (installmentEl) installmentEl.value = '1';
+                if (installmentEl) { installmentEl.style.display = ''; installmentEl.value = '1'; }
                 const previewEl = document.getElementById('installmentPreview');
                 if (previewEl) previewEl.style.display = 'none';
             }
