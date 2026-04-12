@@ -1459,6 +1459,22 @@
             margin-left: 6px;
         }
 
+        .installment-badge {
+            display: inline-block;
+            background: rgba(234, 88, 12, 0.1);
+            color: #ea580c;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+            white-space: nowrap;
+        }
+
+        [data-theme="dark"] .installment-badge {
+            background: rgba(234, 88, 12, 0.2);
+            color: #fb923c;
+        }
+
         /* 필터 */
         .filter-bar {
             display: flex;
@@ -7358,6 +7374,24 @@
             badge.classList.toggle('active', count > 0);
         }
 
+        // 할부 description 파싱: "(N/M)" 패턴 감지 → { text, badge }
+        function parseInstallmentDesc(description) {
+            if (!description) return { text: '-', badge: '' };
+            const match = description.match(/^(.*?)\s*\((\d+)\/(\d+)\)\s*$/);
+            if (match) {
+                const text = match[1] || '-';
+                const n = parseInt(match[2]);
+                const m = parseInt(match[3]);
+                if (m > 1) {
+                    return {
+                        text: text,
+                        badge: `<span class="installment-badge">${m}개월 할부 ${n}/${m}</span>`
+                    };
+                }
+            }
+            return { text: description, badge: '' };
+        }
+
         function renderExpenseTable() {
             updateFilterBadge();
             const monthEl = document.getElementById('filterMonth');
@@ -7511,7 +7545,7 @@
                             ${isIncomeItem ? '<span class="income-badge">수입</span>' : ''}
                             ${!isIncomeItem && e.isFixed ? '<span class="fixed-badge">고정</span>' : ''}
                         </td>
-                        <td>${e.description || '-'}</td>
+                        <td>${(() => { const p = parseInstallmentDesc(e.description); return p.text + p.badge; })()}</td>
                         <td class="amount ${isIncomeItem ? 'income-amount' : ''}">${isIncomeItem ? '+' : ''}${formatCurrency(e.amount)}</td>
                         <td>${e.payment_method || '-'}</td>
                         <td>
@@ -7549,7 +7583,7 @@
                                 <span class="amount ${isIncomeItem ? 'income-amount' : ''}">${isIncomeItem ? '+' : ''}${formatCurrency(e.amount)}</span>
                             </div>
                             <div class="expense-card-bottom">
-                                <span class="memo">${e.description || '-'}</span>
+                                <span class="memo">${(() => { const p = parseInstallmentDesc(e.description); return p.text + p.badge; })()}</span>
                                 <div class="right">
                                     <span class="payment">${e.payment_method || ''}</span>
                                     <button class="edit-btn" onclick="editByIndex(${idx})" title="수정">
