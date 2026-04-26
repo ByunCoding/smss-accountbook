@@ -18,20 +18,20 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        /* 라이트 모드 (기본) */
+        /* 라이트 모드 (기본) — Revolut × Notion 색상 시스템 */
         :root {
-            --primary: #2563EB;
-            --primary-light: #3B82F6;
-            --primary-dark: #1D4ED8;
-            --primary-bg: #EFF6FF;
-            --accent: #3B82F6;
-            --accent-light: #DBEAFE;
-            --expense: #EF4444;
-            --expense-light: #FEE2E2;
-            --income: #10B981;
-            --income-light: #D1FAE5;
-            --warning: #F59E0B;
-            --warning-light: #FEF3C7;
+            --primary: #0666EB;
+            --primary-light: #3385F0;
+            --primary-dark: #0451C4;
+            --primary-bg: #EBF2FE;
+            --accent: #0666EB;
+            --accent-light: #D6E6FD;
+            --expense: #e23b4a;
+            --expense-light: #fce8ea;
+            --income: #00a87e;
+            --income-light: #d9f5ee;
+            --warning: #ec7e00;
+            --warning-light: #fff0d9;
             --gray-50: #F9FAFB;
             --gray-100: #F3F4F6;
             --gray-200: #E5E7EB;
@@ -42,50 +42,50 @@
             --gray-700: #374151;
             --gray-800: #1F2937;
             --gray-900: #111827;
-            --bg-primary: #F8FAFC;
+            --bg-primary: #F7F8FA;
             --bg-card: #FFFFFF;
-            --text-primary: #1F2937;
+            --text-primary: #191B1F;
             --text-secondary: #6B7280;
-            --border-color: #E5E7EB;
+            --border-color: rgba(0,0,0,0.08);
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-            --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
-            --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+            --shadow: 0 4px 18px rgba(0,0,0,0.04), 0 2.025px 7.85px rgba(0,0,0,0.027), 0 0.8px 2.93px rgba(0,0,0,0.02), 0 0.175px 1.04px rgba(0,0,0,0.01);
+            --shadow-md: 0 8px 32px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.05);
             --radius: 12px;
             --radius-lg: 16px;
         }
 
-        /* 다크 모드 - 세련된 다크 테마 */
+        /* 다크 모드 — Linear 3단계 surface 시스템 */
         [data-theme="dark"] {
-            --primary: #60A5FA;
-            --primary-light: #93C5FD;
-            --primary-dark: #3B82F6;
-            --primary-bg: #1E293B;
-            --accent: #60A5FA;
-            --accent-light: #1E3A5F;
-            --expense: #FB7185;
-            --expense-light: #4C1D24;
-            --income: #4ADE80;
-            --income-light: #14532D;
-            --warning: #FBBF24;
-            --warning-light: #451A03;
-            --gray-50: #1E293B;
-            --gray-100: #334155;
-            --gray-200: #475569;
-            --gray-300: #64748B;
-            --gray-400: #94A3B8;
-            --gray-500: #CBD5E1;
-            --gray-600: #E2E8F0;
-            --gray-700: #F1F5F9;
-            --gray-800: #F8FAFC;
-            --gray-900: #FFFFFF;
-            --bg-primary: #0F172A;
-            --bg-card: #1E293B;
-            --text-primary: #F1F5F9;
-            --text-secondary: #94A3B8;
-            --border-color: #334155;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-            --shadow: 0 4px 6px rgba(0,0,0,0.4);
-            --shadow-md: 0 10px 15px rgba(0,0,0,0.4);
+            --primary: #5DA8FF;
+            --primary-light: #82BBFF;
+            --primary-dark: #3B8EEF;
+            --primary-bg: #0f1826;
+            --accent: #5DA8FF;
+            --accent-light: #152035;
+            --expense: #FF6B78;
+            --expense-light: #2d1219;
+            --income: #3ecf8e;
+            --income-light: #0d2b1e;
+            --warning: #F59E0B;
+            --warning-light: #2a1a00;
+            --gray-50: #0f1011;
+            --gray-100: #191a1b;
+            --gray-200: #242526;
+            --gray-300: #3a3b3c;
+            --gray-400: #6b6c6e;
+            --gray-500: #9a9b9d;
+            --gray-600: #c8c9cb;
+            --gray-700: #dcdde0;
+            --gray-800: #eeeef0;
+            --gray-900: #f5f5f7;
+            --bg-primary: #08090a;
+            --bg-card: #0f1011;
+            --text-primary: #eeeef0;
+            --text-secondary: #9a9b9d;
+            --border-color: rgba(255,255,255,0.08);
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
+            --shadow: 0 4px 18px rgba(0,0,0,0.5);
+            --shadow-md: 0 10px 30px rgba(0,0,0,0.6);
         }
 
         [data-theme="dark"] body {
@@ -94,7 +94,7 @@
         }
 
         [data-theme="dark"] header {
-            background: linear-gradient(135deg, #1E293B 0%, #334155 100%);
+            background: #0f1011;
             border-bottom: 1px solid var(--border-color);
         }
 
@@ -107,16 +107,18 @@
         }
 
         [data-theme="dark"] .metric-card.main {
-            background: linear-gradient(135deg, #059669 0%, #10B981 100%);
-            border: none;
+            background: #152035;
+            border: 1px solid rgba(93,168,255,0.2);
         }
 
         [data-theme="dark"] .savings-card {
-            background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+            background: #0d2b1e;
+            border: 1px solid rgba(62,207,142,0.2);
         }
 
         [data-theme="dark"] .fixed-card {
-            background: linear-gradient(135deg, #475569 0%, #64748B 100%);
+            background: #191a1b;
+            border: 1px solid var(--border-color);
         }
 
         [data-theme="dark"] .nav-tabs {
@@ -249,19 +251,19 @@
         }
 
         [data-theme="dark"] .insight-card.warning {
-            background: linear-gradient(135deg, #451A03 0%, var(--gray-100) 100%) !important;
+            background: var(--warning-light) !important;
         }
 
         [data-theme="dark"] .insight-card.danger {
-            background: linear-gradient(135deg, #4C1D24 0%, var(--gray-100) 100%) !important;
+            background: var(--expense-light) !important;
         }
 
         [data-theme="dark"] .insight-card.success {
-            background: linear-gradient(135deg, #14532D 0%, var(--gray-100) 100%) !important;
+            background: var(--income-light) !important;
         }
 
         [data-theme="dark"] .insight-card.info {
-            background: linear-gradient(135deg, #1E3A5F 0%, var(--gray-100) 100%) !important;
+            background: var(--primary-bg) !important;
         }
 
         [data-theme="dark"] .insight-title {
@@ -345,7 +347,7 @@
 
         /* 기타 요소들 */
         [data-theme="dark"] .daily-budget-card {
-            background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+            background: #152035;
         }
 
         [data-theme="dark"] .month-tabs-container {
@@ -450,9 +452,9 @@
 
         .container { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
 
-        /* Header */
+        /* Header — Notion 스타일 클린 헤더 */
         header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            background: var(--primary);
             padding: 20px 0;
             color: white;
         }
@@ -645,10 +647,11 @@
             border-radius: var(--radius-lg);
             padding: 24px;
             box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
         }
 
         .metric-card.main {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            background: var(--primary);
             color: white;
         }
 
@@ -667,6 +670,7 @@
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 4px;
+            font-feature-settings: "tnum";
         }
 
         .metric-card .sub {
@@ -694,7 +698,7 @@
 
         /* 저축률 카드 */
         .savings-card {
-            background: linear-gradient(135deg, var(--income) 0%, #047857 100%);
+            background: var(--income);
             color: white;
         }
 
@@ -777,7 +781,7 @@
 
         /* 고정비 카드 */
         .fixed-card {
-            background: linear-gradient(135deg, #64748B 0%, #475569 100%);
+            background: #475569;
             color: white;
         }
 
@@ -812,6 +816,7 @@
             background: white;
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
             margin-bottom: 24px;
             overflow: hidden;
         }
@@ -1018,6 +1023,7 @@
             font-weight: 700;
             font-size: 1.05rem;
             color: var(--expense);
+            font-feature-settings: "tnum";
         }
 
         /* 고정비/변동비 */
@@ -1357,38 +1363,49 @@
         .data-table .amount {
             font-weight: 600;
             color: var(--expense);
+            font-feature-settings: "tnum";
         }
 
         .delete-btn {
-            background: #FEE2E2;
-            color: #DC2626;
+            background: var(--expense-light);
+            color: var(--expense);
             border: none;
             border-radius: 8px;
             padding: 8px 12px;
             cursor: pointer;
             font-size: 0.9rem;
-            transition: all 0.2s;
+            transition: transform 0.15s ease, background 0.15s ease;
         }
 
         .delete-btn:hover {
-            background: #DC2626;
+            background: var(--expense);
             color: white;
+            transform: scale(1.05);
+        }
+
+        .delete-btn:active {
+            transform: scale(0.95);
         }
 
         .edit-btn {
-            background: #DBEAFE;
-            color: #2563EB;
+            background: var(--accent-light);
+            color: var(--accent);
             border: none;
             border-radius: 8px;
             padding: 8px 12px;
             cursor: pointer;
             font-size: 0.9rem;
-            transition: all 0.2s;
+            transition: transform 0.15s ease, background 0.15s ease;
         }
 
         .edit-btn:hover {
-            background: #2563EB;
+            background: var(--accent);
             color: white;
+            transform: scale(1.05);
+        }
+
+        .edit-btn:active {
+            transform: scale(0.95);
         }
 
         .action-btns {
@@ -1427,10 +1444,14 @@
             font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: transform 0.15s ease, background 0.15s ease;
         }
         .empty-state-btn:hover {
             background: var(--primary-dark);
+            transform: scale(1.04);
+        }
+        .empty-state-btn:active {
+            transform: scale(0.96);
         }
 
         .category-badge {
@@ -1608,22 +1629,22 @@
 
         .insight-card.warning {
             border-left-color: var(--warning);
-            background: linear-gradient(135deg, #FFFBEB 0%, white 100%);
+            background: var(--warning-light);
         }
 
         .insight-card.danger {
             border-left-color: var(--expense);
-            background: linear-gradient(135deg, #FEF2F2 0%, white 100%);
+            background: var(--expense-light);
         }
 
         .insight-card.success {
             border-left-color: var(--income);
-            background: linear-gradient(135deg, #ECFDF5 0%, white 100%);
+            background: var(--income-light);
         }
 
         .insight-card.info {
             border-left-color: var(--accent);
-            background: linear-gradient(135deg, #EFF6FF 0%, white 100%);
+            background: var(--primary-bg);
         }
 
         .insight-icon {
@@ -1744,7 +1765,7 @@
         .heatmap-day .amount { font-size: 0.6rem; opacity: 0.8; }
 
         .heatmap-day.level-0 { background: var(--gray-100); color: var(--gray-400); }
-        .heatmap-day.has-expense { background: #3B82F6; color: white; }
+        .heatmap-day.has-expense { background: var(--primary); color: white; }
 
         /* 일별 상세 모달 */
         .day-modal-overlay {
@@ -1785,7 +1806,7 @@
         }
 
         .day-modal-header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            background: var(--primary);
             color: white;
             padding: 20px 24px;
             display: flex;
@@ -1975,9 +1996,9 @@
             font-weight: 700;
         }
 
-        .flow-item.income .value { color: var(--income); }
-        .flow-item.expense .value { color: var(--expense); }
-        .flow-item.balance .value { color: var(--primary); }
+        .flow-item.income .value { color: var(--income); font-feature-settings: "tnum"; }
+        .flow-item.expense .value { color: var(--expense); font-feature-settings: "tnum"; }
+        .flow-item.balance .value { color: var(--primary); font-feature-settings: "tnum"; }
 
         .flow-arrow {
             font-size: 1.5rem;
@@ -2356,17 +2377,17 @@
             width: 64px !important;
             height: 64px !important;
             border-radius: 50% !important;
-            background-color: #2563EB !important;
+            background-color: #0666EB !important;
             color: #FFFFFF !important;
-            border: 3px solid #FFFFFF !important;
+            border: 2px solid rgba(255,255,255,0.3) !important;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.6), 0 0 0 4px rgba(37, 99, 235, 0.2) !important;
+            box-shadow: 0 4px 20px rgba(6, 102, 235, 0.5), 0 0 0 4px rgba(6, 102, 235, 0.15) !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             font-size: 2rem !important;
             font-weight: bold !important;
-            transition: all 0.3s ease;
+            transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease;
             z-index: 9999 !important;
             -webkit-appearance: none;
             appearance: none;
@@ -2378,13 +2399,12 @@
         }
 
         .fab:hover {
-            transform: scale(1.1);
-            background-color: #1D4ED8 !important;
-            box-shadow: 0 6px 25px rgba(37, 99, 235, 0.7) !important;
+            transform: scale(1.08);
+            box-shadow: 0 6px 28px rgba(6, 102, 235, 0.65), 0 0 0 6px rgba(6, 102, 235, 0.12) !important;
         }
 
         .fab:active {
-            transform: scale(0.95);
+            transform: scale(0.93);
         }
 
         /* FAB 숨김 클래스 - 모달 열릴 때 사용 */
@@ -2410,7 +2430,7 @@
             width: 64px !important;
             height: 64px !important;
             border-radius: 50% !important;
-            background-color: #2563EB !important;
+            background-color: #0666EB !important;
             color: #FFFFFF !important;
             opacity: 1 !important;
             visibility: visible !important;
