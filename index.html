@@ -14,7 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -429,6 +429,27 @@
             background: var(--gray-200);
         }
 
+        /* ===== Inter 숫자 전용 폰트 ===== */
+        .metric-card .value,
+        .metric-card .sub,
+        .flow-item .value,
+        .data-table .amount,
+        .top-expense-amount,
+        .payment-method-amount,
+        .day-modal-item-amount,
+        .day-modal-header .total,
+        .expense-card-top .amount,
+        .yoy-summary .value,
+        .expense-type-card .amount,
+        .budget-item-header .amounts,
+        .filter-summary-bar .fs-expense,
+        .filter-summary-bar .fs-income,
+        .category-bar-amount,
+        .fixed-item-mini .amount {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-feature-settings: "tnum";
+        }
+
         *, *::before, *::after {
             box-sizing: border-box;
         }
@@ -452,9 +473,9 @@
 
         .container { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
 
-        /* Header — Notion 스타일 클린 헤더 */
+        /* Header */
         header {
-            background: var(--primary);
+            background: linear-gradient(135deg, #0451C4 0%, #0666EB 60%, #3385F0 100%);
             padding: 20px 0;
             color: white;
         }
@@ -651,7 +672,7 @@
         }
 
         .metric-card.main {
-            background: var(--primary);
+            background: linear-gradient(135deg, #0451C4 0%, #0666EB 60%, #3385F0 100%);
             color: white;
         }
 
@@ -698,7 +719,7 @@
 
         /* 저축률 카드 */
         .savings-card {
-            background: var(--income);
+            background: linear-gradient(135deg, #007a5c 0%, #00a87e 100%);
             color: white;
         }
 
@@ -781,7 +802,7 @@
 
         /* 고정비 카드 */
         .fixed-card {
-            background: #475569;
+            background: linear-gradient(135deg, #374151 0%, #4B5563 100%);
             color: white;
         }
 
@@ -823,7 +844,7 @@
 
         .section-header {
             padding: 20px 24px;
-            border-bottom: 1px solid var(--gray-200);
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: space-between;
