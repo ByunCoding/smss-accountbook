@@ -1620,6 +1620,63 @@
 
         .hidden { display: none !important; }
 
+        /* 연간 요약 탭 */
+        .yearly-year-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 20px 0 8px;
+        }
+        .yearly-year-label {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            min-width: 90px;
+            text-align: center;
+        }
+        .yearly-year-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            transition: all 0.15s;
+        }
+        .yearly-year-btn:hover { background: var(--primary-bg); border-color: var(--primary); color: var(--primary); }
+        .yearly-summary-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            padding: 12px 0 4px;
+        }
+        .yearly-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid transparent;
+        }
+        .yearly-card.income { border-left-color: var(--income); }
+        .yearly-card.expense { border-left-color: var(--expense); }
+        .yearly-card.savings { border-left-color: var(--primary); }
+        .yearly-card-label { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px; }
+        .yearly-card-value { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+        .yearly-card.income .yearly-card-value { color: var(--income); }
+        .yearly-card.expense .yearly-card-value { color: var(--expense); }
+        .yearly-card.savings .yearly-card-value { color: var(--primary); }
+        .yearly-card-sub { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; }
+        @media (max-width: 480px) {
+            .yearly-summary-cards { grid-template-columns: 1fr; }
+            .yearly-card-value { font-size: 1rem; }
+        }
+
         .no-data {
             text-align: center;
             color: var(--gray-400);
@@ -3950,6 +4007,10 @@
                     <i class="ri-file-list-3-fill"></i>
                     <span>상세 내역</span>
                 </button>
+                <button class="tab" onclick="showTab('yearly')">
+                    <i class="ri-calendar-2-fill"></i>
+                    <span>연간 요약</span>
+                </button>
             </div>
         </div>
     </nav>
@@ -4167,6 +4228,17 @@
                         <div class="chart-container"><canvas id="dailyExpenseChart"></canvas></div>
                     </div>
                 </div>
+
+                <!-- 요일별 지출 패턴 -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-bar-chart-2-fill"></i> 요일별 지출 패턴</h2>
+                        <span id="dayOfWeekSummary" style="font-size: 0.85rem; color: var(--gray-500);"></span>
+                    </div>
+                    <div class="section-body">
+                        <div class="chart-container" style="height:220px;"><canvas id="dayOfWeekChart"></canvas></div>
+                    </div>
+                </div>
             </div>
 
             <!-- 상세 내역 탭 -->
@@ -4233,6 +4305,54 @@
                             </thead>
                             <tbody id="expenseTableBody"></tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+            <!-- 연간 요약 탭 -->
+            <div id="yearly-tab" class="hidden">
+                <!-- 연도 선택기 -->
+                <div class="yearly-year-selector">
+                    <button class="yearly-year-btn" onclick="changeYear(-1)"><i class="ri-arrow-left-s-line"></i></button>
+                    <span class="yearly-year-label" id="yearlyYearLabel">2026년</span>
+                    <button class="yearly-year-btn" onclick="changeYear(1)"><i class="ri-arrow-right-s-line"></i></button>
+                </div>
+
+                <!-- 연간 요약 카드 -->
+                <div class="yearly-summary-cards">
+                    <div class="yearly-card income">
+                        <div class="yearly-card-label">연간 총 수입</div>
+                        <div class="yearly-card-value" id="yearlyTotalIncome">₩0</div>
+                        <div class="yearly-card-sub" id="yearlyIncomeMonths"></div>
+                    </div>
+                    <div class="yearly-card expense">
+                        <div class="yearly-card-label">연간 총 지출</div>
+                        <div class="yearly-card-value" id="yearlyTotalExpense">₩0</div>
+                        <div class="yearly-card-sub" id="yearlyExpenseMonths"></div>
+                    </div>
+                    <div class="yearly-card savings">
+                        <div class="yearly-card-label">연간 저축</div>
+                        <div class="yearly-card-value" id="yearlyTotalSavings">₩0</div>
+                        <div class="yearly-card-sub" id="yearlySavingsRate"></div>
+                    </div>
+                </div>
+
+                <!-- 월별 수입/지출 차트 -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-bar-chart-grouped-fill"></i> 월별 수입/지출</h2>
+                    </div>
+                    <div class="section-body">
+                        <div class="chart-container" style="height:260px;"><canvas id="yearlyMonthlyChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- 카테고리별 연간 지출 -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-donut-chart-fill"></i> 카테고리별 연간 지출</h2>
+                    </div>
+                    <div class="section-body">
+                        <div id="yearlyCategoryList"></div>
                     </div>
                 </div>
             </div>
@@ -5544,6 +5664,7 @@
         let charts = {};
         let selectedMonth = null; // 선택된 월 (예: { year: 2026, month: 2 })
         let availableMonths = []; // 데이터가 있는 월 목록
+        let selectedYear = new Date().getFullYear(); // 연간 요약 선택 연도
         let lastDeletedExpense = null; // 최근 삭제된 지출 (되돌리기용)
         let undoTimeout = null; // 되돌리기 타이머
         let _tableDeleteData = []; // 테이블 삭제 데이터 저장소 (XSS 방지)
@@ -6324,6 +6445,8 @@
                 createChartsForTab('overview');
             } else if (activeTab.includes('지출')) {
                 createChartsForTab('budget');
+            } else if (activeTab.includes('연간')) {
+                updateYearlyTab();
             }
         }
 
@@ -6337,6 +6460,7 @@
             } else if (tabName === 'budget') {
                 renderDailyExpenseChart();
                 renderTopExpenses();
+                renderDayOfWeekChart();
             }
         }
 
@@ -7318,6 +7442,195 @@
             });
         }
 
+        // ===== 요일별 지출 패턴 =====
+        function renderDayOfWeekChart() {
+            const canvas = document.getElementById('dayOfWeekChart');
+            if (!canvas) return;
+            if (charts.dayOfWeek) { charts.dayOfWeek.destroy(); delete charts.dayOfWeek; }
+
+            const year = selectedMonth?.year || new Date().getFullYear();
+            const month = selectedMonth?.month || new Date().getMonth() + 1;
+            const DOW_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
+            const totals = [0, 0, 0, 0, 0, 0, 0]; // 월~일
+            const counts = [0, 0, 0, 0, 0, 0, 0];
+
+            expenseData.expenses
+                .filter(e => e.year === year && e.month === month && !INCOME_CATEGORIES.has(e.category))
+                .forEach(e => {
+                    const d = new Date(e.date);
+                    const dow = (d.getDay() + 6) % 7; // 0=월, 6=일
+                    totals[dow] += e.amount;
+                    counts[dow]++;
+                });
+
+            // 가장 많이 쓴 요일 강조
+            const maxIdx = totals.indexOf(Math.max(...totals));
+            const colors = totals.map((_, i) =>
+                i === maxIdx ? 'rgba(230, 57, 70, 0.85)' : 'rgba(99, 155, 246, 0.7)'
+            );
+
+            const theme = getChartThemeColors();
+            charts.dayOfWeek = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: DOW_LABELS,
+                    datasets: [{
+                        label: '지출',
+                        data: totals,
+                        backgroundColor: colors,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${formatCurrency(ctx.raw)} (${counts[ctx.dataIndex]}건)`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: theme.text, callback: v => (v / 10000) + '만' }, grid: { color: theme.grid } },
+                        x: { grid: { display: false }, ticks: { color: theme.text } }
+                    }
+                }
+            });
+
+            const summaryEl = document.getElementById('dayOfWeekSummary');
+            if (summaryEl && maxIdx >= 0 && totals[maxIdx] > 0) {
+                summaryEl.textContent = `${DOW_LABELS[maxIdx]}요일이 가장 많음 · ${formatCurrency(totals[maxIdx])}`;
+            }
+        }
+
+        // ===== 연간 요약 탭 =====
+        function changeYear(delta) {
+            selectedYear += delta;
+            destroyCharts();
+            updateYearlyTab();
+        }
+
+        function updateYearlyTab() {
+            document.getElementById('yearlyYearLabel').textContent = `${selectedYear}년`;
+
+            const yearKey = String(selectedYear);
+            const months = Array.from({ length: 12 }, (_, i) => `${yearKey}-${String(i + 1).padStart(2, '0')}`);
+
+            // 연간 지출 합계
+            let totalExpense = 0;
+            let totalIncome = 0;
+            let expenseMonthCount = 0;
+
+            months.forEach(mk => {
+                const mData = expenseData.summary.monthly_totals[mk];
+                if (mData && mData.total > 0) {
+                    totalExpense += mData.total;
+                    expenseMonthCount++;
+                }
+                if (MONTHLY_INCOME[mk]) totalIncome += MONTHLY_INCOME[mk];
+            });
+
+            const savings = totalIncome - totalExpense;
+            const savingsRate = totalIncome > 0 ? Math.round((savings / totalIncome) * 100) : 0;
+
+            document.getElementById('yearlyTotalIncome').textContent = formatCurrency(totalIncome);
+            document.getElementById('yearlyTotalExpense').textContent = formatCurrency(totalExpense);
+            document.getElementById('yearlyTotalSavings').textContent = formatCurrency(savings);
+            document.getElementById('yearlyIncomeMonths').textContent = `${selectedYear}년 전체`;
+            document.getElementById('yearlyExpenseMonths').textContent = `${expenseMonthCount}개월 기록`;
+            document.getElementById('yearlySavingsRate').textContent = totalIncome > 0 ? `저축률 ${savingsRate}%` : '';
+
+            renderYearlyMonthlyChart(months);
+            renderYearlyCategoryList(months);
+        }
+
+        function renderYearlyMonthlyChart(months) {
+            const canvas = document.getElementById('yearlyMonthlyChart');
+            if (!canvas) return;
+            if (charts.yearlyMonthly) { charts.yearlyMonthly.destroy(); delete charts.yearlyMonthly; }
+
+            const labels = months.map(mk => mk.slice(5) + '월'); // "01월" ~ "12월"
+            const incomeData = months.map(mk => MONTHLY_INCOME[mk] || 0);
+            const expenseData2 = months.map(mk => expenseData.summary.monthly_totals[mk]?.total || 0);
+
+            const theme = getChartThemeColors();
+            charts.yearlyMonthly = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: '수입', data: incomeData, backgroundColor: 'rgba(0, 180, 120, 0.7)', borderRadius: 4 },
+                        { label: '지출', data: expenseData2, backgroundColor: 'rgba(230, 57, 70, 0.7)', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: theme.text, font: { size: 12 } } } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: theme.text, callback: v => (v / 10000) + '만' }, grid: { color: theme.grid } },
+                        x: { grid: { display: false }, ticks: { color: theme.text } }
+                    }
+                }
+            });
+        }
+
+        function renderYearlyCategoryList(months) {
+            const container = document.getElementById('yearlyCategoryList');
+            if (!container) return;
+
+            // 카테고리별 연간 합산
+            const catTotals = {};
+            months.forEach(mk => {
+                const cats = expenseData.summary.monthly_totals[mk]?.categories || {};
+                Object.entries(cats).forEach(([cat, amt]) => {
+                    if (!INCOME_CATEGORIES.has(cat)) {
+                        catTotals[cat] = (catTotals[cat] || 0) + amt;
+                    }
+                });
+            });
+
+            const sorted = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+            const grandTotal = sorted.reduce((s, [_, v]) => s + v, 0);
+
+            if (sorted.length === 0) {
+                container.textContent = `${selectedYear}년 지출 데이터가 없습니다`;
+                return;
+            }
+
+            container.textContent = '';
+            sorted.forEach(([cat, amt]) => {
+                const pct = grandTotal > 0 ? Math.round((amt / grandTotal) * 100) : 0;
+                const color = categoryColors[cat] || '#9CA3AF';
+
+                const row = document.createElement('div');
+                row.className = 'category-bar-item';
+
+                const header = document.createElement('div');
+                header.className = 'category-bar-header';
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'category-bar-name';
+                nameSpan.textContent = cat;
+                const amtSpan = document.createElement('span');
+                amtSpan.className = 'category-bar-amount';
+                amtSpan.textContent = `${formatCurrency(amt)} (${pct}%)`;
+                header.appendChild(nameSpan);
+                header.appendChild(amtSpan);
+
+                const track = document.createElement('div');
+                track.className = 'category-bar-track';
+                const fill = document.createElement('div');
+                fill.className = 'category-bar-fill';
+                fill.style.width = pct + '%';
+                fill.style.background = color;
+                track.appendChild(fill);
+
+                row.appendChild(header);
+                row.appendChild(track);
+                container.appendChild(row);
+            });
+        }
+
         // ===== 필터 및 테이블 =====
         function populateFilters() {
             const monthSet = new Set(Object.keys(expenseData.summary.monthly_totals));
@@ -7675,6 +7988,10 @@
             if (tabName === 'overview' || tabName === 'budget') {
                 destroyCharts();
                 createChartsForTab(tabName);
+            }
+            if (tabName === 'yearly') {
+                destroyCharts();
+                updateYearlyTab();
             }
         }
 
