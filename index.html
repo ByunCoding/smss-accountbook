@@ -5743,6 +5743,8 @@
                 updateCurrentTab();
             }
 
+            // 앱 로드 시 자주 쓰는 지출 캐시 갱신
+            buildQuickSuggestionsCache();
             updateCountDisplay();
         }
 
@@ -8029,66 +8031,129 @@
             renderQuickSuggestions();
         }
 
-        // 자주 쓰는 지출 패턴 분석 및 표시
-        function renderQuickSuggestions() {
-            const container = document.getElementById('quickSuggestions');
-            if (!container || !expenseData.expenses || expenseData.expenses.length === 0) {
-                if (container) container.innerHTML = '';
-                return;
-            }
+        // 자주 쓰는 지출 캐시 키
+        const QUICK_SUGGESTIONS_CACHE_KEY = 'smss_quick_suggestions_cache';
+        const QUICK_CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24시간
 
-            // 지출 패턴 분석: category + payment_method + amount 조합 (메모는 옵션)
+        // HTML 특수문자 이스케이프 (XSS 방지)
+        function escHtml(s) {
+            return s ? String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : '';
+        }
+
+        // 전체 데이터 기반 자주 쓰는 지출 패턴 분석 및 localStorage 캐시 저장
+        function buildQuickSuggestionsCache() {
+            const expenses = expenseData.expenses;
+            if (!expenses || expenses.length === 0) return;
+
+            const now = new Date();
+            const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+
+            // key: 메모|카테고리|결제수단 (금액 제외 → 같은 항목 묶기)
             const patternMap = new Map();
-            expenseData.expenses.forEach(e => {
+            expenses.forEach(e => {
                 if (!e.category || !e.payment_method || !e.amount) return;
                 if (INCOME_CATEGORIES.has(e.category)) return;
-                // 메모가 있으면 메모 포함, 없으면 카테고리명 사용
+
                 const desc = e.description || e.category;
-                const key = `${desc}|${e.category}|${e.payment_method}|${e.amount}`;
-                const count = patternMap.get(key) || 0;
-                patternMap.set(key, count + 1);
+                const key = `${desc}|${e.category}|${e.payment_method}`;
+                const expDate = new Date(e.date);
+                const score = expDate >= threeMonthsAgo ? 2 : 1; // 최근 3개월 2배 가중치
+
+                if (!patternMap.has(key)) {
+                    patternMap.set(key, { score: 0, count: 0, amounts: [], latestDate: '' });
+                }
+                const entry = patternMap.get(key);
+                entry.score += score;
+                entry.count += 1;
+                entry.amounts.push(e.amount);
+                if (!entry.latestDate || e.date > entry.latestDate) entry.latestDate = e.date;
             });
 
-            // 빈도순 정렬, 상위 5개
+            // count >= 2 이상만 (진짜 반복 패턴), 스코어 내림차순, 상위 5개
             const topPatterns = [...patternMap.entries()]
-                .sort((a, b) => b[1] - a[1])
+                .filter(([_, v]) => v.count >= 2)
+                .sort((a, b) => b[1].score - a[1].score)
                 .slice(0, 5)
-                .filter(([_, count]) => count >= 1) // 1회 이상 사용된 패턴 (자주 쓰는 조합 보여주기)
-                .map(([key, count]) => {
-                    const [description, category, payment_method, amount] = key.split('|');
+                .map(([key, v]) => {
+                    const [description, category, payment_method] = key.split('|');
                     const cat = appSettings?.categories?.find(c => c.name === category);
-                    return {
-                        description,
-                        category,
-                        payment_method,
-                        amount: parseInt(amount),
-                        emoji: cat?.emoji || '📝',
-                        count
-                    };
+                    const avgAmount = Math.round(v.amounts.reduce((s, a) => s + a, 0) / v.amounts.length);
+                    return { description, category, payment_method, avgAmount, emoji: cat?.emoji || '📝', score: v.score, count: v.count };
                 });
 
-            if (topPatterns.length === 0) {
+            try {
+                localStorage.setItem(QUICK_SUGGESTIONS_CACHE_KEY, JSON.stringify({
+                    data: topPatterns,
+                    builtAt: Date.now()
+                }));
+            } catch (e) {}
+        }
+
+        // 자주 쓰는 지출 패턴 표시 (캐시 우선)
+        function renderQuickSuggestions() {
+            const container = document.getElementById('quickSuggestions');
+            if (!container) return;
+
+            // 캐시 확인 (24시간 유효)
+            let topPatterns = null;
+            try {
+                const cached = localStorage.getItem(QUICK_SUGGESTIONS_CACHE_KEY);
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (Date.now() - parsed.builtAt < QUICK_CACHE_EXPIRY) {
+                        topPatterns = parsed.data;
+                    }
+                }
+            } catch (e) {}
+
+            // 캐시 미스 시 즉석 계산
+            if (!topPatterns) {
+                if (!expenseData.expenses || expenseData.expenses.length === 0) {
+                    container.innerHTML = '';
+                    return;
+                }
+                buildQuickSuggestionsCache();
+                try {
+                    const cached = localStorage.getItem(QUICK_SUGGESTIONS_CACHE_KEY);
+                    topPatterns = cached ? JSON.parse(cached).data : [];
+                } catch (e) { topPatterns = []; }
+            }
+
+            if (!topPatterns || topPatterns.length === 0) {
                 container.innerHTML = '';
                 return;
             }
 
-            container.innerHTML = `
-                <div class="quick-suggestions-title">
-                    <i class="ri-flashlight-line"></i> 자주 쓰는 지출
-                </div>
-                <div class="quick-suggestions-list">
-                    ${topPatterns.map((p, i) => `
-                        <button type="button" class="quick-suggestion-btn" onclick="applyQuickSuggestion(${i})">
-                            <span class="emoji">${p.emoji}</span>
-                            <span>${p.description}</span>
-                            <span class="amount">${formatCurrency(p.amount)}</span>
-                        </button>
-                    `).join('')}
-                </div>
-            `;
-
             // 전역에 패턴 저장 (클릭 시 사용)
             window._quickSuggestions = topPatterns;
+
+            // DOM 직접 조작으로 XSS 방지
+            container.textContent = '';
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'quick-suggestions-title';
+            titleDiv.innerHTML = '<i class="ri-flashlight-line"></i> 자주 쓰는 지출';
+            const listDiv = document.createElement('div');
+            listDiv.className = 'quick-suggestions-list';
+            topPatterns.forEach((p, i) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'quick-suggestion-btn';
+                btn.setAttribute('onclick', `applyQuickSuggestion(${i})`);
+                const emojiSpan = document.createElement('span');
+                emojiSpan.className = 'emoji';
+                emojiSpan.textContent = p.emoji;
+                const descSpan = document.createElement('span');
+                descSpan.textContent = p.description;
+                const amountSpan = document.createElement('span');
+                amountSpan.className = 'amount';
+                amountSpan.textContent = formatCurrency(p.avgAmount);
+                btn.appendChild(emojiSpan);
+                btn.appendChild(descSpan);
+                btn.appendChild(amountSpan);
+                listDiv.appendChild(btn);
+            });
+            container.appendChild(titleDiv);
+            container.appendChild(listDiv);
         }
 
         function applyQuickSuggestion(index) {
@@ -8098,7 +8163,7 @@
             document.getElementById('inputCategory').value = pattern.category;
             document.getElementById('inputPayment').value = pattern.payment_method;
             document.getElementById('inputDescription').value = pattern.description;
-            document.getElementById('inputAmount').value = Number(pattern.amount).toLocaleString();
+            document.getElementById('inputAmount').value = Number(pattern.avgAmount || pattern.amount).toLocaleString();
 
             // 할부 초기화
             const installmentEl = document.getElementById('inputInstallment');
