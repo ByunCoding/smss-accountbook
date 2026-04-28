@@ -8077,8 +8077,11 @@
                 .map(([key, v]) => {
                     const [description, category, payment_method] = key.split('|');
                     const cat = appSettings?.categories?.find(c => c.name === category);
-                    const avgAmount = Math.round(v.amounts.reduce((s, a) => s + a, 0) / v.amounts.length);
-                    return { description, category, payment_method, avgAmount, emoji: cat?.emoji || '📝', score: v.score, count: v.count };
+                    // 가장 많이 기록된 금액 (최빈값)
+                    const freqMap = {};
+                    v.amounts.forEach(a => { freqMap[a] = (freqMap[a] || 0) + 1; });
+                    const modeAmount = parseInt(Object.entries(freqMap).sort((a, b) => b[1] - a[1])[0][0]);
+                    return { description, category, payment_method, avgAmount: modeAmount, emoji: cat?.emoji || '📝', score: v.score, count: v.count };
                 });
 
             try {
