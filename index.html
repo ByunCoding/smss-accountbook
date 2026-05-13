@@ -8842,6 +8842,15 @@
                         : `${formatCurrency(amount)} 지출이 기록되었습니다`);
                 showToast(toastMsg);
                 closeInputModal();
+
+                // 필터 드롭다운 갱신 (다른 월 입력 시 옵션 추가)
+                populateFilters();
+                // 입력한 항목의 월로 필터 자동 이동
+                const addedMonthKey = `${date.split('-')[0]}-${String(parseInt(date.split('-')[1])).padStart(2, '0')}`;
+                const filterMonthEl = document.getElementById('filterMonth');
+                if (filterMonthEl && filterMonthEl.value !== addedMonthKey) {
+                    filterMonthEl.value = addedMonthKey;
+                }
                 renderExpenseTable(); // 상세 내역 탭 즉시 갱신
 
             } catch (error) {
