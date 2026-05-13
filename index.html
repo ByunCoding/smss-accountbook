@@ -5687,15 +5687,18 @@
         }
 
         function setCachedData(expenses) {
-            try {
-                localStorage.setItem(CACHE_KEY, JSON.stringify({
-                    data: expenses,
-                    monthlyIncome: MONTHLY_INCOME,
-                    fixedExpenses: FIXED_EXPENSES,
-                    incomeData: incomeEntries,
-                    timestamp: Date.now()
-                }));
-            } catch (e) { console.warn('Cache write error:', e); }
+            // 직렬화 비용을 메인 스레드에서 분리
+            setTimeout(() => {
+                try {
+                    localStorage.setItem(CACHE_KEY, JSON.stringify({
+                        data: expenses,
+                        monthlyIncome: MONTHLY_INCOME,
+                        fixedExpenses: FIXED_EXPENSES,
+                        incomeData: incomeEntries,
+                        timestamp: Date.now()
+                    }));
+                } catch (e) { console.warn('Cache write error:', e); }
+            }, 0);
         }
 
         // ===== 시트 목록 동적 로드 =====
@@ -6302,7 +6305,12 @@
 
             updateDashboard();
             populateFilters();
-            renderExpenseTable();
+
+            // 상세 내역 탭이 활성화된 경우에만 렌더링 (초기엔 월간 탭이 기본)
+            const activeTabText = document.querySelector('.tab.active')?.textContent?.trim() || '';
+            if (activeTabText.includes('상세')) {
+                renderExpenseTable();
+            }
         }
 
         // 사용 가능한 월 목록 생성
@@ -6425,15 +6433,25 @@
 
         // 대시보드 전체 업데이트
         function updateDashboard() {
+            const activeTabText = document.querySelector('.tab.active')?.textContent?.trim() || '';
+            const isBudgetTab = activeTabText.includes('지출') || activeTabText.includes('budget');
+
             updateSummaryFlow();
-            updateKeyMetrics();
-            updateDailyHeatmap();
-            generateInsights();
-            updateExpenseSplit();
-            updatePaymentMethods();
-            updateCategoryComparison();
-            updateYoYComparison();
-            updateBudgetTab();
+
+            if (!isBudgetTab) {
+                updateKeyMetrics();
+                updateDailyHeatmap();
+                generateInsights();
+                updateExpenseSplit();
+                updatePaymentMethods();
+                updateCategoryComparison();
+                updateYoYComparison();
+            }
+
+            if (isBudgetTab) {
+                updateBudgetTab();
+            }
+
             // 차트는 현재 활성 탭의 것만 생성 (성능 최적화)
             destroyCharts();
             createChartsForActiveTab();
@@ -7989,6 +8007,9 @@
                 destroyCharts();
                 createChartsForTab(tabName);
             }
+            if (tabName === 'budget') {
+                updateBudgetTab();
+            }
             if (tabName === 'yearly') {
                 destroyCharts();
                 updateYearlyTab();
@@ -8668,6 +8689,13 @@
                 if (originalData) {
                     const origIsIncome = originalData.isIncome || false;
                     if (origIsIncome) {
+                        // 로컬에서 즉시 제거
+                        const di = incomeEntries.findIndex(e =>
+                            e.date === originalData.date && e.category === originalData.category &&
+                            e.amount === originalData.amount && (e.description || '') === (originalData.description || '')
+                        );
+                        if (di !== -1) incomeEntries.splice(di, 1);
+                        // API 백그라운드 삭제
                         const delParams = new URLSearchParams({
                             action: 'deleteIncome',
                             date: originalData.date,
@@ -8675,13 +8703,9 @@
                             item: originalData.description || '',
                             amount: originalData.amount.toString()
                         });
-                        await fetch(`${APPS_SCRIPT_URL}?${delParams.toString()}`);
-                        const di = incomeEntries.findIndex(e =>
-                            e.date === originalData.date && e.category === originalData.category &&
-                            e.amount === originalData.amount && (e.description || '') === (originalData.description || '')
-                        );
-                        if (di !== -1) incomeEntries.splice(di, 1);
+                        fetch(`${APPS_SCRIPT_URL}?${delParams.toString()}`).catch(e => console.error('Delete income API error:', e));
                     } else {
+                        // 로컬에서 즉시 제거
                         const delParams = new URLSearchParams({
                             action: 'delete',
                             date: originalData.date,
@@ -8690,7 +8714,7 @@
                             person: originalData.payment_method || '',
                             amount: originalData.amount.toString()
                         });
-                        await fetch(`${APPS_SCRIPT_URL}?${delParams.toString()}`);
+                        fetch(`${APPS_SCRIPT_URL}?${delParams.toString()}`).catch(e => console.error('Delete expense API error:', e));
                         const di = expenseData.expenses.findIndex(e =>
                             e.date === originalData.date && e.category === originalData.category &&
                             e.amount === originalData.amount && (e.description || '') === (originalData.description || '')
@@ -8703,21 +8727,7 @@
                 const [year, month] = date.split('-').map(Number);
 
                 if (isIncome) {
-                    // 수입은 월별 시트 H-K열에 저장
-                    const params = new URLSearchParams({
-                        action: 'addIncome',
-                        date: date,
-                        category: category,
-                        item: description,
-                        amount: amount.toString(),
-                        year: year.toString()
-                    });
-
-                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
-
-                    console.log('Income submitted to monthly sheet H-K');
-
-                    // incomeEntries에 로컬 추가
+                    // 로컬 즉시 추가 (optimistic update)
                     incomeEntries.push({
                         date: date,
                         year: year,
@@ -8727,25 +8737,26 @@
                         amount: amount,
                         id: `local_income_${Date.now()}`
                     });
+
+                    // API 백그라운드 전송 (응답 기다리지 않음)
+                    const params = new URLSearchParams({
+                        action: 'addIncome',
+                        date: date,
+                        category: category,
+                        item: description,
+                        amount: amount.toString(),
+                        year: year.toString()
+                    });
+                    fetch(`${APPS_SCRIPT_URL}?${params.toString()}`).catch(e => {
+                        console.error('Income API error:', e);
+                    });
                 } else {
                     // 지출 저장 (일시불 또는 할부)
                     const months = parseInt(document.getElementById('inputInstallment')?.value || '1');
                     const [origYear, origMonth, origDay] = date.split('-').map(Number);
 
                     if (months <= 1) {
-                        // 일시불: 기존 로직 그대로
-                        const params = new URLSearchParams({
-                            action: 'add',
-                            year: year.toString(),
-                            date: date,
-                            category: category,
-                            item: description,
-                            person: payment,
-                            amount: amount.toString()
-                        });
-                        await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
-                        console.log('Expense submitted to Apps Script');
-
+                        // 로컬 즉시 추가 (optimistic update)
                         expenseData.expenses.push({
                             date: date,
                             year: year,
@@ -8756,6 +8767,20 @@
                             payment_method: payment,
                             isFixed: FIXED_CATEGORIES.includes(category),
                             id: `local_${Date.now()}_0`
+                        });
+
+                        // API 백그라운드 전송 (응답 기다리지 않음)
+                        const params = new URLSearchParams({
+                            action: 'add',
+                            year: year.toString(),
+                            date: date,
+                            category: category,
+                            item: description,
+                            person: payment,
+                            amount: amount.toString()
+                        });
+                        fetch(`${APPS_SCRIPT_URL}?${params.toString()}`).catch(e => {
+                            console.error('Expense API error:', e);
                         });
                     } else {
                         // 할부: N번 순차 호출
@@ -8773,37 +8798,36 @@
                                 : monthlyAmount;
                             const iDesc = (description ? description + ' ' : '') + '(' + (n + 1) + '/' + months + ')';
 
-                            try {
-                                const params = new URLSearchParams({
-                                    action: 'add',
-                                    year: iYear.toString(),
-                                    date: iDateStr,
-                                    category: category,
-                                    item: iDesc,
-                                    person: payment,
-                                    amount: iAmount.toString()
-                                });
-                                await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
+                            // 로컬 즉시 추가
+                            expenseData.expenses.push({
+                                date: iDateStr,
+                                year: iYear,
+                                month: iMonth,
+                                category: category,
+                                description: iDesc,
+                                amount: iAmount,
+                                payment_method: payment,
+                                isFixed: FIXED_CATEGORIES.includes(category),
+                                id: 'local_' + Date.now() + '_' + n
+                            });
+                            savedCount++;
 
-                                expenseData.expenses.push({
-                                    date: iDateStr,
-                                    year: iYear,
-                                    month: iMonth,
-                                    category: category,
-                                    description: iDesc,
-                                    amount: iAmount,
-                                    payment_method: payment,
-                                    isFixed: FIXED_CATEGORIES.includes(category),
-                                    id: 'local_' + Date.now() + '_' + n
-                                });
-                                savedCount++;
-                            } catch (e) {
-                                showToast(savedCount + '/' + months + '개월 저장 중 오류 발생. 일부만 저장되었을 수 있습니다.', 'error');
-                                throw e;
-                            }
+                            // API 백그라운드 전송
+                            const params = new URLSearchParams({
+                                action: 'add',
+                                year: iYear.toString(),
+                                date: iDateStr,
+                                category: category,
+                                item: iDesc,
+                                person: payment,
+                                amount: iAmount.toString()
+                            });
+                            fetch(`${APPS_SCRIPT_URL}?${params.toString()}`).catch(e => {
+                                console.error('Installment API error:', e);
+                            });
                         }
 
-                        // 할부 성공: 직접 마무리 처리 후 return
+                        // 할부: 직접 마무리 처리 후 return
                         calculateSummary();
                         updateDashboard();
                         setCachedData(expenseData.expenses);
@@ -8958,18 +8982,7 @@
 
             try {
                 if (isIncomeItem) {
-                    // 수입 시트에서 삭제
-                    const params = new URLSearchParams({
-                        action: 'deleteIncome',
-                        date: data.date,
-                        category: data.category,
-                        item: data.description || '',
-                        amount: data.amount.toString()
-                    });
-
-                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
-
-                    // incomeEntries에서 제거
+                    // 로컬에서 즉시 제거
                     const idx = incomeEntries.findIndex(e =>
                         e.date === data.date &&
                         e.category === data.category &&
@@ -8979,20 +8992,17 @@
                     if (idx !== -1) {
                         incomeEntries.splice(idx, 1);
                     }
-                } else {
-                    // 지출 시트에서 삭제
+                    // API 백그라운드 삭제
                     const params = new URLSearchParams({
-                        action: 'delete',
+                        action: 'deleteIncome',
                         date: data.date,
                         category: data.category,
                         item: data.description || '',
-                        person: data.payment_method || '',
                         amount: data.amount.toString()
                     });
-
-                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
-
-                    // 로컬 데이터에서 제거
+                    fetch(`${APPS_SCRIPT_URL}?${params.toString()}`).catch(e => console.error('Delete income API error:', e));
+                } else {
+                    // 로컬에서 즉시 제거
                     const idx = expenseData.expenses.findIndex(e =>
                         e.date === data.date &&
                         e.category === data.category &&
@@ -9002,6 +9012,16 @@
                     if (idx !== -1) {
                         expenseData.expenses.splice(idx, 1);
                     }
+                    // API 백그라운드 삭제
+                    const params = new URLSearchParams({
+                        action: 'delete',
+                        date: data.date,
+                        category: data.category,
+                        item: data.description || '',
+                        person: data.payment_method || '',
+                        amount: data.amount.toString()
+                    });
+                    fetch(`${APPS_SCRIPT_URL}?${params.toString()}`).catch(e => console.error('Delete expense API error:', e));
                 }
 
                 // 되돌리기를 위해 삭제된 항목 저장
