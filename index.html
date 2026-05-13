@@ -5669,6 +5669,7 @@
         let undoTimeout = null; // 되돌리기 타이머
         let _tableDeleteData = []; // 테이블 삭제 데이터 저장소 (XSS 방지)
         let _detailDisplayLimit = 50; // 상세 내역 초기 표시 건수
+        let _preloadedCurrentMonth = null; // 더블패치 방지용 (loadFreshData 1단계 결과)
 
         // ===== 캐시 관리 =====
         const CACHE_KEY = 'smss_accountbook_cache_v2';
@@ -5839,6 +5840,9 @@
                     const currentMonthData = await loadFromGoogleSheets(currentGid, currentKey).catch(() => []);
                     console.log(`[성능] 현재 월 로드: ${Math.round(performance.now() - t1)}ms`);
 
+                    // 2단계에서 재사용 (더블 패치 방지)
+                    _preloadedCurrentMonth = { key: currentKey, data: currentMonthData };
+
                     expenseData.expenses = currentMonthData;
                     calculateSummary();
                     if (appSettings?.fixedExpenses?.length > 0) rebuildFixedExpenses();
@@ -5857,6 +5861,7 @@
             ]);
 
             console.log(`[성능] 전체 데이터 로드: ${Math.round(performance.now() - t0)}ms`);
+            _preloadedCurrentMonth = null; // 사용 완료 후 초기화
 
             expenseData.expenses = expensesResult;
             setCachedData(expensesResult);
@@ -5975,6 +5980,10 @@
 
             // Google Sheets: 현재 월은 항상 새로 로드, 과거 월은 캐시
             const sheetPromises = Object.entries(GOOGLE_SHEETS).map(([month, gid]) => {
+                // 1단계에서 이미 로드된 경우 재사용 (더블 패치 방지)
+                if (_preloadedCurrentMonth?.key === month) {
+                    return Promise.resolve(_preloadedCurrentMonth.data);
+                }
                 const cached = monthCache[month];
                 if (!isCurrentMonth(month) && cached && cached.data && (Date.now() - cached.timestamp < MONTH_CACHE_EXPIRY)) {
                     // 캐시에 수입 데이터가 있으면 복원
@@ -6469,8 +6478,8 @@
             }
         }
 
-        // 대시보드 전체 업데이트
-        function updateDashboard() {
+        // 대시보드 전체 업데이트 (rebuildCharts=false면 차트 데이터만 갱신)
+        function updateDashboard(rebuildCharts = true) {
             const activeTabText = document.querySelector('.tab.active')?.textContent?.trim() || '';
             const isBudgetTab = activeTabText.includes('지출') || activeTabText.includes('budget');
 
@@ -6490,9 +6499,35 @@
                 updateBudgetTab();
             }
 
-            // 차트는 현재 활성 탭의 것만 생성 (성능 최적화)
-            destroyCharts();
-            createChartsForActiveTab();
+            if (rebuildCharts) {
+                destroyCharts();
+                createChartsForActiveTab();
+            } else {
+                // 같은 달 저장/삭제 시 차트 데이터만 갱신 (destroy 없이)
+                refreshChartsData();
+            }
+        }
+
+        // 차트 인스턴스를 유지하면서 데이터만 갱신 (빠름)
+        function refreshChartsData() {
+            const monthlyData = expenseData.summary.monthly_totals;
+
+            if (charts.monthly) {
+                const sortedMonths = Object.entries(monthlyData).sort((a, b) => a[0].localeCompare(b[0])).slice(-6);
+                charts.monthly.data.datasets[0].data = sortedMonths.map(([, v]) => v.total);
+                charts.monthly.update('none');
+            }
+            if (charts.yoy) {
+                const yoyData = [selectedMonth.year - 1, selectedMonth.year].map(year => {
+                    const key = `${year}-${String(selectedMonth.month).padStart(2, '0')}`;
+                    return monthlyData[key]?.total || 0;
+                });
+                charts.yoy.data.datasets[0].data = yoyData;
+                charts.yoy.update('none');
+            }
+            if (charts.dailyExpense) {
+                // 일별 차트는 현재 월 데이터 기반 재생성이 필요하므로 스킵 (예산 탭)
+            }
         }
 
         function createChartsForActiveTab() {
@@ -8883,7 +8918,8 @@
                 if (newItem) patchSummary(newItem, 1);
                 // 수정 모드: 삭제된 원본도 패치
                 if (originalData) patchSummary({ ...originalData, isFixed: FIXED_CATEGORIES.includes(originalData.category) }, -1);
-                updateDashboard();
+                // 같은 달이므로 차트 데이터만 갱신 (destroy 없이)
+                updateDashboard(false);
 
                 // 캐시 업데이트
                 setCachedData(expenseData.expenses);
@@ -9076,7 +9112,8 @@
 
                 // 삭제된 항목만 증분 반영 (O(1))
                 patchSummary({ ...data, isFixed: FIXED_CATEGORIES.includes(data.category) }, -1);
-                updateDashboard();
+                // 같은 달이므로 차트 데이터만 갱신 (destroy 없이)
+                updateDashboard(false);
                 renderExpenseTable();
                 updateCountDisplay();
                 closeDayModal();
