@@ -5758,32 +5758,23 @@
             try {
                 const lastUpdatedEl = document.getElementById('lastUpdated');
 
-                // 1. 캐시된 데이터가 있으면 먼저 표시
+                // 1. 캐시된 데이터가 있으면 즉시 표시 후 항상 백그라운드 갱신
                 const cached = getCachedData();
                 if (cached && cached.data && cached.data.length > 0) {
-                    lastUpdatedEl.textContent = '캐시 데이터 표시 중...';
                     MONTHLY_INCOME = cached.monthlyIncome || {};
                     FIXED_EXPENSES = cached.fixedExpenses || {};
                     incomeEntries = cached.incomeData || [];
                     expenseData.expenses = cached.data;
                     calculateSummary();
                     initializeDashboard();
-
-                    // 캐시가 만료되지 않았으면 백그라운드 갱신만
-                    if (!cached.isExpired) {
-                        updateCountDisplay();
-                        refreshDataInBackground();
-                        return;
-                    }
-                    lastUpdatedEl.textContent = '최신 데이터 확인 중...';
+                    updateCountDisplay();
+                    // 만료 여부와 무관하게 항상 백그라운드 갱신 (UI 깜빡임 없음)
+                    refreshDataInBackground();
+                    return;
                 }
 
-                // 캐시가 없으면 로딩 스피너 표시
-                if (!cached || !cached.data || cached.data.length === 0) {
-                    showLoading('데이터를 불러오는 중...');
-                }
-
-                // 2. 새 데이터 로드 (병렬) - 시트 목록은 초기화 시 이미 로드됨
+                // 2. 캐시 없으면 로딩 스피너 + 현재 월 먼저 로드
+                showLoading('데이터를 불러오는 중...');
                 await loadFreshData();
 
             } catch (error) {
@@ -5836,17 +5827,36 @@
         // 실제 데이터 로드 (병렬 처리)
         async function loadFreshData(isBackground = false) {
             const lastUpdatedEl = document.getElementById('lastUpdated');
-            if (!isBackground) lastUpdatedEl.textContent = '데이터 로딩 중...';
+
+            if (!isBackground) {
+                // 현재 월 데이터만 먼저 로드해서 즉시 표시
+                const now = new Date();
+                const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                const currentGid = GOOGLE_SHEETS[currentKey];
+
+                if (currentGid) {
+                    const t1 = performance.now();
+                    const currentMonthData = await loadFromGoogleSheets(currentGid, currentKey).catch(() => []);
+                    console.log(`[성능] 현재 월 로드: ${Math.round(performance.now() - t1)}ms`);
+
+                    expenseData.expenses = currentMonthData;
+                    calculateSummary();
+                    if (appSettings?.fixedExpenses?.length > 0) rebuildFixedExpenses();
+                    initializeDashboard();
+                    hideLoading();
+                    lastUpdatedEl.textContent = '과거 데이터 로딩 중...';
+                }
+            }
 
             const t0 = performance.now();
 
-            // MONTHLY 시트, 지출+수입 데이터를 병렬로 로드
-            const [monthlyResult, expensesResult] = await Promise.all([
+            // 전체 데이터 로드 (MONTHLY 시트 + 모든 월)
+            const [, expensesResult] = await Promise.all([
                 loadMonthlySheet().catch(e => { console.warn('Monthly sheet error:', e); return null; }),
                 loadAllExpenses()
             ]);
 
-            console.log(`[성능] 데이터 로드: ${Math.round(performance.now() - t0)}ms`);
+            console.log(`[성능] 전체 데이터 로드: ${Math.round(performance.now() - t0)}ms`);
 
             expenseData.expenses = expensesResult;
             setCachedData(expensesResult);
@@ -5859,11 +5869,14 @@
             }
 
             if (!isBackground) {
-                initializeDashboard();
-                // 데이터 로드 후 고정수입 자동 생성 처리
-                processRecurringIncomes();
+                // 이미 initializeDashboard 호출됐으므로 탭만 업데이트
+                if (expenseData.expenses.length > 0) {
+                    buildAvailableMonths();
+                    populateMonthSelector();
+                    updateCurrentTab();
+                    processRecurringIncomes();
+                }
             } else {
-                // 백그라운드 갱신 시 현재 탭만 업데이트
                 updateCurrentTab();
             }
 
@@ -6278,6 +6291,31 @@
                 category_breakdown: categoryBreakdown,
                 monthly_totals: monthlyTotals
             };
+        }
+
+        // summary를 전체 재계산 없이 단일 항목만 반영 (O(1))
+        function patchSummary(expense, delta) {
+            if (!expenseData.summary) return;
+            const monthKey = `${expense.year}-${String(expense.month).padStart(2, '0')}`;
+
+            if (INCOME_CATEGORIES.has(expense.category)) {
+                // 수입 항목은 MONTHLY_INCOME만 패치
+                MONTHLY_INCOME[monthKey] = (MONTHLY_INCOME[monthKey] || 0) + expense.amount * delta;
+                return;
+            }
+
+            const mt = expenseData.summary.monthly_totals;
+            if (!mt[monthKey]) {
+                mt[monthKey] = { total: 0, categories: {}, fixed: 0, variable: 0 };
+            }
+            mt[monthKey].total += expense.amount * delta;
+            mt[monthKey].categories[expense.category] = (mt[monthKey].categories[expense.category] || 0) + expense.amount * delta;
+            if (mt[monthKey].categories[expense.category] <= 0) delete mt[monthKey].categories[expense.category];
+            if (expense.isFixed) mt[monthKey].fixed += expense.amount * delta;
+            else mt[monthKey].variable += expense.amount * delta;
+
+            expenseData.summary.total_expenses += expense.amount * delta;
+            expenseData.summary.total_transactions += delta;
         }
 
         // ===== 대시보드 초기화 =====
@@ -8838,7 +8876,13 @@
                     }
                 }
 
-                calculateSummary();
+                // 새로 추가된 항목만 증분 반영 (O(1), calculateSummary 전체 재계산 불필요)
+                const newItem = isIncome
+                    ? incomeEntries[incomeEntries.length - 1]
+                    : expenseData.expenses[expenseData.expenses.length - 1];
+                if (newItem) patchSummary(newItem, 1);
+                // 수정 모드: 삭제된 원본도 패치
+                if (originalData) patchSummary({ ...originalData, isFixed: FIXED_CATEGORIES.includes(originalData.category) }, -1);
                 updateDashboard();
 
                 // 캐시 업데이트
@@ -9030,8 +9074,8 @@
                 // 캐시 무효화
                 localStorage.removeItem(CACHE_KEY);
 
-                // 화면 즉시 업데이트 (새로고침 없이)
-                calculateSummary();
+                // 삭제된 항목만 증분 반영 (O(1))
+                patchSummary({ ...data, isFixed: FIXED_CATEGORIES.includes(data.category) }, -1);
                 updateDashboard();
                 renderExpenseTable();
                 updateCountDisplay();
