@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SMSS 가계부</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -468,7 +468,6 @@
             min-height: 100%;
             overflow-x: hidden;
             overflow-y: visible;
-            -webkit-overflow-scrolling: touch;
         }
 
         .container { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
@@ -579,7 +578,6 @@
             display: flex;
             gap: 6px;
             overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
             -ms-overflow-style: none;
             padding: 4px 0;
@@ -1834,7 +1832,8 @@
             position: relative;
         }
 
-        .heatmap-day:hover {
+        .heatmap-day:hover,
+        .heatmap-day:active {
             transform: scale(1.1);
             z-index: 10;
         }
@@ -2024,7 +2023,8 @@
             position: relative;
         }
 
-        .weekly-bar:hover::after {
+        .weekly-bar:hover::after,
+        .weekly-bar:active::after {
             content: attr(data-amount);
             position: absolute;
             bottom: 100%;
@@ -2311,25 +2311,6 @@
 
             .flow-item .value {
                 font-size: 1rem;
-            }
-
-            /* 테이블 가로 스크롤 */
-            .data-table-wrapper {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-
-            .data-table {
-                min-width: 600px;
-            }
-
-            /* 내용 열 숨기기 (모바일) */
-            .data-table th:nth-child(3),
-            .data-table td:nth-child(3) {
-                max-width: 100px;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
             }
 
             /* 삭제/수정 버튼 터치 영역 확대 */
@@ -2741,7 +2722,6 @@
             transform: translateY(100%);
             transition: transform 0.3s ease;
             overflow-y: scroll;
-            -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
             touch-action: pan-y;
         }
@@ -2760,7 +2740,6 @@
             body {
                 height: 100%;
                 overflow-y: scroll;
-                -webkit-overflow-scrolling: touch;
                 overscroll-behavior-y: contain;
             }
 
@@ -2770,7 +2749,6 @@
 
             .input-modal {
                 overflow-y: scroll !important;
-                -webkit-overflow-scrolling: touch !important;
                 max-height: 85vh;
             }
 
@@ -3481,8 +3459,8 @@
         /* 모바일 반응형 */
         @media (max-width: 768px) {
             .fab {
-                bottom: 20px;
-                right: 20px;
+                bottom: max(20px, calc(env(safe-area-inset-bottom) + 16px));
+                right: max(20px, calc(env(safe-area-inset-right) + 16px));
                 width: 52px;
                 height: 52px;
             }
