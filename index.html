@@ -9221,8 +9221,56 @@
             if (filterIcon) filterIcon.classList.remove('collapsed');
         }
 
-        // 설정 + 시트목록 병렬 로드 후 데이터 로드
-        Promise.all([loadSettings(), loadSheetList()]).then(() => loadData());
+        // 빠른 시작: localStorage 동기 적용 → 캐시 풀셋이면 즉시 표시, 아니면 기존 흐름
+        (function fastStart() {
+            let hasSettings = false, hasSheets = false, hasData = false;
+
+            // 1. 설정 localStorage 즉시 적용
+            try {
+                const s = localStorage.getItem(SETTINGS_KEY);
+                if (s) {
+                    appSettings = JSON.parse(s);
+                    if (!appSettings.budgets) {
+                        const lb = localStorage.getItem('smss_budgets');
+                        appSettings.budgets = lb ? JSON.parse(lb) : { ...DEFAULT_BUDGETS };
+                    }
+                    if (!appSettings.fixedExpenses || appSettings.fixedExpenses.length <= 2) {
+                        appSettings.fixedExpenses = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.fixedExpenses));
+                    }
+                    applySettings();
+                    hasSettings = true;
+                }
+            } catch(e) {}
+
+            // 2. 시트목록 localStorage 즉시 적용 (만료 여부 무관)
+            try {
+                const sl = localStorage.getItem(SHEET_LIST_CACHE_KEY);
+                if (sl) {
+                    JSON.parse(sl).sheets.forEach(s => { GOOGLE_SHEETS[s.monthKey] = s.gid; });
+                    hasSheets = true;
+                }
+            } catch(e) {}
+
+            // 3. 데이터 캐시 존재 여부 확인
+            try {
+                const c = localStorage.getItem(CACHE_KEY);
+                if (c) {
+                    const { data } = JSON.parse(c);
+                    hasData = !!(data && data.length > 0);
+                }
+            } catch(e) {}
+
+            if (hasSettings && hasSheets && hasData) {
+                // 캐시 풀셋: 즉시 표시 후 백그라운드에서 네트워크 갱신
+                loadData();
+                Promise.all([loadSettings(), loadSheetList()]).then(() => {
+                    if (typeof updateCurrentTab === 'function') updateCurrentTab();
+                });
+            } else {
+                // 캐시 부족 (최초 실행 등): 기존 흐름 유지
+                Promise.all([loadSettings(), loadSheetList()]).then(() => loadData());
+            }
+        })();
     </script>
 </div><!-- end app-wrapper -->
 </body>
