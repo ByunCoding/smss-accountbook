@@ -3268,6 +3268,18 @@
             border-color: var(--primary);
         }
 
+        .prefix-shortcut-btn {
+            border-style: dashed !important;
+            border-color: var(--primary) !important;
+            color: var(--primary) !important;
+            font-weight: 600;
+        }
+
+        [data-theme="dark"] .prefix-shortcut-btn {
+            border-color: var(--primary) !important;
+            color: var(--primary) !important;
+        }
+
         .edit-budget-btn {
             padding: 8px 16px;
             border: 1px solid var(--gray-300);
@@ -8526,6 +8538,23 @@
             titleDiv.innerHTML = '<i class="ri-flashlight-line"></i> 자주 쓰는 지출';
             const listDiv = document.createElement('div');
             listDiv.className = 'quick-suggestions-list';
+
+            // 고정 프리픽스 버튼
+            PREFIX_SHORTCUTS.forEach((s, i) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'quick-suggestion-btn prefix-shortcut-btn';
+                btn.setAttribute('onclick', `applyPrefixShortcut(${i})`);
+                const emojiSpan = document.createElement('span');
+                emojiSpan.className = 'emoji';
+                emojiSpan.textContent = s.emoji;
+                const descSpan = document.createElement('span');
+                descSpan.textContent = s.prefix;
+                btn.appendChild(emojiSpan);
+                btn.appendChild(descSpan);
+                listDiv.appendChild(btn);
+            });
+
             topPatterns.forEach((p, i) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
@@ -8562,6 +8591,30 @@
             if (installmentEl) installmentEl.value = '1';
             const previewEl = document.getElementById('installmentPreview');
             if (previewEl) previewEl.style.display = 'none';
+        }
+
+        // 고정 프리픽스 버튼: 메모만 프리필, 금액 포커스
+        const PREFIX_SHORTCUTS = [
+            { prefix: '쿠팡이츠_', category: '외식', emoji: '🛵' },
+            { prefix: '쿠팡_',    category: '생활비', emoji: '🛒' },
+        ];
+
+        function applyPrefixShortcut(index) {
+            const shortcut = PREFIX_SHORTCUTS[index];
+            if (!shortcut) return;
+
+            openInputModal();
+            setTimeout(() => {
+                const descEl = document.getElementById('inputDescription');
+                const catEl  = document.getElementById('inputCategory');
+                const amtEl  = document.getElementById('inputAmount');
+                if (descEl) {
+                    descEl.value = shortcut.prefix;
+                    suggestCategory(shortcut.prefix);
+                }
+                if (catEl && !catEl.value) catEl.value = shortcut.category;
+                if (amtEl) amtEl.focus();
+            }, 150);
         }
 
         function closeInputModal(event) {
