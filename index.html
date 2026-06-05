@@ -4836,10 +4836,27 @@
                         // 마이그레이션된 예산을 Google Sheets에 저장
                         saveSettings();
                     }
-                    // 고정수입 동기화: 서버 데이터가 항상 우선 (멀티디바이스 동기화)
+                    // 고정수입 동기화: 목록 멤버십은 서버 우선(멀티디바이스 add/delete 반영),
+                    // 단 createdMonths(이번 달 생성 기록)는 로컬과 합집합으로 병합하여 절대 롤백되지 않게 함.
+                    // (서버 저장 지연 중 다음 로드가 옛 서버값으로 덮어써 고정수입이 중복 생성되던 버그 방지)
                     if (appSettings.recurringIncomes !== undefined) {
-                        // 서버에 필드가 있으면 (빈 배열 포함) 서버 데이터로 localStorage 덮어쓰기
-                        localStorage.setItem(RECURRING_KEY, JSON.stringify(appSettings.recurringIncomes || []));
+                        const serverList = appSettings.recurringIncomes || [];
+                        const localList = getRecurringIncomes();
+                        const localById = {};
+                        localList.forEach(l => { if (l && l.id) localById[l.id] = l; });
+                        let healServer = false;
+                        const merged = serverList.map(s => {
+                            const local = s && s.id ? localById[s.id] : null;
+                            if (!local) return s;
+                            // createdMonths 합집합
+                            const months = new Set([...(local.createdMonths || []), ...(s.createdMonths || [])]);
+                            if (months.size > (s.createdMonths || []).length) healServer = true;
+                            return { ...s, createdMonths: Array.from(months) };
+                        });
+                        appSettings.recurringIncomes = merged;
+                        localStorage.setItem(RECURRING_KEY, JSON.stringify(merged));
+                        // 로컬에만 있던 생성 기록을 서버에도 반영 (다른 기기 중복 생성 방지)
+                        if (healServer) saveSettings();
                     } else {
                         // 서버에 필드 자체가 없으면 (최초 마이그레이션) localStorage → 서버 업로드
                         const localRecurring = getRecurringIncomes();
@@ -5566,9 +5583,14 @@
         }
 
         // 앱 로드 시 고정수입 자동 생성
+        let _recurringInProgress = false;
         async function processRecurringIncomes() {
+            // 동시/중복 호출 방지 (백그라운드+포그라운드 로드가 겹쳐 같은 달을 두 번 생성하던 버그 방지)
+            if (_recurringInProgress) return;
             const list = getRecurringIncomes();
             if (list.length === 0) return;
+            _recurringInProgress = true;
+            try {
 
             const now = new Date();
             const currentYear = now.getFullYear();
@@ -5647,6 +5669,9 @@
                 updateDashboard();
                 setCachedData(expenseData.expenses);
                 showToast('고정수입이 자동으로 등록되었습니다', 'success');
+            }
+            } finally {
+                _recurringInProgress = false;
             }
         }
 
