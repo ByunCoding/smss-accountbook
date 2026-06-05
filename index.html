@@ -8612,9 +8612,10 @@
                 if (descEl) {
                     descEl.value = shortcut.prefix;
                     suggestCategory(shortcut.prefix);
+                    descEl.focus();
+                    descEl.setSelectionRange(descEl.value.length, descEl.value.length);
                 }
                 if (catEl && !catEl.value) catEl.value = shortcut.category;
-                if (amtEl) amtEl.focus();
             }, 150);
         }
 
