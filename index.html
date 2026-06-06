@@ -8630,18 +8630,18 @@
             if (!shortcut) return;
 
             openInputModal();
-            setTimeout(() => {
-                const descEl = document.getElementById('inputDescription');
-                const catEl  = document.getElementById('inputCategory');
-                const amtEl  = document.getElementById('inputAmount');
-                if (descEl) {
-                    descEl.value = shortcut.prefix;
-                    suggestCategory(shortcut.prefix);
-                    descEl.focus();
-                    descEl.setSelectionRange(descEl.value.length, descEl.value.length);
-                }
-                if (catEl && !catEl.value) catEl.value = shortcut.category;
-            }, 150);
+
+            // ★ 모바일 키보드는 탭 제스처와 같은 동기 흐름에서 focus해야 올라옴
+            // (setTimeout으로 미루면 user gesture 컨텍스트가 만료돼 키보드가 안 뜸)
+            const descEl = document.getElementById('inputDescription');
+            const catEl  = document.getElementById('inputCategory');
+            if (descEl) {
+                descEl.value = shortcut.prefix;
+                suggestCategory(shortcut.prefix);
+                descEl.focus();
+                descEl.setSelectionRange(descEl.value.length, descEl.value.length);
+            }
+            if (catEl && !catEl.value) catEl.value = shortcut.category;
         }
 
         function closeInputModal(event) {
