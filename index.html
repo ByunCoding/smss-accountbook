@@ -7983,7 +7983,9 @@
                 return;
             }
 
-            const sliced = filtered.slice(0, _detailDisplayLimit);
+            // 특정 월이 선택된 경우 그 달 전체를 한 번에 표시 (50건 제한은 '전체' 보기에서만 적용)
+            const effectiveLimit = month ? filtered.length : _detailDisplayLimit;
+            const sliced = filtered.slice(0, effectiveLimit);
 
             // 삭제 데이터 저장소 (inline onclick XSS 방지)
             _tableDeleteData = sliced.map(e => ({
@@ -8062,8 +8064,8 @@
                 }).join('');
             }
 
-            // 더보기 버튼
-            if (filtered.length > _detailDisplayLimit) {
+            // 더보기 버튼 ('전체' 보기에서 50건 초과 시에만 노출)
+            if (filtered.length > effectiveLimit) {
                 const moreCount = filtered.length - _detailDisplayLimit;
                 const moreBtnHtml = `<button onclick="_detailDisplayLimit += 50; renderExpenseTable();" style="padding:10px 20px; border:1px solid var(--gray-300); border-radius:10px; background:var(--bg-card); color:var(--text-primary); font-size:0.9rem; font-weight:600; cursor:pointer; transition:all 0.2s;"><i class="ri-arrow-down-line"></i> ${moreCount}건 더보기 (${_detailDisplayLimit}/${filtered.length})</button>`;
                 tbody.innerHTML += `<tr><td colspan="6" style="text-align:center; padding:16px;">${moreBtnHtml}</td></tr>`;
