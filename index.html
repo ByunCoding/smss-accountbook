@@ -11,7 +11,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="SMSS가계부">
     <link rel="apple-touch-icon" href="icons/icon.svg">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 데이터 출처에 미리 연결해서 첫 요청의 TLS 왕복 비용 제거 -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://docs.google.com">
+    <link rel="preconnect" href="https://script.google.com">
+    <!-- defer: HTML 파싱을 막지 않음. 버전 고정으로 CDN 캐시 적중률↑ + SW 캐시 URL 일치 -->
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
@@ -492,6 +497,7 @@
         .logo span { font-size: 0.8rem; opacity: 0.8; }
         .header-info { font-size: 0.85rem; opacity: 0.9; display: flex; align-items: center; gap: 8px; }
         .refresh-btn {
+            position: relative; /* 미전송 배지 기준점 */
             background: rgba(255,255,255,0.2);
             border: none;
             color: white;
@@ -3468,6 +3474,76 @@
         }
         .toast .undo-btn:hover { background: rgba(255,255,255,0.4); }
 
+        /* 새 버전 안내 토스트 (서비스워커 업데이트) */
+        .sw-update-toast {
+            position: fixed;
+            left: 50%;
+            bottom: max(160px, calc(160px + env(safe-area-inset-bottom)));
+            transform: translateX(-50%) translateY(20px);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px 12px 18px;
+            border-radius: 14px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            z-index: 3100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .sw-update-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
+        }
+        .sw-update-toast i { font-size: 1.1rem; }
+        .sw-update-toast #swUpdateBtn {
+            background: rgba(255,255,255,0.22);
+            border: none;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .sw-update-toast #swUpdateBtn:hover { background: rgba(255,255,255,0.38); }
+        .sw-update-toast #swUpdateDismiss {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.75);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+        }
+        .sw-update-toast #swUpdateDismiss:hover { color: #fff; }
+
+        /* 미전송 큐 배지 (헤더 새로고침 버튼 위) */
+        .pending-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 17px;
+            height: 17px;
+            padding: 0 4px;
+            border-radius: 9px;
+            background: var(--expense);
+            color: #fff;
+            font-size: 0.66rem;
+            font-weight: 700;
+            line-height: 17px;
+            text-align: center;
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.18);
+            pointer-events: none;
+        }
+        .pending-badge.syncing { background: var(--warning); }
+
         /* 모바일 반응형 */
         @media (max-width: 768px) {
             .fab {
@@ -3975,8 +4051,9 @@
                 <button class="settings-btn" onclick="openSettingsModal()" title="설정">
                     <i class="ri-settings-3-line"></i>
                 </button>
-                <button class="refresh-btn" onclick="forceRefresh()" title="새로고침">
+                <button class="refresh-btn" onclick="forceRefresh()" title="새로고침 (시트에서 다시 읽기)">
                     <i class="ri-refresh-line"></i>
+                    <span class="pending-badge" id="pendingBadge" hidden></span>
                 </button>
             </div>
         </div>
@@ -5627,29 +5704,29 @@
                 const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
                 try {
-                    // Google Apps Script로 월별 시트 H-K열에 전송
                     const memo = '[고정] ' + (item.description || '');
-                    const params = new URLSearchParams({
-                        action: 'addIncome',
-                        date: dateStr,
-                        category: item.category,
-                        item: memo,
-                        amount: item.amount.toString(),
-                        year: currentYear.toString()
-                    });
-
-                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
 
                     // incomeEntries에 추가
-                    incomeEntries.push({
+                    const rec = {
                         date: dateStr,
                         year: currentYear,
                         month: currentMonth,
                         category: item.category,
                         description: memo,
                         amount: item.amount,
-                        id: `recurring_income_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
-                    });
+                        id: `recurring_income_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+                    };
+                    incomeEntries.push(rec);
+
+                    // 전송 큐 (월별 시트 H-K열). 응답을 기다리지 않아 등록이 즉시 끝난다.
+                    enqueueApi({
+                        action: 'addIncome',
+                        date: dateStr,
+                        category: item.category,
+                        item: memo,
+                        amount: item.amount.toString(),
+                        year: currentYear.toString()
+                    }, { label: '고정수입 등록', kind: 'income', op: 'add', record: rec });
 
                     // 생성된 월 기록
                     if (!item.createdMonths) item.createdMonths = [];
@@ -5821,14 +5898,22 @@
             showLoading('새로고침 중...');
 
             try {
+                // 미전송 큐를 먼저 비운다 — 시트에 반영되기 전에 다시 읽으면
+                // 방금 입력한 내역이 결과에서 빠진다
+                if (getOutbox().length > 0) {
+                    showLoading('미전송 내역 전송 중...');
+                    await flushOutbox();
+                }
                 // 캐시 전부 삭제
                 localStorage.removeItem(CACHE_KEY);
                 localStorage.removeItem(EXPENSE_MONTH_CACHE_KEY);
                 localStorage.removeItem('smss_index_json_cache');
 
                 // 시트 목록 + 데이터 병렬 로드 (시트목록은 캐시 무시)
+                // forceSheets=true → 아카이브된 과거 월도 Google Sheets에서 다시 읽는다
+                // (시트에서 지난 달을 직접 고친 경우 이 버튼으로 반영)
                 await loadSheetList(true);
-                await loadFreshData(false);
+                await loadFreshData(false, true);
 
                 updateCountDisplay();
             } catch (e) {
@@ -5841,7 +5926,8 @@
         }
 
         // 실제 데이터 로드 (병렬 처리)
-        async function loadFreshData(isBackground = false) {
+        // forceSheets=true 이면 아카이브된 과거 월도 Google Sheets에서 다시 읽는다
+        async function loadFreshData(isBackground = false, forceSheets = false) {
             const lastUpdatedEl = document.getElementById('lastUpdated');
 
             if (!isBackground) {
@@ -5872,14 +5958,19 @@
             // 전체 데이터 로드 (MONTHLY 시트 + 모든 월)
             const [, expensesResult] = await Promise.all([
                 loadMonthlySheet().catch(e => { console.warn('Monthly sheet error:', e); return null; }),
-                loadAllExpenses()
+                loadAllExpenses(forceSheets)
             ]);
 
             console.log(`[성능] 전체 데이터 로드: ${Math.round(performance.now() - t0)}ms`);
             _preloadedCurrentMonth = null; // 사용 완료 후 초기화
 
             expenseData.expenses = expensesResult;
-            setCachedData(expensesResult);
+
+            // 시트/JSON 데이터로 교체된 뒤, 아직 전송되지 않은 입력을 화면에 되살린다
+            // (안 하면 오프라인에서 입력한 항목이 새로고침 때 사라져 보인다)
+            reapplyOutbox();
+
+            setCachedData(expenseData.expenses);
 
             calculateSummary();
 
@@ -5916,25 +6007,51 @@
             } catch (e) { return {}; }
         }
 
+        // 월 캐시 쓰기 버퍼
+        // 예전에는 월마다 "전체 캐시 parse → 수정 → 전체 stringify → 저장"을 반복해서
+        // 18개월이면 400KB급 직렬화를 18번 했다(메인 스레드 수백ms 블로킹).
+        // 이제는 버퍼에 모아두고 flushMonthExpenseCache()로 한 번만 저장한다.
+        let _monthCacheBuffer = null;
+
         function setMonthExpenseCache(monthKey, data, income) {
-            try {
-                const cache = getMonthExpenseCache();
-                const entry = { data, timestamp: Date.now() };
-                if (income && income.length > 0) entry.income = income;
-                cache[monthKey] = entry;
-                localStorage.setItem(EXPENSE_MONTH_CACHE_KEY, JSON.stringify(cache));
-            } catch (e) { console.warn('Month cache write error:', e); }
+            if (!_monthCacheBuffer) _monthCacheBuffer = {};
+            const entry = { data, timestamp: Date.now() };
+            if (income && income.length > 0) entry.income = income;
+            _monthCacheBuffer[monthKey] = entry;
+        }
+
+        function flushMonthExpenseCache() {
+            if (!_monthCacheBuffer) return;
+            const pending = _monthCacheBuffer;
+            _monthCacheBuffer = null;
+            // 직렬화 비용을 메인 스레드에서 분리 (첫 페인트를 막지 않음)
+            setTimeout(() => {
+                try {
+                    const cache = getMonthExpenseCache();
+                    Object.assign(cache, pending);
+                    localStorage.setItem(EXPENSE_MONTH_CACHE_KEY, JSON.stringify(cache));
+                } catch (e) { console.warn('Month cache write error:', e); }
+            }, 0);
+        }
+
+        function currentMonthKey() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         }
 
         // 현재 월인지 확인 (현재 월만 항상 새로 로드)
         function isCurrentMonth(monthKey) {
-            const now = new Date();
-            const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            return monthKey === current;
+            return monthKey === currentMonthKey();
+        }
+
+        // 현재 월 이후(할부로 미래 월 시트가 생기는 경우)인지 — 아카이브가 없으므로 시트에서 읽어야 함
+        function isCurrentOrFutureMonth(monthKey) {
+            return monthKey >= currentMonthKey(); // 'YYYY-MM' 문자열 비교로 충분
         }
 
         // 모든 지출 데이터 병렬 로드 (월별 캐싱 적용)
-        async function loadAllExpenses() {
+        // forceSheets=true 이면 아카이브된 월도 Google Sheets에서 다시 읽는다 (수동 새로고침)
+        async function loadAllExpenses(forceSheets = false) {
             incomeEntries = []; // 매 로드 시 수입 데이터 초기화 (parseCSVToExpenses에서 채워짐)
             const allExpenses = [];
             const monthCache = getMonthExpenseCache();
@@ -5962,9 +6079,23 @@
                 jsonMonths = defaultJsonMonths;
             }
 
-            // GOOGLE_SHEETS에 이미 있는 월은 JSON 로드에서 제외 (중복 방지)
-            const sheetMonths = new Set(Object.keys(GOOGLE_SHEETS));
-            const filteredJsonMonths = jsonMonths.filter(m => !sheetMonths.has(m));
+            // ===== 월별 데이터 출처 결정 (정적 JSON 우선) =====
+            // 예전에는 GOOGLE_SHEETS에 있는 월이 무조건 Sheets에서 로드됐다.
+            // 그런데 이미 아카이브가 끝난 월(2026-01~08 등)까지 시트가 남아 있어서
+            // 매번 gviz CSV를 10번씩 받았다(실측 개당 450~2,860ms).
+            // 이제는 아카이브된 과거 월은 정적 JSON(CDN + 서비스워커 캐시)에서 읽고,
+            // Sheets는 "현재/미래 월" 또는 "아카이브가 아직 없는 월"만 읽는다.
+            const archivedSet = new Set(jsonMonths);
+            const sheetEntries = Object.entries(GOOGLE_SHEETS).filter(([month]) =>
+                forceSheets ||                     // 수동 새로고침: 전부 시트에서
+                !archivedSet.has(month) ||         // 아카이브가 없는 월
+                isCurrentOrFutureMonth(month)      // 현재 월 + 할부로 생긴 미래 월
+            );
+            const sheetTargets = new Set(sheetEntries.map(([month]) => month));
+            // 시트에서 읽는 월은 JSON에서 제외 (중복 방지)
+            const filteredJsonMonths = jsonMonths.filter(m => !sheetTargets.has(m));
+
+            console.log(`[로드] 정적 JSON ${filteredJsonMonths.length}개월, Google Sheets ${sheetEntries.length}개월${forceSheets ? ' (강제 새로고침)' : ''}`);
 
             // JSON 파일들: 캐시 있으면 스킵, 없으면 로드
             const jsonPromises = filteredJsonMonths.map(month => {
@@ -5995,13 +6126,13 @@
             });
 
             // Google Sheets: 현재 월은 항상 새로 로드, 과거 월은 캐시
-            const sheetPromises = Object.entries(GOOGLE_SHEETS).map(([month, gid]) => {
+            const sheetPromises = sheetEntries.map(([month, gid]) => {
                 // 1단계에서 이미 로드된 경우 재사용 (더블 패치 방지)
                 if (_preloadedCurrentMonth?.key === month) {
                     return Promise.resolve(_preloadedCurrentMonth.data);
                 }
                 const cached = monthCache[month];
-                if (!isCurrentMonth(month) && cached && cached.data && (Date.now() - cached.timestamp < MONTH_CACHE_EXPIRY)) {
+                if (!forceSheets && !isCurrentMonth(month) && cached && cached.data && (Date.now() - cached.timestamp < MONTH_CACHE_EXPIRY)) {
                     // 캐시에 수입 데이터가 있으면 복원
                     if (cached.income && cached.income.length > 0) {
                         incomeEntries.push(...cached.income);
@@ -6010,7 +6141,10 @@
                 }
                 return loadFromGoogleSheets(gid, month)
                     .then(data => { setMonthExpenseCache(month, data); return data; })
-                    .catch(() => fetch(`data/${month}.json`).then(r => r.json()).catch(() => []));
+                    .catch(() => fetch(`data/${month}.json`)
+                        .then(r => r.json())
+                        .then(d => (d && d.expenses) ? d.expenses : d)  // 두 형식 모두 처리
+                        .catch(() => []));
             });
 
             // 모든 요청 동시 실행
@@ -6021,6 +6155,9 @@
 
             jsonResults.forEach(data => allExpenses.push(...data));
             sheetResults.forEach(data => allExpenses.push(...data));
+
+            // 이번 로드에서 모인 월 캐시를 한 번에 저장 (직렬화 1회)
+            flushMonthExpenseCache();
 
             return allExpenses;
         }
@@ -6225,6 +6362,19 @@
             return isNaN(num) ? 0 : Math.abs(num);
         }
 
+        // 월별 지출 인덱스 (수입 카테고리 제외)
+        // 대시보드 함수 5개가 매번 전체 배열(1,600건)을 각자 필터링하면서
+        // 항목마다 `${year}-${month}` 문자열까지 새로 만들고 있었다 → 월 탭 클릭 1회에 8,000회 이상.
+        // calculateSummary()에서 한 번만 만들고 모두가 공유한다.
+        let _expensesByMonth = {};
+        // 월 인덱스를 쓰지 않는 쪽(건수 표시)을 위한, date 기준 인덱스
+        let _countByMonth = {};
+
+        const EMPTY_ARR = [];
+        function getMonthExpenses(monthKey) {
+            return _expensesByMonth[monthKey] || EMPTY_ARR;
+        }
+
         function calculateSummary() {
             const expenses = expenseData.expenses;
             const categoryBreakdown = {};
@@ -6233,8 +6383,17 @@
             // 수입을 카테고리별/월별로 추적
             const incomeByMonthCategory = {}; // { monthKey: { catName: amount } }
 
+            _expensesByMonth = {};
+            _countByMonth = {};
+
             expenses.forEach(exp => {
                 const monthKey = `${exp.year}-${String(exp.month).padStart(2, '0')}`;
+
+                // 건수 표시용 (수입 카테고리 포함, 기존 date.startsWith와 동일 의미)
+                if (exp.date) {
+                    const dk = exp.date.slice(0, 7);
+                    _countByMonth[dk] = (_countByMonth[dk] || 0) + 1;
+                }
 
                 // 수입 카테고리인 경우 → 카테고리별로 분리 추적, 지출 계산에서 제외
                 if (INCOME_CATEGORIES.has(exp.category)) {
@@ -6245,6 +6404,9 @@
                 }
 
                 exp.isFixed = FIXED_CATEGORIES.includes(exp.category);
+
+                // 월별 인덱스에 적재 (대시보드 5개 함수가 공유)
+                (_expensesByMonth[monthKey] || (_expensesByMonth[monthKey] = [])).push(exp);
 
                 categoryBreakdown[exp.category] = (categoryBreakdown[exp.category] || 0) + exp.amount;
 
@@ -6321,12 +6483,41 @@
         // summary를 전체 재계산 없이 단일 항목만 반영 (O(1))
         function patchSummary(expense, delta) {
             if (!expenseData.summary) return;
-            const monthKey = `${expense.year}-${String(expense.month).padStart(2, '0')}`;
+            // year/month가 없는 경로도 있다 (테이블 삭제는 date만 넘긴다).
+            // 예전에는 이 경우 monthKey가 'undefined-NaN'이 되어 삭제 시 월 합계가 줄지 않았다.
+            const monthKey = (expense.year && expense.month)
+                ? `${expense.year}-${String(expense.month).padStart(2, '0')}`
+                : (expense.date || '').slice(0, 7);
+            if (!monthKey) return;
+
+            // 건수 인덱스 패치
+            if (expense.date) {
+                const dk = expense.date.slice(0, 7);
+                _countByMonth[dk] = Math.max(0, (_countByMonth[dk] || 0) + delta);
+            }
 
             if (INCOME_CATEGORIES.has(expense.category)) {
                 // 수입 항목은 MONTHLY_INCOME만 패치
                 MONTHLY_INCOME[monthKey] = (MONTHLY_INCOME[monthKey] || 0) + expense.amount * delta;
                 return;
+            }
+
+            // 월별 지출 인덱스 패치 (calculateSummary 전체 재계산 없이 대시보드가 최신값을 보게)
+            if (delta > 0) {
+                (_expensesByMonth[monthKey] || (_expensesByMonth[monthKey] = [])).push(expense);
+            } else {
+                const arr = _expensesByMonth[monthKey];
+                if (arr) {
+                    // 원본 객체와 다른 인스턴스로 올 수 있으므로 필드로 매칭
+                    const i = arr.indexOf(expense) !== -1
+                        ? arr.indexOf(expense)
+                        : arr.findIndex(e =>
+                            e.date === expense.date &&
+                            e.category === expense.category &&
+                            e.amount === expense.amount &&
+                            (e.description || '') === (expense.description || ''));
+                    if (i !== -1) arr.splice(i, 1);
+                }
             }
 
             const mt = expenseData.summary.monthly_totals;
@@ -6473,8 +6664,10 @@
         // 현재 월 건수 가져오기
         function getCurrentMonthCount() {
             const currentKey = getSelectedKey();
-            const expenseCount = expenseData.expenses.filter(e => e.date && e.date.startsWith(currentKey)).length;
-            const incomeCount = incomeEntries.filter(e => e.date && e.date.startsWith(currentKey)).length;
+            // 전체 스캔 대신 calculateSummary()에서 만든 인덱스 사용
+            const expenseCount = _countByMonth[currentKey] || 0;
+            const incomeCount = incomeEntries.reduce((n, e) =>
+                n + (e.date && e.date.startsWith(currentKey) ? 1 : 0), 0);
             return expenseCount + incomeCount;
         }
 
@@ -6596,10 +6789,7 @@
         // ===== 일별 지출 히트맵 =====
         function updateDailyHeatmap() {
             const currentKey = getSelectedKey();
-            const currentExpenses = expenseData.expenses.filter(e =>
-                `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey &&
-                !INCOME_CATEGORIES.has(e.category)
-            );
+            const currentExpenses = getMonthExpenses(currentKey);
 
             // 일별 지출 합계 및 내역
             const dailyData = {};
@@ -6757,10 +6947,7 @@
             const currentTotal = currentVariable + currentFixed;
             const lastTotal = lastVariable + lastFixed;
 
-            const currentExpenses = expenseData.expenses.filter(e =>
-                `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey &&
-                !INCOME_CATEGORIES.has(e.category)
-            );
+            const currentExpenses = getMonthExpenses(currentKey);
 
             // === 변동비 메인 카드 ===
             document.getElementById('currentMonthVariable').textContent = formatCurrency(currentVariable);
@@ -6842,10 +7029,7 @@
         function updateExpenseSplit() {
             const currentKey = getSelectedKey();
             const currentData = expenseData.summary.monthly_totals[currentKey] || { total: 0, fixed: 0, variable: 0 };
-            const currentExpenses = expenseData.expenses.filter(e =>
-                `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey &&
-                !INCOME_CATEGORIES.has(e.category)
-            );
+            const currentExpenses = getMonthExpenses(currentKey);
 
             // 구글 시트에서 가져온 고정비 데이터 사용
             const sheetFixed = FIXED_EXPENSES[currentKey];
@@ -6897,10 +7081,7 @@
         // ===== 결제수단별 지출 =====
         function updatePaymentMethods() {
             const currentKey = getSelectedKey();
-            const currentExpenses = expenseData.expenses.filter(e =>
-                `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey &&
-                !INCOME_CATEGORIES.has(e.category)
-            );
+            const currentExpenses = getMonthExpenses(currentKey);
 
             // 결제수단별 집계
             const byPaymentMethod = {};
@@ -7175,10 +7356,7 @@
             const currentCats = expenseData.summary.monthly_totals[currentKey]?.categories || {};
             const lastCats = expenseData.summary.monthly_totals[lastKey]?.categories || {};
 
-            const currentExpenses = expenseData.expenses.filter(e =>
-                `${e.year}-${String(e.month).padStart(2, '0')}` === currentKey &&
-                !INCOME_CATEGORIES.has(e.category)
-            );
+            const currentExpenses = getMonthExpenses(currentKey);
             const byCategory = {};
             currentExpenses.forEach(e => {
                 if (!byCategory[e.category]) byCategory[e.category] = [];
@@ -7872,13 +8050,18 @@
             const search = searchEl ? searchEl.value.toLowerCase() : '';
 
             // 지출 데이터 + 수입 시트 데이터 합치기
-            const incomeItemsMapped = incomeEntries.map(e => ({
-                ...e,
-                payment_method: '수입',
-                isFixed: false,
-                isIncome: true
-            }));
-            let filtered = [...expenseData.expenses.map(e => ({...e, isIncome: false})), ...incomeItemsMapped];
+            // 예전에는 렌더마다 전체(1,600건)를 {...e}로 복제했다. 검색은 타이핑마다 렌더되므로
+            // 복제 비용이 계속 발생했다. 이제 표시용 필드는 수입 항목에만 한 번 보강하고,
+            // 지출은 원본 참조를 그대로 쓴다 (isIncome이 undefined여도 falsy라 동작 동일).
+            for (let i = 0; i < incomeEntries.length; i++) {
+                const e = incomeEntries[i];
+                if (e.isIncome !== true) {
+                    e.isIncome = true;
+                    e.payment_method = '수입';
+                    e.isFixed = false;
+                }
+            }
+            let filtered = expenseData.expenses.concat(incomeEntries);
 
             if (month) filtered = filtered.filter(e => `${e.year}-${String(e.month).padStart(2, '0')}` === month);
             if (category) filtered = filtered.filter(e => e.category === category);
@@ -7925,12 +8108,16 @@
                 const hasFilter = category || payment || amountMin || amountMax || search ||
                     (month && month !== selectedMonth);
                 if (hasFilter && filtered.length > 0) {
-                    const totalExpense = filtered.filter(e => !e.isIncome && !INCOME_CATEGORIES.has(e.category))
-                        .reduce((s, e) => s + e.amount, 0);
-                    const totalIncome = filtered.filter(e => e.isIncome || INCOME_CATEGORIES.has(e.category))
-                        .reduce((s, e) => s + e.amount, 0);
-                    const expenseCount = filtered.filter(e => !e.isIncome && !INCOME_CATEGORIES.has(e.category)).length;
-                    const incomeCount = filtered.filter(e => e.isIncome || INCOME_CATEGORIES.has(e.category)).length;
+                    // 같은 배열을 4번 순회하던 것을 1번으로 (filter+reduce ×4 → 단일 루프)
+                    let totalExpense = 0, totalIncome = 0, expenseCount = 0, incomeCount = 0;
+                    for (let i = 0; i < filtered.length; i++) {
+                        const e = filtered[i];
+                        if (e.isIncome || INCOME_CATEGORIES.has(e.category)) {
+                            totalIncome += e.amount; incomeCount++;
+                        } else {
+                            totalExpense += e.amount; expenseCount++;
+                        }
+                    }
 
                     let html = `<span class="fs-label"><i class="ri-filter-3-line"></i> 필터 결과</span>
                         <span class="fs-count">${filtered.length}건</span>`;
@@ -7996,7 +8183,10 @@
             }));
 
             // 테이블 렌더링 (데스크톱)
-            tbody.innerHTML = sliced.map((e, idx) => {
+            // 데스크톱/모바일은 CSS로 한쪽만 보이므로, 보이지 않는 쪽은 그리지 않는다.
+            // (예전에는 항상 둘 다 그려서 DOM 생성과 문자열 작업을 2배로 하고 있었다.
+            //  브레이크포인트가 바뀌면 resize 핸들러가 다시 렌더한다)
+            tbody.innerHTML = isMobile ? '' : sliced.map((e, idx) => {
                 const isIncomeItem = e.isIncome || INCOME_CATEGORIES.has(e.category);
                 const color = isIncomeItem ? 'var(--income)' : (categoryColors[e.category] || '#9CA3AF');
                 return `
@@ -8028,7 +8218,9 @@
             }).join('');
 
             // 카드 렌더링 (모바일)
-            if (cardList) {
+            if (cardList && !isMobile) {
+                cardList.innerHTML = '';
+            } else if (cardList) {
                 cardList.innerHTML = sliced.map((e, idx) => {
                     const isIncomeItem = e.isIncome || INCOME_CATEGORIES.has(e.category);
                     const color = isIncomeItem ? 'var(--income)' : (categoryColors[e.category] || '#9CA3AF');
@@ -8068,13 +8260,21 @@
             if (filtered.length > effectiveLimit) {
                 const moreCount = filtered.length - _detailDisplayLimit;
                 const moreBtnHtml = `<button onclick="_detailDisplayLimit += 50; renderExpenseTable();" style="padding:10px 20px; border:1px solid var(--gray-300); border-radius:10px; background:var(--bg-card); color:var(--text-primary); font-size:0.9rem; font-weight:600; cursor:pointer; transition:all 0.2s;"><i class="ri-arrow-down-line"></i> ${moreCount}건 더보기 (${_detailDisplayLimit}/${filtered.length})</button>`;
-                tbody.innerHTML += `<tr><td colspan="6" style="text-align:center; padding:16px;">${moreBtnHtml}</td></tr>`;
-                if (cardList) cardList.innerHTML += `<div style="text-align:center; padding:16px;">${moreBtnHtml}</div>`;
+                // insertAdjacentHTML: innerHTML += 는 기존 내용을 전부 다시 파싱한다
+                if (isMobile) {
+                    if (cardList) cardList.insertAdjacentHTML('beforeend', `<div style="text-align:center; padding:16px;">${moreBtnHtml}</div>`);
+                } else {
+                    tbody.insertAdjacentHTML('beforeend', `<tr><td colspan="6" style="text-align:center; padding:16px;">${moreBtnHtml}</td></tr>`);
+                }
             }
         }
 
+        // Intl.NumberFormat 생성은 비싸다. 한 번 만들어 재사용한다.
+        // (예전에는 호출마다 새로 만들어서, 상세 탭 100건 렌더 시 200개를 생성했다)
+        const _krwFormatter = new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' });
+
         function formatCurrency(amount) {
-            return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(amount);
+            return _krwFormatter.format(amount);
         }
 
         function showTab(tabName) {
@@ -8163,6 +8363,191 @@
 
         // ===== 지출 입력 모달 =====
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwg7wuVXbkdaua3yCqIWPyrjSXW8070LNCzkWidcLHy82VRctMYw554iyYGV2TqlDpdOQ/exec';
+
+        // =====================================================================
+        // 전송 큐 (outbox)
+        // ---------------------------------------------------------------------
+        // 예전에는 저장 시 fetch(...).catch(console.error) 로 쏘고 끝이라,
+        // 네트워크가 끊긴 상태에서 입력하면 "저장되었습니다" 토스트만 뜨고
+        // Google Sheets에는 안 들어갔다. 캐시가 만료되면 입력이 조용히 사라졌다.
+        // 또 할부 12개월은 12개의 fetch를 동시에 쏘는데, Apps Script가
+        // "빈 행 찾기 → 쓰기" 를 하므로 동시 실행끼리 같은 행을 덮어쓸 수 있었다.
+        //
+        // 이제 모든 쓰기는 이 큐에 들어가고, 하나씩 순서대로(직렬) 전송된다.
+        //  - localStorage에 남으므로 앱을 닫아도 유실되지 않는다
+        //  - 실패하면 온라인 복귀/주기적 재시도로 이어서 보낸다
+        //  - 직렬 전송이므로 할부 행 충돌이 생기지 않는다
+        //  - 헤더 새로고침 버튼에 미전송 건수가 배지로 표시된다
+        // =====================================================================
+        const OUTBOX_KEY = 'smss_outbox_v1';
+        const OUTBOX_RETRY_MS = 30000;
+        let _outboxDraining = false;
+        let _outboxDrainPromise = null; // 진행 중인 전송 (await 하는 쪽이 기다릴 수 있도록)
+        let _outboxTimer = null;
+
+        function getOutbox() {
+            try {
+                const raw = localStorage.getItem(OUTBOX_KEY);
+                const list = raw ? JSON.parse(raw) : [];
+                return Array.isArray(list) ? list : [];
+            } catch (e) { return []; }
+        }
+
+        function saveOutbox(list) {
+            try {
+                if (list.length === 0) localStorage.removeItem(OUTBOX_KEY);
+                else localStorage.setItem(OUTBOX_KEY, JSON.stringify(list));
+            } catch (e) { console.warn('Outbox write error:', e); }
+        }
+
+        // 쓰기 요청을 큐에 넣는다. record는 화면에 이미 반영된 로컬 항목(새로고침 후 복원용).
+        function enqueueApi(params, opts = {}) {
+            const list = getOutbox();
+            list.push({
+                id: `ob_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                params,
+                label: opts.label || params.action,
+                record: opts.record || null,
+                kind: opts.kind || null,   // 'expense' | 'income'
+                op: opts.op || null,       // 'add' | 'delete'
+                tries: 0,
+                ts: Date.now()
+            });
+            saveOutbox(list);
+            updatePendingBadge();
+            flushOutbox();
+        }
+
+        // 큐를 순서대로 비운다.
+        // 이미 전송 중이면 "진행 중인 작업"을 반환한다 — 그래야 await 하는 쪽(forceRefresh)이
+        // 실제로 전송 완료를 기다린다. (즉시 반환하면 전송 도중에 시트를 다시 읽어버린다)
+        function flushOutbox() {
+            if (_outboxDrainPromise) return _outboxDrainPromise;
+            if (getOutbox().length === 0) { updatePendingBadge(); return Promise.resolve(); }
+
+            _outboxDrainPromise = _drainOutbox()
+                .catch(e => { console.warn('Outbox drain error:', e); })
+                .finally(() => {
+                    _outboxDrainPromise = null;
+                    // 전송 중에 새로 들어온 항목이 있으면 이어서 처리
+                    if (getOutbox().length > 0 && navigator.onLine !== false) {
+                        setTimeout(() => flushOutbox(), 0);
+                    }
+                });
+            return _outboxDrainPromise;
+        }
+
+        async function _drainOutbox() {
+            _outboxDraining = true;
+            updatePendingBadge();
+            try {
+                while (true) {
+                    const list = getOutbox();
+                    if (list.length === 0) break;
+                    if (navigator.onLine === false) break;
+
+                    const item = list[0];
+                    let ok = false;
+                    try {
+                        const res = await fetch(`${APPS_SCRIPT_URL}?${new URLSearchParams(item.params)}`);
+                        if (res.ok) {
+                            ok = true; // 서버가 받았음 → 큐에서 제거
+                            try {
+                                const body = await res.json();
+                                if (body && body.success === false) {
+                                    // 서버가 처리 실패(예: 삭제할 행 없음). 재시도해도 같으므로 제거하고 기록만.
+                                    console.warn(`[전송] ${item.label} 처리 실패:`, body.error);
+                                }
+                            } catch (e) { /* JSON이 아니어도 전송은 성공 */ }
+                        }
+                    } catch (e) {
+                        ok = false; // 네트워크 오류 → 나중에 재시도
+                    }
+
+                    const fresh = getOutbox();
+                    if (!fresh[0] || fresh[0].id !== item.id) continue; // 그 사이 바뀌었으면 다시
+
+                    if (ok) {
+                        fresh.shift();
+                        saveOutbox(fresh);
+                        updatePendingBadge();
+                    } else {
+                        fresh[0].tries = (fresh[0].tries || 0) + 1;
+                        saveOutbox(fresh);
+                        scheduleOutboxRetry();
+                        break;
+                    }
+                }
+            } finally {
+                _outboxDraining = false;
+                updatePendingBadge();
+            }
+        }
+
+        function scheduleOutboxRetry() {
+            if (_outboxTimer) return;
+            _outboxTimer = setTimeout(() => {
+                _outboxTimer = null;
+                if (getOutbox().length > 0) flushOutbox();
+            }, OUTBOX_RETRY_MS);
+        }
+
+        // 헤더 새로고침 버튼의 미전송 배지
+        function updatePendingBadge() {
+            const el = document.getElementById('pendingBadge');
+            if (!el) return;
+            const n = getOutbox().length;
+            if (n === 0) {
+                el.hidden = true;
+                const btn = el.parentElement;
+                if (btn) btn.title = '새로고침 (시트에서 다시 읽기)';
+                return;
+            }
+            el.hidden = false;
+            el.textContent = n > 99 ? '99+' : String(n);
+            el.classList.toggle('syncing', _outboxDraining);
+            const btn = el.parentElement;
+            if (btn) {
+                btn.title = _outboxDraining
+                    ? `시트에 전송 중… (${n}건 남음)`
+                    : `시트에 아직 반영되지 않은 ${n}건 — 누르면 다시 시도합니다`;
+            }
+        }
+
+        // 전체 새로고침으로 로컬 데이터가 시트 데이터로 교체된 뒤,
+        // 아직 전송되지 않은 항목을 화면에 되살린다 (안 하면 입력이 사라져 보인다)
+        function reapplyOutbox() {
+            const list = getOutbox();
+            if (list.length === 0) return 0;
+            let applied = 0;
+
+            list.forEach(item => {
+                if (!item.record) return;
+                const r = item.record;
+                const target = item.kind === 'income' ? incomeEntries : expenseData.expenses;
+                const findIdx = () => target.findIndex(e =>
+                    e.date === r.date &&
+                    e.category === r.category &&
+                    e.amount === r.amount &&
+                    (e.description || '') === (r.description || ''));
+
+                if (item.op === 'add') {
+                    if (findIdx() === -1) { target.push(r); applied++; }
+                } else if (item.op === 'delete') {
+                    const i = findIdx();
+                    if (i !== -1) { target.splice(i, 1); applied++; }
+                }
+            });
+
+            if (applied > 0) console.log(`[전송] 미전송 ${applied}건을 화면에 복원`);
+            return applied; // 호출한 쪽에서 calculateSummary()를 실행한다
+        }
+
+        // 온라인 복귀 / 탭 복귀 시 이어서 전송
+        window.addEventListener('online', () => flushOutbox());
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && getOutbox().length > 0) flushOutbox();
+        });
 
         // 키워드 기반 카테고리 자동 추천 (데이터 분석 기반)
         const CATEGORY_KEYWORDS = {
@@ -8695,43 +9080,47 @@
             if (undoTimeout) clearTimeout(undoTimeout);
 
             try {
+                // year는 Apps Script가 시트 이름('26.9')을 만들 때 쓴다.
+                // 빠뜨리면 String(undefined).slice(-2) = 'ed' → 'ed.9' 시트가 생성된다.
+                const [year, month] = data.date.split('-').map(Number);
+
                 if (data.isIncome) {
-                    // 수입 시트에 다시 추가
-                    const params = new URLSearchParams({
-                        action: 'addIncome',
-                        date: data.date,
-                        category: data.category,
-                        item: data.description || '',
-                        amount: data.amount.toString()
-                    });
-
-                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
-
-                    // incomeEntries에 다시 추가
-                    const [year, month] = data.date.split('-').map(Number);
-                    incomeEntries.push({
+                    const rec = {
                         date: data.date,
                         year, month,
                         category: data.category,
                         description: data.description || '',
                         amount: data.amount,
                         id: `undo_income_${Date.now()}`
-                    });
+                    };
+                    incomeEntries.push(rec);
+
+                    enqueueApi({
+                        action: 'addIncome',
+                        date: data.date,
+                        category: data.category,
+                        item: data.description || '',
+                        amount: data.amount.toString(),
+                        year: year.toString()
+                    }, { label: '수입 복원', kind: 'income', op: 'add', record: rec });
                 } else {
-                    // 지출 시트에 다시 추가
-                    const params = new URLSearchParams({
+                    // year/month를 보강해서 넣는다 (없으면 월별 집계에서 누락된다)
+                    const rec = {
+                        ...data,
+                        year, month,
+                        isFixed: FIXED_CATEGORIES.includes(data.category)
+                    };
+                    expenseData.expenses.push(rec);
+
+                    enqueueApi({
                         action: 'add',
                         date: data.date,
                         category: data.category,
                         item: data.description || '',
                         amount: data.amount.toString(),
-                        person: data.payment_method || ''
-                    });
-
-                    await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
-
-                    // 로컬 데이터에 다시 추가
-                    expenseData.expenses.push(data);
+                        person: data.payment_method || '',
+                        year: year.toString()
+                    }, { label: '지출 복원', kind: 'expense', op: 'add', record: rec });
                 }
                 calculateSummary();
 
@@ -8828,26 +9217,24 @@
                             e.amount === originalData.amount && (e.description || '') === (originalData.description || '')
                         );
                         if (di !== -1) incomeEntries.splice(di, 1);
-                        // API 백그라운드 삭제
-                        const delParams = new URLSearchParams({
+                        // 전송 큐로 삭제 (실패 시 재시도)
+                        enqueueApi({
                             action: 'deleteIncome',
                             date: originalData.date,
                             category: originalData.category,
                             item: originalData.description || '',
                             amount: originalData.amount.toString()
-                        });
-                        fetch(`${APPS_SCRIPT_URL}?${delParams.toString()}`).catch(e => console.error('Delete income API error:', e));
+                        }, { label: '수입 삭제', kind: 'income', op: 'delete', record: { ...originalData } });
                     } else {
-                        // 로컬에서 즉시 제거
-                        const delParams = new URLSearchParams({
+                        // 전송 큐로 삭제 (실패 시 재시도)
+                        enqueueApi({
                             action: 'delete',
                             date: originalData.date,
                             category: originalData.category,
                             item: originalData.description || '',
                             person: originalData.payment_method || '',
                             amount: originalData.amount.toString()
-                        });
-                        fetch(`${APPS_SCRIPT_URL}?${delParams.toString()}`).catch(e => console.error('Delete expense API error:', e));
+                        }, { label: '지출 삭제', kind: 'expense', op: 'delete', record: { ...originalData } });
                         const di = expenseData.expenses.findIndex(e =>
                             e.date === originalData.date && e.category === originalData.category &&
                             e.amount === originalData.amount && (e.description || '') === (originalData.description || '')
@@ -8861,7 +9248,7 @@
 
                 if (isIncome) {
                     // 로컬 즉시 추가 (optimistic update)
-                    incomeEntries.push({
+                    const rec = {
                         date: date,
                         year: year,
                         month: month,
@@ -8869,20 +9256,18 @@
                         description: description,
                         amount: amount,
                         id: `local_income_${Date.now()}`
-                    });
+                    };
+                    incomeEntries.push(rec);
 
-                    // API 백그라운드 전송 (응답 기다리지 않음)
-                    const params = new URLSearchParams({
+                    // 전송 큐 (실패 시 재시도 → 유실 없음)
+                    enqueueApi({
                         action: 'addIncome',
                         date: date,
                         category: category,
                         item: description,
                         amount: amount.toString(),
                         year: year.toString()
-                    });
-                    fetch(`${APPS_SCRIPT_URL}?${params.toString()}`).catch(e => {
-                        console.error('Income API error:', e);
-                    });
+                    }, { label: '수입 저장', kind: 'income', op: 'add', record: rec });
                 } else {
                     // 지출 저장 (일시불 또는 할부)
                     const months = parseInt(document.getElementById('inputInstallment')?.value || '1');
@@ -8890,7 +9275,7 @@
 
                     if (months <= 1) {
                         // 로컬 즉시 추가 (optimistic update)
-                        expenseData.expenses.push({
+                        const rec = {
                             date: date,
                             year: year,
                             month: month,
@@ -8900,10 +9285,11 @@
                             payment_method: payment,
                             isFixed: FIXED_CATEGORIES.includes(category),
                             id: `local_${Date.now()}_0`
-                        });
+                        };
+                        expenseData.expenses.push(rec);
 
-                        // API 백그라운드 전송 (응답 기다리지 않음)
-                        const params = new URLSearchParams({
+                        // 전송 큐 (실패 시 재시도 → 유실 없음)
+                        enqueueApi({
                             action: 'add',
                             year: year.toString(),
                             date: date,
@@ -8911,10 +9297,7 @@
                             item: description,
                             person: payment,
                             amount: amount.toString()
-                        });
-                        fetch(`${APPS_SCRIPT_URL}?${params.toString()}`).catch(e => {
-                            console.error('Expense API error:', e);
-                        });
+                        }, { label: '지출 저장', kind: 'expense', op: 'add', record: rec });
                     } else {
                         // 할부: N번 순차 호출
                         const monthlyAmount = Math.floor(amount / months);
@@ -8932,7 +9315,7 @@
                             const iDesc = (description ? description + ' ' : '') + '(' + (n + 1) + '/' + months + ')';
 
                             // 로컬 즉시 추가
-                            expenseData.expenses.push({
+                            const rec = {
                                 date: iDateStr,
                                 year: iYear,
                                 month: iMonth,
@@ -8942,11 +9325,13 @@
                                 payment_method: payment,
                                 isFixed: FIXED_CATEGORIES.includes(category),
                                 id: 'local_' + Date.now() + '_' + n
-                            });
+                            };
+                            expenseData.expenses.push(rec);
                             savedCount++;
 
-                            // API 백그라운드 전송
-                            const params = new URLSearchParams({
+                            // 전송 큐에 순서대로 적재 → 하나씩 직렬 전송된다.
+                            // (예전엔 N개를 동시에 쏴서 Apps Script가 같은 빈 행을 찾아 덮어쓸 수 있었다)
+                            enqueueApi({
                                 action: 'add',
                                 year: iYear.toString(),
                                 date: iDateStr,
@@ -8954,10 +9339,7 @@
                                 item: iDesc,
                                 person: payment,
                                 amount: iAmount.toString()
-                            });
-                            fetch(`${APPS_SCRIPT_URL}?${params.toString()}`).catch(e => {
-                                console.error('Installment API error:', e);
-                            });
+                            }, { label: `할부 ${n + 1}/${months}`, kind: 'expense', op: 'add', record: rec });
                         }
 
                         // 할부: 직접 마무리 처리 후 return
@@ -9132,15 +9514,14 @@
                     if (idx !== -1) {
                         incomeEntries.splice(idx, 1);
                     }
-                    // API 백그라운드 삭제
-                    const params = new URLSearchParams({
+                    // 전송 큐로 삭제 (실패 시 재시도)
+                    enqueueApi({
                         action: 'deleteIncome',
                         date: data.date,
                         category: data.category,
                         item: data.description || '',
                         amount: data.amount.toString()
-                    });
-                    fetch(`${APPS_SCRIPT_URL}?${params.toString()}`).catch(e => console.error('Delete income API error:', e));
+                    }, { label: '수입 삭제', kind: 'income', op: 'delete', record: { ...data } });
                 } else {
                     // 로컬에서 즉시 제거
                     const idx = expenseData.expenses.findIndex(e =>
@@ -9152,16 +9533,15 @@
                     if (idx !== -1) {
                         expenseData.expenses.splice(idx, 1);
                     }
-                    // API 백그라운드 삭제
-                    const params = new URLSearchParams({
+                    // 전송 큐로 삭제 (실패 시 재시도)
+                    enqueueApi({
                         action: 'delete',
                         date: data.date,
                         category: data.category,
                         item: data.description || '',
                         person: data.payment_method || '',
                         amount: data.amount.toString()
-                    });
-                    fetch(`${APPS_SCRIPT_URL}?${params.toString()}`).catch(e => console.error('Delete expense API error:', e));
+                    }, { label: '지출 삭제', kind: 'expense', op: 'delete', record: { ...data } });
                 }
 
                 // 되돌리기를 위해 삭제된 항목 저장
@@ -9276,14 +9656,68 @@
         })();
 
         // PWA Service Worker 등록
-        if ('serviceWorker' in navigator) {
+        // 캐시 우선 전략이라 앱은 즉시 뜨고, 새 버전은 토스트로 알린 뒤 사용자가 선택해서 적용
+        // 비보안(http) 출처에서는 'serviceWorker' in navigator 가 true여도 값이 undefined일 수 있다
+        if (navigator.serviceWorker) {
+            let _reloading = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                // skipWaiting()으로 새 워커가 제어권을 잡으면 한 번만 리로드
+                if (_reloading) return;
+                _reloading = true;
+                location.reload();
+            });
+
             navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
                 .then(reg => {
                     console.log('Service Worker 등록 완료:', reg.scope);
-                    // 매번 업데이트 확인
-                    reg.update();
+
+                    // 대기 중인 새 버전이 이미 있으면 바로 안내
+                    if (reg.waiting && navigator.serviceWorker.controller) {
+                        showUpdateToast(reg.waiting);
+                    }
+
+                    // 새 버전이 설치 완료되는 순간 감지
+                    reg.addEventListener('updatefound', () => {
+                        const sw = reg.installing;
+                        if (!sw) return;
+                        sw.addEventListener('statechange', () => {
+                            // controller가 있어야 '업데이트'(최초 설치가 아님)
+                            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                                showUpdateToast(sw);
+                            }
+                        });
+                    });
+
+                    // 앱을 열 때마다 백그라운드로 업데이트 확인 (렌더를 막지 않음)
+                    setTimeout(() => reg.update().catch(() => {}), 3000);
                 })
                 .catch(err => console.log('Service Worker 등록 실패:', err));
+        }
+
+        // '새 버전' 토스트 (누르면 즉시 적용)
+        function showUpdateToast(worker) {
+            const existing = document.getElementById('swUpdateToast');
+            if (existing) return;
+            const el = document.createElement('div');
+            el.id = 'swUpdateToast';
+            el.className = 'sw-update-toast';
+            el.innerHTML = `
+                <i class="ri-download-cloud-2-line"></i>
+                <span>새 버전이 준비됐어요</span>
+                <button type="button" id="swUpdateBtn">지금 갱신</button>
+                <button type="button" id="swUpdateDismiss" aria-label="닫기"><i class="ri-close-line"></i></button>
+            `;
+            document.body.appendChild(el);
+            requestAnimationFrame(() => el.classList.add('show'));
+
+            document.getElementById('swUpdateBtn').onclick = () => {
+                worker.postMessage({ type: 'SKIP_WAITING' }); // controllerchange → 자동 리로드
+                el.classList.remove('show');
+            };
+            document.getElementById('swUpdateDismiss').onclick = () => {
+                el.classList.remove('show');
+                setTimeout(() => el.remove(), 300);
+            };
         }
 
         // resize 시 상세 내역 재렌더 (모바일 ↔ 데스크톱 전환 대응)
@@ -9304,7 +9738,9 @@
         }
 
         // 빠른 시작: localStorage 동기 적용 → 캐시 풀셋이면 즉시 표시, 아니면 기존 흐름
-        (function fastStart() {
+        // chart.js가 defer로 로드되므로 DOMContentLoaded 이후에 실행해야 Chart가 정의돼 있다
+        // (defer 스크립트는 DOMContentLoaded 직전에 순서대로 실행됨)
+        function fastStart() {
             let hasSettings = false, hasSheets = false, hasData = false;
 
             // 1. 설정 localStorage 즉시 적용
@@ -9352,7 +9788,17 @@
                 // 캐시 부족 (최초 실행 등): 기존 흐름 유지
                 Promise.all([loadSettings(), loadSheetList()]).then(() => loadData());
             }
-        })();
+
+            // 미전송 큐가 남아 있으면 앱 시작 시 이어서 전송
+            updatePendingBadge();
+            flushOutbox();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', fastStart, { once: true });
+        } else {
+            fastStart();
+        }
     </script>
 </div><!-- end app-wrapper -->
 </body>
