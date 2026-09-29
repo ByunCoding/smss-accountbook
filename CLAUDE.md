@@ -7,21 +7,33 @@ SMSS 가계부 - GitHub Pages로 호스팅되는 PWA 가계부 앱
 - 아카이브: `data/*.json` (과거 월 정적 데이터), `data/index.json` (월 목록)
 
 ## 개발 환경 주의
+- **저장소 위치: `C:\Users\tkdal\Documents\GitHub\smss-accountbook`**
+  (2026-09-29에 OneDrive 밖으로 옮겼다. **OneDrive에 두면 `.git`이 손상된다** —
+  실제로 동기화 해제 중 이동이 중단돼 `.git`이 비고 파일이 사라졌다.
+  옛 경로 `OneDrive\Documents\GitHub\smss-accountbook`는 쓰지 말 것)
 - **git이 PATH에 없다.** GitHub Desktop 번들 git을 쓴다:
   `$env:LOCALAPPDATA\GitHubDesktop\app-<버전>\resources\app\git\cmd\git.exe`
   (`app-*` 폴더가 여러 개면 가장 높은 버전 사용)
+- **`git push`는 CLI에서 안 된다.** GitHub Desktop이 토큰을 자체 형식
+  (`GitHub - https://api.github.com/<user>`)으로 저장해서 credential manager가 못 찾는다.
+  → 푸시는 **GitHub Desktop**에서 하거나 사용자가 직접 실행
 - 셸은 Windows PowerShell 5.1 → `&&` / `?:` / `??` 사용 불가, `;` + `if ($?)` 로 대체
+  - 네이티브 exe에 큰따옴표가 든 인자를 넘기면 잘못 쪼개진다 →
+    커밋 메시지는 파일에 써서 `git commit -F <파일>`
+  - 백틱 3개(```) 를 문자열에 직접 넣지 말 것 → `[char]96` 으로 조립
 - 로컬 확인은 `node`로 정적 서버를 띄운다 (서비스워커는 localhost에서만 동작)
 
 ## 배포 규칙
 **중요: 모든 작업 완료 후 반드시 커밋 & 푸시**
 ```powershell
 $git = "$env:LOCALAPPDATA\GitHubDesktop\app-3.6.6\resources\app\git\cmd\git.exe"
-& $git add index.html; & $git commit -m "메시지"; & $git push
+& $git add index.html; if ($?) { & $git commit -F 커밋메시지.txt }
+# push는 GitHub Desktop에서 (위 '개발 환경 주의' 참고)
 ```
 - GitHub Pages 자동 배포 (1-2분 소요)
 - 커밋 메시지에 Co-Authored-By 포함
 - **`service-worker.js` 수정 시 `CACHE_NAME` 버전을 올려야** 기존 캐시가 갱신된다
+- `업로드.bat`은 **동작하지 않는다** (bare `git`이 PATH에 없음)
 
 ## 기술 스택
 - Vanilla JavaScript (프레임워크 없음)
@@ -161,6 +173,43 @@ $git = "$env:LOCALAPPDATA\GitHubDesktop\app-3.6.6\resources\app\git\cmd\git.exe"
 - `calculateSummary()` - 전체 집계 + 월별 인덱스(`_expensesByMonth`) 생성
 - `patchSummary(expense, delta)` - 전체 재계산 없이 1건만 증분 반영 (인덱스도 함께 패치)
 - `getMonthExpenses(monthKey)` - 해당 월 지출 조회 (O(1)). 대시보드는 이걸 쓴다
+
+### 현금흐름 기능 (2026-09-29 추가)
+- `getBillingPeriod(payY, payM, billingDay, closingDay)` — 카드 청구서의 사용기간 계산
+  - `closingDay = 0`: 사용기간 = **전월 1일~말일** (국민카드형, 기본값)
+  - `closingDay = k`: 결제일 직전의 k일이 마감 → 그 1개월 (현대카드형)
+    - 예) 결제일 25일 / 마감 11일 → 10/25 결제분 = 9/12 ~ 10/11
+  - 짧은 달은 말일로 클램프된다 (마감 31일 + 9월 → 9/30)
+- `getUpcomingBillings(count)` — 다가오는 결제 예정 (결제일 오름차순).
+  `payment_method` 이름으로 `_expensesByPayment` 인덱스를 조회한다
+- `getInstallmentSummary()` — **할부 입력 시 m개월치 행을 전부 만들어 두는 구조**를 이용해
+  "오늘 이후 날짜의 할부 행 합계 = 남은 할부 원금"으로 계산한다
+- `getCategoryTrends(monthsBack, topN)` — 선택 월을 마지막으로 하는 N개월 구간.
+  `monthly_totals[key].categories` 를 읽으므로 전체 배열을 다시 스캔하지 않는다
+- `sparklineSVG(series, months, strokeVar)` — 인라인 SVG. **하드코딩 색 금지**,
+  `stroke="var(--토큰)"` 만 쓴다 (다크모드 자동 대응)
+
+### 카드 결제일 저장 위치 (주의)
+`billingDay` / `closingDay` 는 `appSettings.paymentMethods[].billingDay` 에 들어가지만,
+**배포된 Apps Script의 `getSettings`는 결제수단을 `{name, emoji}`로만 돌려준다.**
+→ 시트에서 설정을 다시 읽으면 값이 사라진다. 그래서:
+- `saveCardBillingLocal()` 이 `smss_card_billing` 키에 이름 기준으로 따로 보관
+- `mergeCardBillingLocal()` 이 **`applySettings()` 맨 앞에서** 다시 합친다
+  (모든 로드 경로가 `applySettings`를 거치므로 여기가 유일한 안전 지점)
+- `App Script.md` 상단에 **미적용 패치**가 있다 — 붙여넣고 재배포하면 기기 간 동기화된다
+
+### 시각화 규칙
+- 기존 16색 `categoryColors`는 **나란히 놓고 색만으로 구분하기에 부적합**하다
+  (검증기 결과: `#8B5CF6`↔`#6366F1` 정상시야 ΔE 6.3 — 15 미달, 하드 실패).
+  따라서 카테고리 색은 **이름/라벨과 함께** 쓰고, 색 단독 식별에 의존하지 말 것
+- 추세 스파크라인의 선 색은 카테고리색이 아니라 **상태색**(증가 `--expense` /
+  감소 `--income` / 평탄 `--gray-500`)이며, 반드시 화살표 아이콘 + 퍼센트 텍스트와 함께 낸다
+- 카드 결제 예정 막대는 **단일 색**(`--primary`) — 하나의 측정값을 카드별로 비교하는
+  magnitude 이므로 카테고리 색을 순번으로 돌려 쓰지 않는다
+  (기존 `updatePaymentMethods`는 `paymentColors[index % n]`로 **순위에 색을 매기는**
+   안티패턴이 남아 있다. 새 코드에서 따라하지 말 것)
+- 검증기: `dataviz` 스킬의 `scripts/validate_palette.js`
+  표면색은 라이트 `#FFFFFF`, 다크 `#141516`
 
 ### 성능 규칙 (되돌리지 말 것)
 - `expenseData.expenses.filter(...)`로 월별 필터링하지 말 것 → `getMonthExpenses(key)` 사용

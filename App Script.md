@@ -1,3 +1,19 @@
+# Google Apps Script 코드
+
+> **미적용 변경 있음 — 2026-09-29**
+>
+> 아래 `getSettings` / `saveSettingsData` 두 함수에 **카드 결제일 저장**이 추가됐습니다.
+> 결제수단의 `billingDay`(결제일) / `closingDay`(마감일)를 SETTINGS 시트 D열에 JSON으로 보관합니다.
+>
+> **이 파일은 문서일 뿐이라 자동 반영되지 않습니다.** 적용하려면:
+> 1. [Apps Script 편집기](https://script.google.com) 열기
+> 2. 이 파일 내용 전체를 복사해 붙여넣기
+> 3. **배포 → 배포 관리 → 편집(연필) → 버전: 새 버전 → 배포**
+>
+> 적용하지 않아도 앱은 정상 동작합니다. 다만 결제일이 **그 기기에만** 저장되므로
+> 휴대폰과 PC에서 각각 설정해야 합니다. 적용하면 기기 간에 자동으로 동기화됩니다.
+
+```javascript
 function doGet(e) {
   var action = e.parameter.action;
 
@@ -220,7 +236,18 @@ function getSettings() {
       if (type === 'category') {
         categories.push({name: name, emoji: emoji || '', color: color || '#9CA3AF'});
       } else if (type === 'payment') {
-        paymentMethods.push({name: name, emoji: emoji || ''});
+        // D열에 카드 결제일 정보가 JSON으로 들어 있으면 함께 복원한다
+        var pm = {name: name, emoji: emoji || ''};
+        if (color) {
+          try {
+            var meta = JSON.parse(color);
+            if (meta && meta.billingDay) {
+              pm.billingDay = Number(meta.billingDay) || 0;
+              pm.closingDay = Number(meta.closingDay) || 0;
+            }
+          } catch (ex) {}
+        }
+        paymentMethods.push(pm);
       } else if (type === 'budget') {
         budgets[name] = Number(color) || 0;
       } else if (type === 'income') {
@@ -262,7 +289,12 @@ function saveSettingsData(settings) {
     }
     for (var j = 0; j < settings.paymentMethods.length; j++) {
       var pm = settings.paymentMethods[j];
-      rows.push(['payment', pm.name, pm.emoji, '']);
+      // 카드 결제일이 설정돼 있으면 D열에 JSON으로 저장 (없으면 빈 칸)
+      var pmMeta = '';
+      if (pm.billingDay) {
+        pmMeta = JSON.stringify({billingDay: Number(pm.billingDay) || 0, closingDay: Number(pm.closingDay) || 0});
+      }
+      rows.push(['payment', pm.name, pm.emoji, pmMeta]);
     }
     if (settings.budgets) {
       var budgetKeys = Object.keys(settings.budgets);
@@ -343,3 +375,4 @@ function getDefaultSettings() {
     recurringIncomes: []
   };
 }
+```

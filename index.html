@@ -3474,6 +3474,234 @@
         }
         .toast .undo-btn:hover { background: rgba(255,255,255,0.4); }
 
+        /* ===== 설정: 결제수단 결제일 ===== */
+        .settings-item.pm-item {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+        }
+        .pm-item-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .pm-billing {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding-left: 2px;
+        }
+        .pm-billing label {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+        .pm-billing input {
+            width: 52px;
+            padding: 5px 7px;
+            border: 1px solid var(--gray-300);
+            border-radius: 7px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 0.82rem;
+            text-align: center;
+        }
+        .pm-billing input:disabled { opacity: 0.45; cursor: not-allowed; }
+        .pm-billing input:focus { outline: none; border-color: var(--primary); }
+        .pm-billing-hint {
+            flex: 1;
+            min-width: 100%;
+            font-size: 0.72rem;
+            color: var(--gray-500);
+        }
+
+        /* ===== 카드 결제 예정 ===== */
+        .billing-row {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--gray-300);
+        }
+        .billing-row:last-child { border-bottom: none; }
+        .billing-row-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .billing-when {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 50px;
+        }
+        .billing-date { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); }
+        .billing-dday { font-size: 0.68rem; font-weight: 600; color: var(--gray-500); }
+        .billing-dday.soon { color: var(--expense); }
+        .billing-name {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .billing-emoji { font-size: 1rem; }
+        .billing-amount {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+        .billing-bar {
+            height: 6px;
+            background: var(--gray-300);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        /* 하나의 측정값(청구액)을 카드별로 비교 → 단일 색 */
+        .billing-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        .billing-row-foot {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 7px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .billing-period { flex: 1; min-width: 150px; }
+        .billing-period i { margin-right: 2px; }
+        .billing-tag {
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: var(--gray-300);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.72rem;
+        }
+        .billing-tag.open { background: var(--warning-light); color: var(--warning); }
+        .billing-empty {
+            text-align: center;
+            padding: 24px 16px;
+            color: var(--text-secondary);
+        }
+        .billing-empty i { font-size: 2rem; color: var(--gray-500); display: block; margin-bottom: 10px; }
+        .billing-empty p { font-size: 0.85rem; line-height: 1.6; margin-bottom: 14px; }
+
+        /* ===== 할부 현황 ===== */
+        .inst-top {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .inst-stat {
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-300);
+        }
+        .inst-stat .label { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px; }
+        .inst-stat .value { font-size: 1.15rem; font-weight: 700; color: var(--text-primary); }
+        .inst-stat .value.expense { color: var(--expense); }
+
+        .inst-sched { margin-bottom: 16px; }
+        .inst-sched-title { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600; }
+        .inst-sched-bars { display: flex; align-items: flex-end; gap: 8px; }
+        .inst-sched-col { flex: 1; text-align: center; min-width: 0; }
+        .inst-sched-bar {
+            height: 56px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+        .inst-sched-fill {
+            width: 100%;
+            max-width: 26px;
+            background: var(--primary);
+            /* 데이터 끝만 둥글게, 베이스라인에 붙인다 */
+            border-radius: 4px 4px 0 0;
+            min-height: 3px;
+        }
+        .inst-sched-m { font-size: 0.72rem; color: var(--text-secondary); }
+        .inst-sched-v { font-size: 0.72rem; font-weight: 700; color: var(--text-primary); }
+
+        .inst-item {
+            padding: 11px 0;
+            border-bottom: 1px solid var(--gray-300);
+        }
+        .inst-item:last-child { border-bottom: none; }
+        .inst-item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+        .inst-item-name {
+            flex: 1;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .inst-item-remain { font-size: 0.92rem; font-weight: 700; color: var(--expense); white-space: nowrap; }
+        .inst-progress { height: 5px; background: var(--gray-300); border-radius: 3px; overflow: hidden; }
+        .inst-progress-fill { height: 100%; background: var(--income); border-radius: 3px; }
+        .inst-item-foot {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 6px;
+            font-size: 0.73rem;
+            color: var(--text-secondary);
+        }
+
+        /* ===== 카테고리 6개월 추세 ===== */
+        .trend-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--gray-300);
+        }
+        .trend-row:last-child { border-bottom: none; }
+        .trend-label { display: flex; align-items: center; gap: 7px; width: 96px; flex-shrink: 0; }
+        .trend-label .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .trend-cat {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .trend-spark { flex-shrink: 0; display: block; }
+        .trend-values {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+            min-width: 0;
+        }
+        .trend-current { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
+        .trend-delta {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            white-space: nowrap;
+        }
+        .trend-delta.up { color: var(--expense); }
+        .trend-delta.down { color: var(--income); }
+
         /* 새 버전 안내 토스트 (서비스워커 업데이트) */
         .sw-update-toast {
             position: fixed;
@@ -4206,6 +4434,28 @@
                     </div>
                 </div>
 
+                <!-- 카드 결제 예정 (통장에서 실제로 빠지는 시점) -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-calendar-schedule-fill"></i> 카드 결제 예정</h2>
+                        <span id="billingForecastSummary" style="font-size: 0.85rem; color: var(--gray-500);"></span>
+                    </div>
+                    <div class="section-body">
+                        <div id="billingForecastBody"></div>
+                    </div>
+                </div>
+
+                <!-- 할부 현황 -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-split-cells-horizontal"></i> 할부 현황</h2>
+                        <span id="installmentSummary" style="font-size: 0.85rem; color: var(--gray-500);"></span>
+                    </div>
+                    <div class="section-body">
+                        <div id="installmentBody"></div>
+                    </div>
+                </div>
+
                 <!-- 전월 대비 카테고리 분석 -->
                 <div class="section">
                     <div class="section-header">
@@ -4226,6 +4476,17 @@
                                 <div id="newCategories"></div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- 카테고리별 6개월 추세 -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-line-chart-line"></i> 카테고리 6개월 추세</h2>
+                        <span id="categoryTrendSummary" style="font-size: 0.85rem; color: var(--gray-500);"></span>
+                    </div>
+                    <div class="section-body">
+                        <div id="categoryTrendBody"></div>
                     </div>
                 </div>
 
@@ -4980,6 +5241,11 @@
         function applySettings() {
             if (!appSettings) return;
 
+            // 카드 결제일 복원 — SETTINGS 시트는 결제수단을 {name, emoji}로만 저장하므로
+            // 시트에서 설정을 다시 읽으면 billingDay/closingDay가 사라진다.
+            // 모든 로드 경로(캐시·시트·오프라인 폴백)가 이 함수를 거치므로 여기서 합친다.
+            mergeCardBillingLocal();
+
             // categoryColors 업데이트
             categoryColors = {};
             appSettings.categories.forEach(cat => {
@@ -5221,17 +5487,37 @@
                 </div>
             `).join('');
 
-            // 결제수단 리스트
+            // 결제수단 리스트 (+ 카드 결제일/마감일 → '카드 결제 예정' 계산에 쓰임)
             const paymentList = document.getElementById('paymentSettingsList');
             paymentList.innerHTML = appSettings.paymentMethods.map((pm, idx) => `
-                <div class="settings-item">
-                    <div class="settings-item-info">
-                        <span class="settings-item-emoji">${pm.emoji}</span>
-                        <span class="settings-item-name">${pm.name}</span>
+                <div class="settings-item pm-item">
+                    <div class="pm-item-top">
+                        <div class="settings-item-info">
+                            <span class="settings-item-emoji">${pm.emoji}</span>
+                            <span class="settings-item-name">${pm.name}</span>
+                        </div>
+                        <button class="settings-item-delete" onclick="removePaymentMethod(${idx})" title="삭제">
+                            <i class="ri-delete-bin-line"></i>
+                        </button>
                     </div>
-                    <button class="settings-item-delete" onclick="removePaymentMethod(${idx})" title="삭제">
-                        <i class="ri-delete-bin-line"></i>
-                    </button>
+                    <div class="pm-billing">
+                        <label>
+                            결제일
+                            <input type="number" min="0" max="31" placeholder="없음"
+                                   value="${pm.billingDay || ''}"
+                                   onchange="updatePaymentBilling(${idx}, 'billingDay', this.value)">
+                            <span>일</span>
+                        </label>
+                        <label>
+                            마감일
+                            <input type="number" min="0" max="31" placeholder="전월말"
+                                   value="${pm.closingDay || ''}"
+                                   onchange="updatePaymentBilling(${idx}, 'closingDay', this.value)"
+                                   ${pm.billingDay ? '' : 'disabled'}>
+                            <span>일</span>
+                        </label>
+                        <span class="pm-billing-hint">${describeBilling(pm)}</span>
+                    </div>
                 </div>
             `).join('');
 
@@ -5336,6 +5622,69 @@
                 renderSettingsLists();
                 showToast(`'${pm.name}' 결제수단이 삭제되었습니다.`, 'success');
             }
+        }
+
+        // 카드 결제일 / 마감일 변경 ('카드 결제 예정' 계산에 쓰임)
+        function updatePaymentBilling(index, field, value) {
+            const pm = appSettings.paymentMethods[index];
+            if (!pm) return;
+
+            let n = parseInt(value);
+            if (isNaN(n) || n < 0) n = 0;
+            if (n > 31) n = 31;
+
+            pm[field] = n;
+            // 결제일을 지우면 마감일도 의미가 없다 (현금·계좌이체 = 즉시출금)
+            if (field === 'billingDay' && n === 0) pm.closingDay = 0;
+
+            saveCardBillingLocal();  // 시트 왕복에도 살아남도록 별도 보관
+            saveSettings();
+            renderSettingsLists();
+            // 대시보드의 '카드 결제 예정'을 즉시 반영
+            if (typeof renderUpcomingBillings === 'function') renderUpcomingBillings();
+        }
+
+        // 설정된 결제 주기를 사람 말로 설명 (설정 화면 힌트)
+        function describeBilling(pm) {
+            const b = Number(pm.billingDay) || 0;
+            if (!b) return '즉시 출금 (현금·계좌이체)';
+            const c = Number(pm.closingDay) || 0;
+            if (!c) return `매월 ${b}일 결제 · 전월 1일~말일 사용분`;
+            return `매월 ${b}일 결제 · 매월 ${c}일 마감`;
+        }
+
+        // ===== 카드 결제일 로컬 보관 =====
+        // Apps Script의 SETTINGS 시트는 결제수단을 {name, emoji}로만 저장한다.
+        // 시트에서 설정을 다시 읽으면 billingDay/closingDay가 날아가므로,
+        // 이름 기준으로 로컬에 따로 보관하고 loadSettings() 후 다시 합친다.
+        const CARD_BILLING_KEY = 'smss_card_billing';
+
+        function saveCardBillingLocal() {
+            try {
+                const map = {};
+                (appSettings?.paymentMethods || []).forEach(pm => {
+                    if (pm.billingDay > 0) {
+                        map[pm.name] = { billingDay: pm.billingDay, closingDay: pm.closingDay || 0 };
+                    }
+                });
+                localStorage.setItem(CARD_BILLING_KEY, JSON.stringify(map));
+            } catch (e) { console.warn('Card billing save error:', e); }
+        }
+
+        function mergeCardBillingLocal() {
+            try {
+                const raw = localStorage.getItem(CARD_BILLING_KEY);
+                if (!raw) return;
+                const map = JSON.parse(raw);
+                (appSettings?.paymentMethods || []).forEach(pm => {
+                    const saved = map[pm.name];
+                    // 시트 쪽에 값이 있으면 그것을 우선 (Apps Script를 갱신한 경우)
+                    if (saved && !(pm.billingDay > 0)) {
+                        pm.billingDay = saved.billingDay;
+                        pm.closingDay = saved.closingDay || 0;
+                    }
+                });
+            } catch (e) { console.warn('Card billing merge error:', e); }
         }
 
         // 수입 카테고리 추가 폼 표시
@@ -6369,6 +6718,8 @@
         let _expensesByMonth = {};
         // 월 인덱스를 쓰지 않는 쪽(건수 표시)을 위한, date 기준 인덱스
         let _countByMonth = {};
+        // 결제수단별 인덱스 (카드 결제 예정에서 사용기간으로 필터링)
+        let _expensesByPayment = {};
 
         const EMPTY_ARR = [];
         function getMonthExpenses(monthKey) {
@@ -6385,6 +6736,7 @@
 
             _expensesByMonth = {};
             _countByMonth = {};
+            _expensesByPayment = {};
 
             expenses.forEach(exp => {
                 const monthKey = `${exp.year}-${String(exp.month).padStart(2, '0')}`;
@@ -6407,6 +6759,10 @@
 
                 // 월별 인덱스에 적재 (대시보드 5개 함수가 공유)
                 (_expensesByMonth[monthKey] || (_expensesByMonth[monthKey] = [])).push(exp);
+
+                // 결제수단별 인덱스 (카드 결제 예정에서 기간 필터링)
+                const pmKey = exp.payment_method || '미지정';
+                (_expensesByPayment[pmKey] || (_expensesByPayment[pmKey] = [])).push(exp);
 
                 categoryBreakdown[exp.category] = (categoryBreakdown[exp.category] || 0) + exp.amount;
 
@@ -6532,6 +6888,243 @@
 
             expenseData.summary.total_expenses += expense.amount * delta;
             expenseData.summary.total_transactions += delta;
+        }
+
+        // =====================================================================
+        // 현금흐름: 카드 결제 예정 · 할부 · 카테고리 추세
+        // ---------------------------------------------------------------------
+        // 가계부는 "쓴 날" 기준인데, 통장에서 실제로 빠지는 건 "카드 결제일"이다.
+        // 결제수단에 결제일/마감일을 설정하면 청구 예정액을 미리 계산한다.
+        // =====================================================================
+
+        function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
+        function ymd(y, m, d) {
+            return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+        function todayStr() {
+            const n = new Date();
+            return ymd(n.getFullYear(), n.getMonth() + 1, n.getDate());
+        }
+        // 월을 delta만큼 이동
+        function shiftMonth(y, m, delta) {
+            const t = y * 12 + (m - 1) + delta;
+            return { y: Math.floor(t / 12), m: (t % 12) + 1 };
+        }
+
+        /**
+         * 결제일이 (payY, payM, billingDay)인 청구서가 커버하는 사용기간을 구한다.
+         *
+         * closingDay = 0(미설정): 사용기간 = 전월 1일 ~ 전월 말일
+         *   예) 결제일 14일 → 10/14 결제분 = 9/1 ~ 9/30  (국민카드 등 다수)
+         * closingDay = k: 결제일 직전의 k일이 마감 → 그 1개월이 사용기간
+         *   예) 결제일 25일, 마감 11일 → 10/25 결제분 = 9/12 ~ 10/11 (현대카드 등)
+         */
+        function getBillingPeriod(payY, payM, billingDay, closingDay) {
+            if (!closingDay) {
+                const p = shiftMonth(payY, payM, -1);
+                return { start: ymd(p.y, p.m, 1), end: ymd(p.y, p.m, daysInMonth(p.y, p.m)) };
+            }
+            // 마감일이 결제일 이후면 그 달 마감은 아직 안 온 것 → 전월 마감분을 청구
+            const endM = closingDay >= billingDay ? shiftMonth(payY, payM, -1) : { y: payY, m: payM };
+            const end = ymd(endM.y, endM.m, Math.min(closingDay, daysInMonth(endM.y, endM.m)));
+
+            // 시작 = 한 달 전 마감일의 다음 날
+            const prev = shiftMonth(endM.y, endM.m, -1);
+            const prevClose = Math.min(closingDay, daysInMonth(prev.y, prev.m));
+            let start;
+            if (prevClose >= daysInMonth(prev.y, prev.m)) {
+                start = ymd(endM.y, endM.m, 1);
+            } else {
+                start = ymd(prev.y, prev.m, prevClose + 1);
+            }
+            return { start, end };
+        }
+
+        // 할부 설명에서 (n/m) 추출
+        function parseInstallmentParts(description) {
+            const m = (description || '').match(/^(.*?)\s*\((\d+)\/(\d+)\)\s*$/);
+            if (!m) return null;
+            const months = parseInt(m[3]);
+            if (!(months > 1)) return null;
+            return { base: (m[1] || '').trim(), n: parseInt(m[2]), months };
+        }
+
+        /**
+         * 다가오는 카드 결제 예정 목록 (결제일 오름차순)
+         * count = 보여줄 결제 건수
+         */
+        function getUpcomingBillings(count = 4) {
+            const methods = (appSettings?.paymentMethods || []).filter(pm => pm.billingDay > 0);
+            if (methods.length === 0) return [];
+
+            const today = todayStr();
+            const now = new Date();
+            const result = [];
+
+            methods.forEach(pm => {
+                const billingDay = Number(pm.billingDay);
+                const closingDay = Number(pm.closingDay) || 0;
+
+                // 오늘 이후의 결제일을 앞에서부터 3개 생성
+                let y = now.getFullYear(), m = now.getMonth() + 1;
+                for (let i = 0; i < 4; i++) {
+                    const day = Math.min(billingDay, daysInMonth(y, m));
+                    const payDate = ymd(y, m, day);
+                    if (payDate >= today) {
+                        const period = getBillingPeriod(y, m, billingDay, closingDay);
+                        const rows = _expensesByPayment[pm.name] || [];
+                        let total = 0, installment = 0, cnt = 0;
+                        for (let k = 0; k < rows.length; k++) {
+                            const e = rows[k];
+                            if (!e.date || e.date < period.start || e.date > period.end) continue;
+                            total += e.amount;
+                            cnt++;
+                            if (parseInstallmentParts(e.description)) installment += e.amount;
+                        }
+                        result.push({
+                            name: pm.name,
+                            emoji: pm.emoji || '💳',
+                            payDate,
+                            billingDay,
+                            period,
+                            total,
+                            installment,
+                            count: cnt,
+                            // 사용기간이 아직 안 끝났으면 금액이 더 늘어날 수 있다
+                            open: period.end >= today
+                        });
+                        if (result.filter(r => r.name === pm.name).length >= 2) break;
+                    }
+                    const nx = shiftMonth(y, m, 1); y = nx.y; m = nx.m;
+                }
+            });
+
+            result.sort((a, b) => a.payDate.localeCompare(b.payDate));
+            return result.slice(0, count);
+        }
+
+        /**
+         * 할부 현황
+         * 앱은 할부 입력 시 m개월치 행을 전부 만들어 두므로,
+         * "오늘 이후 날짜의 할부 행 합계" = 남은 할부 원금이다.
+         */
+        function getInstallmentSummary() {
+            const today = todayStr();
+            const curKey = currentMonthKey();
+            const plans = new Map();
+            const byMonth = {};
+            let remainTotal = 0, thisMonthTotal = 0, paidTotal = 0;
+
+            for (const e of expenseData.expenses) {
+                if (INCOME_CATEGORIES.has(e.category)) continue;
+                const p = parseInstallmentParts(e.description);
+                if (!p) continue;
+
+                const key = `${e.category}|${e.payment_method || ''}|${p.base}|${p.months}`;
+                let plan = plans.get(key);
+                if (!plan) {
+                    plan = {
+                        base: p.base || '(메모 없음)',
+                        category: e.category,
+                        payment: e.payment_method || '-',
+                        months: p.months,
+                        monthly: e.amount,
+                        paidCount: 0, remainCount: 0,
+                        paidAmount: 0, remainAmount: 0,
+                        lastDate: e.date, firstDate: e.date
+                    };
+                    plans.set(key, plan);
+                }
+                if (e.date < plan.firstDate) plan.firstDate = e.date;
+                if (e.date > plan.lastDate) plan.lastDate = e.date;
+
+                const isFuture = e.date > today;
+                if (isFuture) {
+                    plan.remainCount++; plan.remainAmount += e.amount;
+                    remainTotal += e.amount;
+                    const mk = e.date.slice(0, 7);
+                    byMonth[mk] = (byMonth[mk] || 0) + e.amount;
+                } else {
+                    plan.paidCount++; plan.paidAmount += e.amount;
+                    paidTotal += e.amount;
+                }
+                if (e.date.slice(0, 7) === curKey) thisMonthTotal += e.amount;
+            }
+
+            const active = [...plans.values()]
+                .filter(p => p.remainCount > 0)
+                .sort((a, b) => b.remainAmount - a.remainAmount);
+
+            return {
+                remainTotal, thisMonthTotal, paidTotal,
+                active,
+                allCount: plans.size,
+                byMonth: Object.entries(byMonth).sort((a, b) => a[0].localeCompare(b[0]))
+            };
+        }
+
+        /**
+         * 카테고리별 최근 6개월 추세
+         * 선택된 월을 마지막으로 하는 6개월 구간을 본다.
+         */
+        function getCategoryTrends(monthsBack = 6, topN = 6) {
+            if (!selectedMonth) return { months: [], rows: [] };
+            const monthly = expenseData.summary?.monthly_totals || {};
+
+            const keys = [];
+            for (let i = monthsBack - 1; i >= 0; i--) {
+                const s = shiftMonth(selectedMonth.year, selectedMonth.month, -i);
+                keys.push(ymd(s.y, s.m, 1).slice(0, 7));
+            }
+
+            // 구간 내 카테고리별 합계로 상위 N개 선정
+            const totals = {};
+            keys.forEach(k => {
+                const cats = monthly[k]?.categories || {};
+                for (const [cat, amt] of Object.entries(cats)) {
+                    totals[cat] = (totals[cat] || 0) + amt;
+                }
+            });
+
+            const rows = Object.entries(totals)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, topN)
+                .map(([cat]) => {
+                    const series = keys.map(k => monthly[k]?.categories?.[cat] || 0);
+                    const current = series[series.length - 1];
+                    const past = series.slice(0, -1);
+                    const activeMonths = past.filter(v => v > 0).length;
+                    const avg = activeMonths > 0
+                        ? past.reduce((s, v) => s + v, 0) / activeMonths
+                        : 0;
+                    const diffPercent = avg > 0 ? ((current - avg) / avg) * 100 : null;
+                    return { category: cat, series, current, avg, diffPercent };
+                });
+
+            return { months: keys, rows };
+        }
+
+        /** 6개월 스파크라인 (인라인 SVG). 계열이 1개이므로 범례 없이 이름 라벨이 식별을 담당한다. */
+        function sparklineSVG(series, months, strokeVar) {
+            const W = 92, H = 26, PAD = 3;
+            const max = Math.max(...series), min = Math.min(...series);
+            const span = max - min || 1;
+            const n = series.length;
+            const x = i => PAD + (i * (W - PAD * 2)) / (n - 1 || 1);
+            const y = v => H - PAD - ((v - min) / span) * (H - PAD * 2);
+
+            const pts = series.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+            const lastX = x(n - 1).toFixed(1), lastY = y(series[n - 1]).toFixed(1);
+            // 값 표를 대신하는 접근성 텍스트 (마우스오버/스크린리더로 6개월 값 확인)
+            const label = series.map((v, i) => `${months[i].slice(2)} ${Math.round(v / 10000)}만`).join(' · ');
+
+            return `<svg class="trend-spark" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"
+                    role="img" aria-label="${label}"><title>${label}</title>
+                <polyline points="${pts}" fill="none" stroke="var(${strokeVar})"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="${lastX}" cy="${lastY}" r="3" fill="var(${strokeVar})"
+                    stroke="var(--bg-card)" stroke-width="2"/>
+            </svg>`;
         }
 
         // ===== 대시보드 초기화 =====
@@ -6700,7 +7293,10 @@
                 generateInsights();
                 updateExpenseSplit();
                 updatePaymentMethods();
+                renderUpcomingBillings();
+                renderInstallments();
                 updateCategoryComparison();
+                renderCategoryTrends();
                 updateYoYComparison();
             }
 
@@ -7132,6 +7728,190 @@
             }).join('') || '<div class="no-data">결제 내역 없음</div>';
 
             document.getElementById('paymentMethodCount').textContent = `${sorted.length}개 결제수단`;
+        }
+
+        // ===== 카드 결제 예정 =====
+        function renderUpcomingBillings() {
+            const wrap = document.getElementById('billingForecastBody');
+            const summaryEl = document.getElementById('billingForecastSummary');
+            if (!wrap) return;
+
+            const list = getUpcomingBillings(4);
+
+            if (list.length === 0) {
+                summaryEl.textContent = '';
+                wrap.innerHTML = `
+                    <div class="billing-empty">
+                        <i class="ri-calendar-schedule-line"></i>
+                        <p>결제수단에 <b>결제일</b>을 설정하면<br>통장에서 언제 얼마가 빠지는지 미리 보여드립니다</p>
+                        <button onclick="openSettingsModal(); switchSettingsTab('payment');" class="empty-state-btn">
+                            <i class="ri-settings-3-line"></i> 결제일 설정하기
+                        </button>
+                    </div>`;
+                return;
+            }
+
+            // 막대는 하나의 측정값(청구액)을 카드별로 비교 → 단일 색(magnitude)
+            const maxTotal = Math.max(...list.map(b => b.total), 1);
+            const grandTotal = list.reduce((s, b) => s + b.total, 0);
+            summaryEl.textContent = `예정 ${list.length}건 · 합계 ${formatCurrency(grandTotal)}`;
+
+            const today = todayStr();
+            wrap.innerHTML = list.map(b => {
+                const d = b.payDate.split('-');
+                const dLeft = Math.round(
+                    (new Date(b.payDate + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000
+                );
+                const dLabel = dLeft === 0 ? '오늘' : `D-${dLeft}`;
+                const periodLabel = `${b.period.start.slice(5).replace('-', '/')} ~ ${b.period.end.slice(5).replace('-', '/')}`;
+                const barW = (b.total / maxTotal) * 100;
+
+                return `
+                    <div class="billing-row">
+                        <div class="billing-row-head">
+                            <div class="billing-when">
+                                <span class="billing-date">${Number(d[1])}/${Number(d[2])}</span>
+                                <span class="billing-dday ${dLeft <= 3 ? 'soon' : ''}">${dLabel}</span>
+                            </div>
+                            <div class="billing-name">
+                                <span class="billing-emoji">${b.emoji}</span>${escHtml(b.name)}
+                            </div>
+                            <div class="billing-amount">${formatCurrency(b.total)}</div>
+                        </div>
+                        <div class="billing-bar"><div class="billing-bar-fill" style="width:${barW}%"></div></div>
+                        <div class="billing-row-foot">
+                            <span class="billing-period"><i class="ri-time-line"></i> ${periodLabel} 사용분 · ${b.count}건</span>
+                            ${b.installment > 0 ? `<span class="billing-tag">할부 ${formatCurrency(b.installment)}</span>` : ''}
+                            ${b.open ? `<span class="billing-tag open" title="사용기간이 아직 끝나지 않아 금액이 더 늘어날 수 있습니다">집계 중</span>` : ''}
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        // ===== 할부 현황 =====
+        function renderInstallments() {
+            const wrap = document.getElementById('installmentBody');
+            const summaryEl = document.getElementById('installmentSummary');
+            if (!wrap) return;
+
+            const s = getInstallmentSummary();
+
+            if (s.allCount === 0) {
+                summaryEl.textContent = '';
+                wrap.innerHTML = `<div class="no-data">할부 내역이 없습니다</div>`;
+                return;
+            }
+            if (s.active.length === 0) {
+                summaryEl.textContent = '진행 중 없음';
+                wrap.innerHTML = `<div class="no-data">진행 중인 할부가 없습니다 (완납 ${s.allCount}건)</div>`;
+                return;
+            }
+
+            summaryEl.textContent = `진행 중 ${s.active.length}건`;
+
+            // 남은 할부가 월별로 얼마나 깔려 있는지 (최대 6개월)
+            const sched = s.byMonth.slice(0, 6);
+            const schedMax = Math.max(...sched.map(([, v]) => v), 1);
+
+            wrap.innerHTML = `
+                <div class="inst-top">
+                    <div class="inst-stat">
+                        <div class="label">남은 할부 총액</div>
+                        <div class="value expense">${formatCurrency(s.remainTotal)}</div>
+                    </div>
+                    <div class="inst-stat">
+                        <div class="label">이번 달 할부금</div>
+                        <div class="value">${formatCurrency(s.thisMonthTotal)}</div>
+                    </div>
+                </div>
+
+                ${sched.length > 0 ? `
+                <div class="inst-sched">
+                    <div class="inst-sched-title">앞으로의 월별 할부 부담</div>
+                    <div class="inst-sched-bars">
+                        ${sched.map(([mk, v]) => `
+                            <div class="inst-sched-col" title="${mk} · ${formatCurrency(v)}">
+                                <div class="inst-sched-bar">
+                                    <div class="inst-sched-fill" style="height:${(v / schedMax) * 100}%"></div>
+                                </div>
+                                <div class="inst-sched-m">${Number(mk.slice(5))}월</div>
+                                <div class="inst-sched-v">${Math.round(v / 10000)}만</div>
+                            </div>`).join('')}
+                    </div>
+                </div>` : ''}
+
+                <div class="inst-list">
+                    ${s.active.map(p => {
+                        const done = p.paidCount;
+                        const progress = (done / p.months) * 100;
+                        return `
+                        <div class="inst-item">
+                            <div class="inst-item-head">
+                                <span class="category-badge">
+                                    <span class="dot" style="background:${categoryColors[p.category] || '#9CA3AF'};"></span>
+                                    ${escHtml(p.category)}
+                                </span>
+                                <span class="inst-item-name">${escHtml(p.base)}</span>
+                                <span class="inst-item-remain">${formatCurrency(p.remainAmount)}</span>
+                            </div>
+                            <div class="inst-progress">
+                                <div class="inst-progress-fill" style="width:${progress}%"></div>
+                            </div>
+                            <div class="inst-item-foot">
+                                <span>${escHtml(p.payment)}</span>
+                                <span>${done}/${p.months}회 납부 · ${p.remainCount}회 남음</span>
+                                <span>월 ${formatCurrency(p.monthly)}</span>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>`;
+        }
+
+        // ===== 카테고리별 6개월 추세 =====
+        function renderCategoryTrends() {
+            const wrap = document.getElementById('categoryTrendBody');
+            const summaryEl = document.getElementById('categoryTrendSummary');
+            if (!wrap) return;
+
+            const { months, rows } = getCategoryTrends(6, 6);
+            if (rows.length === 0) {
+                summaryEl.textContent = '';
+                wrap.innerHTML = `<div class="no-data">추세를 만들 데이터가 부족합니다</div>`;
+                return;
+            }
+
+            summaryEl.textContent = `${months[0].replace('-', '.')} ~ ${months[months.length - 1].replace('-', '.')}`;
+
+            wrap.innerHTML = rows.map(r => {
+                // 선 색은 "추세 상태"를 나타낸다 (지출 증가=적색, 감소=녹색).
+                // 상태색은 화살표 아이콘 + 퍼센트 텍스트와 항상 함께 나간다 (색 단독 사용 금지)
+                let strokeVar = '--gray-500', icon = 'ri-subtract-line', cls = 'flat', pctText = '평균과 비슷';
+                if (r.diffPercent !== null) {
+                    if (r.diffPercent >= 10) {
+                        strokeVar = '--expense'; icon = 'ri-arrow-up-line'; cls = 'up';
+                        pctText = `평균보다 ${Math.round(r.diffPercent)}% 많음`;
+                    } else if (r.diffPercent <= -10) {
+                        strokeVar = '--income'; icon = 'ri-arrow-down-line'; cls = 'down';
+                        pctText = `평균보다 ${Math.round(Math.abs(r.diffPercent))}% 적음`;
+                    }
+                } else {
+                    pctText = '이번 달 신규';
+                    strokeVar = '--expense'; icon = 'ri-arrow-up-line'; cls = 'up';
+                }
+
+                return `
+                    <div class="trend-row">
+                        <div class="trend-label">
+                            <span class="dot" style="background:${categoryColors[r.category] || '#9CA3AF'};"></span>
+                            <span class="trend-cat">${escHtml(r.category)}</span>
+                        </div>
+                        ${sparklineSVG(r.series, months, strokeVar)}
+                        <div class="trend-values">
+                            <span class="trend-current">${formatCurrency(r.current)}</span>
+                            <span class="trend-delta ${cls}"><i class="${icon}"></i> ${pctText}</span>
+                        </div>
+                    </div>`;
+            }).join('');
         }
 
         // ===== 인사이트 생성 =====
