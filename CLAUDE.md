@@ -14,9 +14,11 @@ SMSS 가계부 - GitHub Pages로 호스팅되는 PWA 가계부 앱
 - **git이 PATH에 없다.** GitHub Desktop 번들 git을 쓴다:
   `$env:LOCALAPPDATA\GitHubDesktop\app-<버전>\resources\app\git\cmd\git.exe`
   (`app-*` 폴더가 여러 개면 가장 높은 버전 사용)
-- **`git push`는 CLI에서 안 된다.** GitHub Desktop이 토큰을 자체 형식
+- **그냥 `git push`는 CLI에서 안 된다.** GitHub Desktop이 토큰을 자체 형식
   (`GitHub - https://api.github.com/<user>`)으로 저장해서 credential manager가 못 찾는다.
-  → 푸시는 **GitHub Desktop**에서 하거나 사용자가 직접 실행
+  → **`scripts\push.ps1`** 을 쓴다. 그 토큰을 자격 증명 관리자에서 메모리로만 읽어
+  일회용 credential helper로 넘긴다 (디스크·git 설정에 남기지 않음).
+  토큰 blob은 **UTF-8** 이다 — UTF-16으로 읽으면 20자짜리 깨진 값이 나와 인증 실패한다
 - 셸은 Windows PowerShell 5.1 → `&&` / `?:` / `??` 사용 불가, `;` + `if ($?)` 로 대체
   - 네이티브 exe에 큰따옴표가 든 인자를 넘기면 잘못 쪼개진다 →
     커밋 메시지는 파일에 써서 `git commit -F <파일>`
@@ -28,9 +30,10 @@ SMSS 가계부 - GitHub Pages로 호스팅되는 PWA 가계부 앱
 ```powershell
 $git = "$env:LOCALAPPDATA\GitHubDesktop\app-3.6.6\resources\app\git\cmd\git.exe"
 & $git add index.html; if ($?) { & $git commit -F 커밋메시지.txt }
-# push는 GitHub Desktop에서 (위 '개발 환경 주의' 참고)
+powershell -ExecutionPolicy Bypass -File scripts\push.ps1
 ```
 - GitHub Pages 자동 배포 (1-2분 소요)
+  - 배포 확인은 `?b=<난수>` 를 붙여 받을 것. 루트 URL은 CDN이 최대 10분 옛 버전을 준다
 - 커밋 메시지에 Co-Authored-By 포함
 - **`service-worker.js` 수정 시 `CACHE_NAME` 버전을 올려야** 기존 캐시가 갱신된다
 - `업로드.bat`은 **동작하지 않는다** (bare `git`이 PATH에 없음)
@@ -180,8 +183,10 @@ $git = "$env:LOCALAPPDATA\GitHubDesktop\app-3.6.6\resources\app\git\cmd\git.exe"
   - `closingDay = k`: 결제일 직전의 k일이 마감 → 그 1개월 (현대카드형)
     - 예) 결제일 25일 / 마감 11일 → 10/25 결제분 = 9/12 ~ 10/11
   - 짧은 달은 말일로 클램프된다 (마감 31일 + 9월 → 9/30)
-- `getUpcomingBillings(count)` — 다가오는 결제 예정 (결제일 오름차순).
-  `payment_method` 이름으로 `_expensesByPayment` 인덱스를 조회한다
+- `getUpcomingBillings()` — 다가오는 결제 예정 (결제일 오름차순), **카드당 가장 가까운 1건**.
+  `payment_method` 이름으로 `_expensesByPayment` 인덱스를 조회한다.
+  (예전엔 전체를 4건에서 잘라서 같은 날 결제되는 현대카드_시리가 빠졌다)
+  렌더 시 사용 0건 카드는 `.billing-idle` 한 줄로 접는다
 - `getInstallmentSummary()` — **할부 입력 시 m개월치 행을 전부 만들어 두는 구조**를 이용해
   "오늘 이후 날짜의 할부 행 합계 = 남은 할부 원금"으로 계산한다
 - `getCategoryTrends(monthsBack, topN)` — 선택 월을 마지막으로 하는 N개월 구간.
@@ -258,7 +263,13 @@ $git = "$env:LOCALAPPDATA\GitHubDesktop\app-3.6.6\resources\app\git\cmd\git.exe"
 ## 주의사항
 - `index.html` 수정 시 반드시 전체 구조 고려
 - CSS 수정 시 다크모드 (`[data-theme="dark"]`) 함께 확인
-- 모바일 반응형 (`@media (max-width: 768px)`) 확인
+- 모바일 반응형 (`@media (max-width: 768px)`) 확인 — **사용자는 주로 휴대폰으로 쓴다**
+  - `input` 글자는 **16px 이상** (미만이면 iOS가 포커스 시 확대), 숫자 입력은 `inputmode="numeric"`
+  - 터치 영역 높이 36px 이상
+  - 한글 안내 문구에는 `word-break: keep-all` (한 글자만 다음 줄로 떨어지는 것 방지)
+  - 새 섹션은 390px 폭(카드 내부 약 310px)에서 겹침/가로 스크롤을 확인할 것
+- **Remixicon은 3.5.0** 이다. 4.x 아이콘(`ri-calendar-schedule-*`, `ri-money-won-circle-*` 등)은
+  **빈칸으로 나온다.** 새 아이콘은 브라우저에서 `::before` content가 `none`이 아닌지 확인
 - PWA standalone 모드 스크롤 이슈 주의
 - `service-worker.js` 수정 시 `CACHE_NAME` 버전 올려야 기존 캐시 갱신됨
 - `data/index.json`에 새 월 추가 시 → 그 월은 자동으로 **정적 JSON 우선**이 된다
