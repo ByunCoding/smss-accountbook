@@ -1,0 +1,137 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]: 
+        - generic [ref=e8]:
+          - heading "SMSS 가계부" [level=1] [ref=e9]
+          - text: 2026년 2월
+      - generic [ref=e10]:
+        - button "" [ref=e11] [cursor=pointer]
+        - button "" [ref=e13] [cursor=pointer]
+      - generic [ref=e15]:
+        - button "" [ref=e16] [cursor=pointer]
+        - button "" [ref=e18] [cursor=pointer]
+        - button "" [ref=e20] [cursor=pointer]
+  - navigation [ref=e22]:
+    - generic [ref=e24]:
+      - button " 월간 리포트" [ref=e25] [cursor=pointer]:
+        - generic [ref=e26]: 
+        - generic [ref=e27]: 월간 리포트
+      - button " 지출 현황" [ref=e28] [cursor=pointer]:
+        - generic [ref=e29]: 
+        - generic [ref=e30]: 지출 현황
+      - button " 상세 내역" [ref=e31] [cursor=pointer]:
+        - generic [ref=e32]: 
+        - generic [ref=e33]: 상세 내역
+      - button " 연간 요약" [ref=e34] [cursor=pointer]:
+        - generic [ref=e35]: 
+        - generic [ref=e36]: 연간 요약
+  - main [ref=e37]:
+    - generic [ref=e38]:
+      - generic [ref=e39]:
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - generic [ref=e42]: 총 수입
+            - generic [ref=e43]: ₩0
+          - generic [ref=e44]: →
+          - generic [ref=e45]:
+            - generic [ref=e46]: 총 지출
+            - generic [ref=e47]: ₩0
+          - generic [ref=e48]: →
+          - generic [ref=e49]:
+            - generic [ref=e50]: 잔액
+            - generic [ref=e51]: ₩0
+        - heading " 카테고리별 지출" [level=2] [ref=e54]:
+          - generic [ref=e55]: 
+          - text: 카테고리별 지출
+        - generic [ref=e57]:
+          - heading " 일별 지출 현황" [level=2] [ref=e59]:
+            - generic [ref=e60]: 
+            - text: 일별 지출 현황
+          - generic [ref=e62]:
+            - generic [ref=e63]: 일
+            - generic [ref=e64]: 월
+            - generic [ref=e65]: 화
+            - generic [ref=e66]: 수
+            - generic [ref=e67]: 목
+            - generic [ref=e68]: 금
+            - generic [ref=e69]: 토
+        - generic [ref=e70]:
+          - generic [ref=e71]:
+            - generic [ref=e72]:
+              - generic [ref=e73]: 
+              - text: 이번 달 변동비
+            - generic [ref=e74]: ₩0
+            - generic [ref=e75]: 0건의 지출
+            - generic [ref=e76]:
+              - generic [ref=e77]: 이번 달 지출
+              - generic [ref=e78]: ₩0
+          - generic [ref=e79]:
+            - generic [ref=e80]:
+              - generic [ref=e81]: 
+              - text: 고정비 (자동)
+            - generic [ref=e82]: ₩0
+            - generic [ref=e83]: 매월 고정 지출
+          - generic [ref=e85]:
+            - generic [ref=e86]:
+              - generic [ref=e87]: 
+              - text: 저축률
+            - generic [ref=e88]: 0%
+            - generic [ref=e93]: "저축: ₩0"
+        - generic [ref=e94]:
+          - heading " 지출 구조 분석" [level=2] [ref=e96]:
+            - generic [ref=e97]: 
+            - text: 지출 구조 분석
+          - generic [ref=e99]:
+            - generic [ref=e100]:
+              - heading " 고정비" [level=4] [ref=e101]:
+                - generic [ref=e102]: 
+                - text: 고정비
+              - generic [ref=e103]: ₩0
+              - generic [ref=e104]: 전체의 0%
+            - generic [ref=e106]:
+              - heading " 변동비" [level=4] [ref=e107]:
+                - generic [ref=e108]: 
+                - text: 변동비
+              - generic [ref=e109]: ₩0
+              - generic [ref=e110]: 전체의 0%
+        - heading " 결제수단별 지출" [level=2] [ref=e114]:
+          - generic [ref=e115]: 
+          - text: 결제수단별 지출
+        - generic [ref=e117]:
+          - heading " 전월 대비 분석" [level=2] [ref=e119]:
+            - generic [ref=e120]: 
+            - text: 전월 대비 분석
+          - generic [ref=e122]:
+            - heading " 증가" [level=4] [ref=e124]:
+              - generic [ref=e125]: 
+              - text: 증가
+            - heading " 감소" [level=4] [ref=e127]:
+              - generic [ref=e128]: 
+              - text: 감소
+            - heading " 신규" [level=4] [ref=e130]:
+              - generic [ref=e131]: 
+              - text: 신규
+        - generic [ref=e132]:
+          - heading " 작년 동월 비교" [level=2] [ref=e134]:
+            - generic [ref=e135]: 
+            - text: 작년 동월 비교
+          - generic [ref=e138]:
+            - generic [ref=e139]: 작년 이맘때 대비
+            - generic [ref=e140]: "-"
+            - generic [ref=e141]: 비교 데이터 없음
+        - heading " 월별 추이" [level=2] [ref=e146]:
+          - generic [ref=e147]: 
+          - text: 월별 추이
+      - text:            
+  - button "지출 입력" [ref=e151] [cursor=pointer]:
+    - generic [ref=e152]: +
+  - option "일시불" [selected]
+  - option "2개월"
+  - option "3개월"
+  - option "5개월"
+  - option "6개월"
+  - option "12개월"
+  - option "카테고리 선택" [selected]
+  - option "결제수단 선택" [selected]
