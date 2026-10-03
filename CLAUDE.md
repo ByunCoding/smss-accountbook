@@ -130,6 +130,21 @@ powershell -ExecutionPolicy Bypass -File scripts\push.ps1
 | `smss_index_json_cache` | `data/index.json` 캐시 | 24시간 |
 | `smss_outbox_v1` | **미전송 쓰기 큐** (유실 방지) | 없음 (전송 성공 시 제거) |
 
+### ⛔ 절대 규칙: 한 번 입력 = 시트에 정확히 한 번 기록
+**사용자가 한 번 저장하면 시트에는 반드시 한 번만 들어가야 한다. 중복 기록은 버그다.**
+(2026-09에만 같은 내역이 2~4번 들어간 묶음이 11개. 원인: 응답을 못 받으면 무조건 재전송 +
+GET 쓰기 요청을 통신망이 자동 재전송 + Apps Script에 중복 방지 없음)
+
+- 시트 쓰기는 **`enqueueApi()` → 전송 큐 한 곳**에서만. `fetch(APPS_SCRIPT_URL…)` 를 새로 만들지 말 것
+- 모든 쓰기 요청에 **`rid`(=큐 항목 id)** 를 붙인다. 재전송해도 같은 rid → Apps Script가 무시
+- 서버가 rid를 지원하지 않으면(`smss_server_idem` 미설정) **보내기 전 시트 행 수를 세고**,
+  결과가 불확실하면 **다시 세어 늘었으면 성공 처리** — 확인 못 하면 보내지 않는다 (`countSheetMatches`)
+- "실패하면 다시 보낸다"를 추가 요청에 쓰지 말 것. 반드시 위 확인을 거친다
+- **자동 검사**: `index.html` 을 고치면 PostToolUse 훅이 `node scripts/check-write-safety.js` 를 돌린다
+  (직접 fetch 개수, rid, 응답 유실·앱 종료·오프라인 시나리오). 실패하면 exit 2 — **통과할 때까지 커밋 금지**
+- Apps Script 쪽 수정본은 `App Script.md` (rid 중복 무시 + LockService + 정확한 행 삭제).
+  **사용자가 붙여넣고 재배포해야 적용된다** — 적용되면 응답에 `idem: true`
+
 ### 전송 큐 (outbox) — 데이터 유실 방지
 모든 쓰기(`add`/`delete`/`addIncome`/`deleteIncome`)는 `enqueueApi()`로 큐에 넣고,
 `flushOutbox()`가 **하나씩 순서대로(직렬)** 전송한다.
@@ -172,7 +187,7 @@ powershell -ExecutionPolicy Bypass -File scripts\push.ps1
 - `loadAllExpenses(forceSheets)` - 월별 병렬 로드 (정적 JSON 우선 + Sheets, 캐시 적용)
 - `submitExpense()` - 지출 저장 (→ `enqueueApi`)
 - `deleteExpenseByData()` - 지출 삭제 (→ `enqueueApi`)
-- `enqueueApi(params, opts)` - **모든 쓰기는 반드시 이걸 거친다.** 직접 fetch 금지
+- `enqueueApi(params, opts)` - **모든 쓰기는 반드시 이걸 거친다.** 직접 fetch 금지 (위 "절대 규칙" 참고)
 - `calculateSummary()` - 전체 집계 + 월별 인덱스(`_expensesByMonth`) 생성
 - `patchSummary(expense, delta)` - 전체 재계산 없이 1건만 증분 반영 (인덱스도 함께 패치)
 - `getMonthExpenses(monthKey)` - 해당 월 지출 조회 (O(1)). 대시보드는 이걸 쓴다

@@ -1,49 +1,105 @@
 # Google Apps Script 코드
 
-> **미적용 변경 있음 — 2026-09-29**
+> **⚠️ 반드시 적용 — 2026-10-03: 중복 기록 방지**
 >
-> 아래 `getSettings` / `saveSettingsData` 두 함수에 **카드 결제일 저장**이 추가됐습니다.
-> 결제수단의 `billingDay`(결제일) / `closingDay`(마감일)를 SETTINGS 시트 D열에 JSON으로 보관합니다.
+> 한 번 입력했는데 시트에 2~4번 들어가던 문제의 서버 쪽 수정입니다 (9월에만 11묶음).
+> - 모든 쓰기 요청에 앱이 고유번호 `rid`를 붙인다 → **이미 처리한 `rid`는 다시 기록하지 않는다**
+>   (통신망이 GET을 자동 재전송하거나, 앱이 응답을 못 받아 다시 보내도 1번만 기록)
+> - `LockService`로 쓰기를 한 번에 하나씩 처리 (동시 요청이 같은 빈 행을 덮어쓰지 않게)
+> - 지출/수입 삭제는 **메모·결제수단까지 같은 행**만 지운다 (예전엔 날짜·카테고리·금액만 비교)
+> - 응답에 `idem: true` → 앱이 "서버가 중복을 막아준다"고 인식해 시트 재확인을 생략한다
+>
+> 9/29의 **카드 결제일 저장**(`getSettings` / `saveSettingsData`)도 함께 들어 있습니다.
 >
 > **이 파일은 문서일 뿐이라 자동 반영되지 않습니다.** 적용하려면:
 > 1. [Apps Script 편집기](https://script.google.com) 열기
-> 2. 이 파일 내용 전체를 복사해 붙여넣기
+> 2. 아래 코드 블록 **전체**를 복사해 기존 코드를 **모두 지우고** 붙여넣기 → 저장(💾)
 > 3. **배포 → 배포 관리 → 편집(연필) → 버전: 새 버전 → 배포**
+>    (⚠️ "새 배포"가 아니라 **기존 배포를 편집**해야 주소가 그대로 유지된다)
 >
-> 적용하지 않아도 앱은 정상 동작합니다. 다만 결제일이 **그 기기에만** 저장되므로
-> 휴대폰과 PC에서 각각 설정해야 합니다. 적용하면 기기 간에 자동으로 동기화됩니다.
+> 적용 전에도 앱은 시트를 다시 읽어 확인하는 방식으로 중복을 막지만,
+> 통신망 단계의 자동 재전송은 서버에서만 막을 수 있다.
 
 ```javascript
+// ===== 쓰기 요청: 한 번 입력 = 한 번 기록 =====
+var WRITE_ACTIONS = {'add': true, 'delete': true, 'addIncome': true, 'deleteIncome': true, 'saveSettings': true};
+var RID_KEEP_DAYS = 30;   // 처리한 rid를 기억하는 기간 (앱 미전송 큐가 며칠 뒤 재전송해도 막힘)
+
+function jsonOut(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function getProcessedRid(rid) {
+  var hit = CacheService.getScriptCache().get('rid_' + rid);
+  if (hit) { return hit; }
+  return PropertiesService.getScriptProperties().getProperty('rid_' + rid);
+}
+
+function rememberRid(rid, result) {
+  var text = JSON.stringify(result);
+  CacheService.getScriptCache().put('rid_' + rid, text, 21600);   // 6시간 (빠른 조회)
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty('rid_' + rid, JSON.stringify({t: Date.now(), r: result}));   // 30일 (재전송 대비)
+  if (Math.random() < 0.05) { pruneRids(props); }   // 가끔 오래된 rid 정리
+}
+
+function pruneRids(props) {
+  var all = props.getProperties();
+  var limit = Date.now() - RID_KEEP_DAYS * 24 * 60 * 60 * 1000;
+  for (var k in all) {
+    if (k.indexOf('rid_') !== 0) { continue; }
+    try { if (JSON.parse(all[k]).t < limit) { props.deleteProperty(k); } } catch (ex) { props.deleteProperty(k); }
+  }
+}
+
+function runWrite(action, p) {
+  if (action === 'add') { return addExpense(p.date, p.category, p.item, p.person, p.amount, p.year); }
+  if (action === 'delete') { return deleteExpense(p.date, p.category, p.item, p.person, p.amount); }
+  if (action === 'addIncome') { return addIncome(p.date, p.category, p.item, p.amount, p.year); }
+  if (action === 'deleteIncome') { return deleteIncome(p.date, p.category, p.item, p.amount); }
+  if (action === 'saveSettings') { return saveSettingsData(JSON.parse(p.settings)); }
+  return {success: false, error: 'Unknown action'};
+}
+
 function doGet(e) {
   var action = e.parameter.action;
+
+  if (WRITE_ACTIONS[action]) {
+    var lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(20000);
+    } catch (err) {
+      // 다른 요청 처리 중 → 앱이 나중에 같은 rid로 다시 보낸다 (중복 안 됨)
+      return jsonOut({success: false, retry: true, idem: true, error: 'busy'});
+    }
+    try {
+      var rid = e.parameter.rid;
+      if (rid) {
+        var prev = getProcessedRid(rid);
+        if (prev) {
+          var saved = JSON.parse(prev);
+          var res = saved.r || saved;
+          res.duplicate = true;
+          res.idem = true;
+          return jsonOut(res);   // 이미 처리한 요청 → 다시 기록하지 않는다
+        }
+      }
+      var result = runWrite(action, e.parameter);
+      result.idem = true;
+      if (rid && result.success) { rememberRid(rid, result); }
+      return jsonOut(result);
+    } finally {
+      lock.releaseLock();
+    }
+  }
 
   if (action === 'getSheetList') {
     var r1 = getSheetList();
     return ContentService.createTextOutput(JSON.stringify({success: true, sheets: r1.sheets, incomeSheetGid: r1.incomeSheetGid})).setMimeType(ContentService.MimeType.JSON);
   }
-  if (action === 'add') {
-    var r2 = addExpense(e.parameter.date, e.parameter.category, e.parameter.item, e.parameter.person, e.parameter.amount, e.parameter.year);
-    return ContentService.createTextOutput(JSON.stringify(r2)).setMimeType(ContentService.MimeType.JSON);
-  }
-  if (action === 'delete') {
-    var r3 = deleteExpense(e.parameter.date, e.parameter.category, e.parameter.item, e.parameter.person, e.parameter.amount);
-    return ContentService.createTextOutput(JSON.stringify(r3)).setMimeType(ContentService.MimeType.JSON);
-  }
-  if (action === 'addIncome') {
-    var r4 = addIncome(e.parameter.date, e.parameter.category, e.parameter.item, e.parameter.amount, e.parameter.year);
-    return ContentService.createTextOutput(JSON.stringify(r4)).setMimeType(ContentService.MimeType.JSON);
-  }
-  if (action === 'deleteIncome') {
-    var r5 = deleteIncome(e.parameter.date, e.parameter.category, e.parameter.item, e.parameter.amount);
-    return ContentService.createTextOutput(JSON.stringify(r5)).setMimeType(ContentService.MimeType.JSON);
-  }
   if (action === 'getSettings') {
     var r6 = getSettings();
     return ContentService.createTextOutput(JSON.stringify(r6)).setMimeType(ContentService.MimeType.JSON);
-  }
-  if (action === 'saveSettings') {
-    var r7 = saveSettingsData(JSON.parse(e.parameter.settings));
-    return ContentService.createTextOutput(JSON.stringify(r7)).setMimeType(ContentService.MimeType.JSON);
   }
 
   return ContentService.createTextOutput(JSON.stringify({success: false, error: 'Unknown action'})).setMimeType(ContentService.MimeType.JSON);
@@ -155,16 +211,26 @@ function deleteExpense(date, category, item, person, amount) {
     if (!sheet) { return {success: false, error: 'Sheet not found'}; }
     var data = sheet.getDataRange().getValues();
     var targetAmount = Number(amount);
+    var wantItem = String(item || '').trim();
+    var wantPerson = String(person || '').trim();
+    // 1순위: 메모·결제수단까지 같은 행 (예전엔 날짜·카테고리·금액만 봐서 다른 내역이 지워질 수 있었다)
+    // 2순위: 날짜·카테고리·금액이 같은 행이 딱 하나일 때만 (옛 데이터 형식 차이 대비)
+    var exact = -1, loose = [];
     for (var i = data.length - 1; i >= 1; i--) {
       var row = data[i];
       var rowDate = normalizeDate(row[0]);
       var rowAmount = Number(String(row[3]).replace(/[,]/g, ''));
       if (rowDate === date && row[1] === category && rowAmount === targetAmount) {
-        sheet.deleteRow(i + 1);
-        return {success: true, message: 'Deleted', row: i + 1};
+        if (exact < 0 && String(row[2]).trim() === wantItem && String(row[5]).trim() === wantPerson) { exact = i; }
+        loose.push(i);
       }
     }
-    return {success: false, error: 'Not found'};
+    var target = exact >= 0 ? exact : (loose.length === 1 ? loose[0] : -1);
+    if (target >= 0) {
+      sheet.deleteRow(target + 1);
+      return {success: true, message: 'Deleted', row: target + 1};
+    }
+    return {success: false, error: loose.length > 1 ? 'Ambiguous' : 'Not found'};
   } catch (error) {
     return {success: false, error: error.toString()};
   }
@@ -199,16 +265,23 @@ function deleteIncome(date, category, item, amount) {
     if (lastRow < 10) { return {success: false, error: 'Not found'}; }
     var data = sheet.getRange(10, 8, lastRow - 9, 4).getValues();
     var targetAmount = Number(amount);
+    var wantItem = String(item || '').trim();
+    var exact = -1, loose = [];
     for (var i = data.length - 1; i >= 0; i--) {
       var row = data[i];
       var rowDate = normalizeDate(row[0]);
       var rowAmount = Number(String(row[3]).replace(/[,]/g, ''));
       if (rowDate === date && row[1] === category && rowAmount === targetAmount) {
-        sheet.getRange(10 + i, 8, 1, 4).clearContent();
-        return {success: true, message: 'Income deleted', row: 10 + i};
+        if (exact < 0 && String(row[2]).trim() === wantItem) { exact = i; }
+        loose.push(i);
       }
     }
-    return {success: false, error: 'Not found'};
+    var target = exact >= 0 ? exact : (loose.length === 1 ? loose[0] : -1);
+    if (target >= 0) {
+      sheet.getRange(10 + target, 8, 1, 4).clearContent();
+      return {success: true, message: 'Income deleted', row: 10 + target};
+    }
+    return {success: false, error: loose.length > 1 ? 'Ambiguous' : 'Not found'};
   } catch (error) {
     return {success: false, error: error.toString()};
   }

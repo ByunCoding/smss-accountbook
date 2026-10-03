@@ -53,6 +53,17 @@
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-write-verify.sh"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/check-write-safety.js",
+            "timeout": 60,
+            "statusMessage": "시트 중복 기록 방지 검사 중..."
+          }
+        ]
       }
     ],
     "SessionEnd": [
