@@ -257,15 +257,21 @@ powershell -ExecutionPolicy Bypass -File scripts\push.ps1
   할부 행이면 금액은 비우고 금액 칩으로 고르게 한다
 - **저장 토스트 예산 줄** `getBudgetStatusLine(category, date)` — 카테고리 예산 > 변동비 예산(수입-고정비)
   > 카테고리 누적 순. `showToast(msg, type, undo, sub)` 의 4번째 인자
-- **결제 알림 → 입력창** `applyLaunchParams()` / `parseCardSms(text)`
-  - `?memo=&amount=&payment=` (Apple Pay: 단축어 'Wallet 결제 시' 자동화)
-  - `?sms=<승인 문자 전문>&payment=` (실물 카드: 단축어 '메시지 수신 시' 자동화)
-  - 취소/거절 문자는 무시, `누적/잔액/한도` 금액은 제외, `MM/DD HH:mm` 으로 날짜, `N개월` 로 할부
-  - 결제수단은 정확히 같은 이름만. 없으면 문자의 카드사로 **하나만** 맞을 때 선택
-  - 열린 뒤 `history.replaceState` 로 파라미터를 지운다 (새로고침 시 재입력 방지)
-  - 저장은 하지 않는다. 입력창만 채움
+- 결제 알림(Apple Pay/승인 문자) → 입력창 자동 채우기는 **만들었다가 뺐다** (2026-10-03).
+  카드사가 주는 건 가맹점명(`쿠팡(주)`)이라 사용자의 메모 방식(`쿠팡_기저귀`)과 맞지 않음
 - `renderCategorySelect` / `renderPaymentSelect` 는 **다시 그려도 고른 값을 유지**한다
   (입력 중 설정이 백그라운드로 도착하면 카테고리·결제수단이 지워지던 버그)
+
+## 고정수입 자동 생성 (`processRecurringIncomes`) — 중복 주의
+- 고정수입은 **시트에 실제로 `addIncome`을 보낸다.** 중복 판단은 이번 달 시트에서 읽은 수입으로 한다
+- **2026-10 3중 생성 사고**: `loadFreshData` 1단계가 이번 달 시트를 먼저 읽고(수입 포함),
+  `loadAllExpenses`가 `incomeEntries = []`로 비운 뒤 그 결과를 **지출만** 재사용 → 이번 달 수입이 사라져
+  "없음"으로 판단, 새 브라우저(테스트 브라우저 포함)마다 한 벌씩 생성됐다
+- 지금은: `_preloadedCurrentMonth.income` 으로 수입도 복원, 그리고
+  **`_currentMonthSheetLoaded`가 true일 때만** 생성 (시트 읽기 실패 / 목록에 없는 시트면 목록 갱신 후 판단)
+- `loadFromGoogleSheets`는 HTTP 오류를 **throw** 한다 (오류 페이지를 빈 시트로 읽으면 같은 사고)
+- **테스트 브라우저로 앱을 열 때는 쓰기 요청을 막을 것.** 고정수입이 자동으로 시트에 써진다:
+  `context.route(/script\.google\.com/, r => /action=(add|addIncome|delete|deleteIncome|saveSettings)\b/.test(r.request().url()) ? r.abort() : r.continue())`
 
 ## 사람별 지출 (2026-10-03)
 - 결제수단 → 사용자: `pm.owner`(설정 화면) > 이름 끝 `_이름` > `공동` (`getPaymentOwner`)
