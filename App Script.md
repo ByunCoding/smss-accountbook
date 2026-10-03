@@ -7,6 +7,8 @@
 >   (통신망이 GET을 자동 재전송하거나, 앱이 응답을 못 받아 다시 보내도 1번만 기록)
 > - `LockService`로 쓰기를 한 번에 하나씩 처리 (동시 요청이 같은 빈 행을 덮어쓰지 않게)
 > - 지출/수입 삭제는 **메모·결제수단까지 같은 행**만 지운다 (예전엔 날짜·카테고리·금액만 비교)
+> - **지출 삭제가 행 전체(`deleteRow`)를 지우던 것 → 지출 칸(A~F)만 비움.**
+>   예전엔 같은 행 H~K열의 **수입까지 함께 사라졌다** (2026-10 수입 전부 유실, 9/8 수입 유실)
 > - 응답에 `idem: true` → 앱이 "서버가 중복을 막아준다"고 인식해 시트 재확인을 생략한다
 >
 > 9/29의 **카드 결제일 저장**(`getSettings` / `saveSettingsData`)도 함께 들어 있습니다.
@@ -227,7 +229,9 @@ function deleteExpense(date, category, item, person, amount) {
     }
     var target = exact >= 0 ? exact : (loose.length === 1 ? loose[0] : -1);
     if (target >= 0) {
-      sheet.deleteRow(target + 1);
+      // ⚠️ deleteRow 금지: 같은 행의 H~K열(수입)까지 지워진다 (2026-10 수입 유실 사고).
+      //    지출 칸(A~F)만 비운다. 빈 행은 다음 addExpense가 다시 채운다.
+      sheet.getRange(target + 1, 1, 1, 6).clearContent();
       return {success: true, message: 'Deleted', row: target + 1};
     }
     return {success: false, error: loose.length > 1 ? 'Ambiguous' : 'Not found'};

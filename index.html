@@ -9552,31 +9552,77 @@
         const isServerIdempotent = () => { try { return localStorage.getItem(SERVER_IDEM_KEY) === '1'; } catch (e) { return false; } };
         const ROW_ACTIONS = new Set(['add', 'delete', 'addIncome', 'deleteIncome']);
 
-        /** 큐 항목과 똑같은 행이 시트에 몇 개 있는지. 확인할 수 없으면 null */
-        async function countSheetMatches(params) {
-            const date = params.date || '';
-            const monthKey = date.slice(0, 7);
+        const normSheetDate = s => {
+            const d = String(s || '').trim().replace(/\.\s*/g, '-').replace(/-$/, '');
+            const p = d.split('-');
+            return p.length === 3 ? `${p[0]}-${p[1].padStart(2, '0')}-${p[2].padStart(2, '0')}` : d;
+        };
+        const sheetNum = s => Number(String(s || '').replace(/[",₩\s]/g, ''));
+
+        /** 그 달 시트의 CSV. 시트가 아직 없으면 '' , 확인할 수 없으면 null */
+        async function fetchMonthCsv(date) {
+            const monthKey = String(date || '').slice(0, 7);
             if (!/^\d{4}-\d{2}$/.test(monthKey)) return null;
             let gid = GOOGLE_SHEETS[monthKey];
             if (gid === undefined) {
                 try { await loadSheetList(true); } catch (e) { return null; }
                 gid = GOOGLE_SHEETS[monthKey];
-                if (gid === undefined) return 0;   // 그 달 시트가 아직 없다 → 0행
+                if (gid === undefined) return '';
             }
-            let csv;
             try {
                 const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`, { cache: 'no-store' });
                 if (!res.ok) return null;
-                csv = await res.text();
+                return await res.text();
             } catch (e) { return null; }
+        }
+
+        /** 그 달 시트의 수입 행(H~K열) 목록. 확인할 수 없으면 null */
+        async function readMonthIncomes(date) {
+            const csv = await fetchMonthCsv(date);
+            if (csv === null) return null;
+            const out = [];
+            for (const line of csv.split('\n')) {
+                const c = parseCSVLine(line);
+                const d = normSheetDate(c[7]);
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+                out.push({ date: d, category: (c[8] || '').trim(), item: (c[9] || '').trim(), amount: sheetNum(c[10]) });
+            }
+            return out;
+        }
+
+        /**
+         * ★ 구버전 Apps Script는 지출 삭제 시 행 전체를 지워서 같은 행의 수입(H~K)이 함께 사라졌다.
+         *   (2026-10 수입 전부 유실, 9/8 수입 유실) 서버가 고쳐지기 전까지:
+         *   지출 삭제 전후로 수입 목록을 비교해 사라진 수입을 다시 넣는다.
+         */
+        async function restoreLostIncomes(item) {
+            const before = item.incomesBefore;
+            if (!Array.isArray(before) || before.length === 0) return;
+            const after = await readMonthIncomes(item.params.date);
+            if (after === null) return;
+            const key = r => `${r.date}|${r.category}|${r.item}|${r.amount}`;
+            const left = {};
+            after.forEach(r => { left[key(r)] = (left[key(r)] || 0) + 1; });
+            const lost = [];
+            before.forEach(r => { const k = key(r); if (left[k] > 0) left[k]--; else lost.push(r); });
+            lost.forEach(r => {
+                console.warn('[전송] 지출 삭제로 사라진 수입 복구:', r);
+                enqueueApi({ action: 'addIncome', date: r.date, category: r.category, item: r.item,
+                             amount: String(r.amount), year: r.date.slice(0, 4) },
+                           { label: '수입 복구', kind: 'income', op: 'add' });
+            });
+        }
+
+        /** 큐 항목과 똑같은 행이 시트에 몇 개 있는지. 확인할 수 없으면 null */
+        async function countSheetMatches(params) {
+            const date = params.date || '';
+            const csv = await fetchMonthCsv(date);
+            if (csv === null) return null;
+            if (csv === '') return 0;   // 그 달 시트가 아직 없다 → 0행
 
             const isIncome = params.action === 'addIncome' || params.action === 'deleteIncome';
-            const norm = s => {
-                let d = String(s || '').trim().replace(/\.\s*/g, '-').replace(/-$/, '');
-                const p = d.split('-');
-                return p.length === 3 ? `${p[0]}-${p[1].padStart(2, '0')}-${p[2].padStart(2, '0')}` : d;
-            };
-            const num = s => Number(String(s || '').replace(/[",₩\s]/g, ''));
+            const norm = normSheetDate;
+            const num = sheetNum;
             const want = { item: String(params.item || '').trim(), amount: Number(params.amount), person: String(params.person || '').trim() };
             let n = 0;
             for (const line of csv.split('\n')) {
@@ -9631,18 +9677,29 @@
                         updateHead(h => { h.tries = (h.tries || 0) + 1; });
                         scheduleOutboxRetry();
                     };
-                    const removeHead = () => {
+                    const removeHead = async () => {
                         const fresh = getOutbox();
                         if (fresh[0] && fresh[0].id === item.id) { fresh.shift(); saveOutbox(fresh); }
                         updatePendingBadge();
+                        // 구버전 서버의 지출 삭제는 같은 행의 수입까지 지운다 → 사라진 수입 복구
+                        if (item.params.action === 'delete' && item.incomesBefore && !isServerIdempotent()) {
+                            await restoreLostIncomes(item);
+                        }
                     };
 
                     if (rowOp && !idem) {
+                        // 지출 삭제는 같은 행의 수입까지 지울 수 있으므로(구버전 서버) 보내기 전 수입 목록을 남긴다
+                        if (item.params.action === 'delete' && !item.incomesBefore) {
+                            const inc = await readMonthIncomes(item.params.date);
+                            if (inc === null) { retryLater(); break; }
+                            item.incomesBefore = inc;
+                            updateHead(h => { h.incomesBefore = inc; });
+                        }
                         // 이전 전송 결과를 모른다 (앱이 닫혔거나 응답 실패) → 다시 보내기 전에 시트로 확인
                         if (item.sentAt) {
                             const now = await countSheetMatches(item.params);
                             if (now === null) { retryLater(); break; }       // 확인 불가 → 보내지 않는다
-                            if (isDelivered(item, now)) { removeHead(); continue; }
+                            if (isDelivered(item, now)) { await removeHead(); continue; }
                             item.pre = now;                                   // 안 들어갔음 → 기준 갱신 후 재전송
                             updateHead(h => { h.pre = now; });
                         } else if (item.pre === undefined || item.pre === null) {
@@ -9677,14 +9734,14 @@
                         ok = false;
                     }
 
-                    if (ok) { removeHead(); continue; }
+                    if (ok) { await removeHead(); continue; }
 
                     // 결과 불확실: 서버가 rid를 지원하면 나중에 다시 보내도 안전하다.
                     // 아니면 시트를 확인해서 들어갔으면 끝낸다 (반영 지연 대비 잠시 대기)
                     if (rowOp && !isServerIdempotent()) {
                         await new Promise(r => setTimeout(r, 4000));
                         const now = await countSheetMatches(item.params);
-                        if (isDelivered(item, now)) { removeHead(); continue; }
+                        if (isDelivered(item, now)) { await removeHead(); continue; }
                     }
                     retryLater();
                     break;

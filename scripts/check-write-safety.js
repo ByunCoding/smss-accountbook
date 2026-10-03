@@ -44,7 +44,8 @@ const csvFn = (html.match(/function parseCSVLine\([\s\S]*?\n        \}/) || [])[
 if (!csvFn) fail('parseCSVLine 함수를 찾지 못했다.');
 
 function makeEnv({ idemServer }) {
-    const sheet = [];   // [date, category, item, amount, '', person]
+    const rows = [];    // 11열: A~F 지출, H~K 수입 (같은 행에 함께 있을 수 있다)
+    const sheet = { get length() { return rows.filter(r => r[0]).length; }, rows };
     const seen = new Set();
     const store = {};
     const env = { sheet, mode: 'ok' };   // ok | lostResponse | networkDown | closeAfterSend
@@ -61,13 +62,25 @@ function makeEnv({ idemServer }) {
         fetch: async (url) => {
             if (env.mode === 'networkDown') throw new TypeError('down');
             if (url.includes('gviz')) {
-                const csv = sheet.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+                const csv = rows.map(r => r.map(c => `"${c ?? ''}"`).join(',')).join('\n');
                 return { ok: true, text: async () => csv };
             }
             const p = Object.fromEntries(new URL(url).searchParams);
             const dup = idemServer && seen.has(p.rid);
             if (!dup) {
-                if (p.action === 'add') sheet.push([p.date, p.category, p.item, p.amount, '', p.person]);
+                const blank = col => { let r = rows.find(x => !x[col]); if (!r) { r = Array(11).fill(''); rows.push(r); } return r; };
+                if (p.action === 'add') { const r = blank(0); [r[0], r[1], r[2], r[3], r[5]] = [p.date, p.category, p.item, p.amount, p.person]; }
+                if (p.action === 'addIncome') { const r = blank(7); [r[7], r[8], r[9], r[10]] = [p.date, p.category, p.item, p.amount]; }
+                if (p.action === 'delete') {
+                    for (let i = rows.length - 1; i >= 0; i--) {
+                        const r = rows[i];
+                        if (r[0] === p.date && r[1] === p.category && String(r[3]) === String(p.amount)) {
+                            if (idemServer) { for (let k = 0; k <= 5; k++) r[k] = ''; }   // 수정 서버: 지출 칸만 비움
+                            else rows.splice(i, 1);                                             // 구버전: 행 전체 삭제
+                            break;
+                        }
+                    }
+                }
                 seen.add(p.rid);
             }
             if (env.mode === 'lostResponse') throw new TypeError('response lost');                 // 기록은 됐는데 응답 실패
@@ -115,6 +128,16 @@ const check = (name, cond, extra) => results.push(`${cond ? '✅' : '❌'} ${nam
         e = makeEnv({ idemServer });
         e.ctx.enqueueApi(P); e.ctx.enqueueApi(P); await e.ctx.flushOutbox(); await wait(30); await e.ctx.flushOutbox(); await wait(30);
         check(`${tag} 의도적으로 2번 입력 → 2행`, e.sheet.length === 2, `rows=${e.sheet.length}`);
+    }
+    // 지출 삭제가 같은 행의 수입을 지우는 경우 (구버전 서버) → 수입 자동 복구, 수정 서버 → 원래 남음
+    for (const idemServer of [false, true]) {
+        const tag = idemServer ? '[서버 수정 후]' : '[서버 수정 전]';
+        const e = makeEnv({ idemServer });
+        e.sheet.rows.push(['2026-09-13', '외식', '휴게소', '10500', '', '현대카드_상민', '', '2026-09-08', '부수입', '삼삼', '486401']);
+        e.ctx.enqueueApi({ action: 'delete', date: '2026-09-13', category: '외식', item: '휴게소', person: '현대카드_상민', amount: '10500' });
+        for (let i = 0; i < 4; i++) { await e.ctx.flushOutbox(); await wait(30); }
+        const inc = e.sheet.rows.filter(r => r[9] === '삼삼').length, exp = e.sheet.rows.filter(r => r[2] === '휴게소').length;
+        check(`${tag} 지출 삭제 후 같은 행의 수입 유지 → 수입 1건, 지출 0건`, inc === 1 && exp === 0, `수입=${inc} 지출=${exp}`);
     }
     const bad = results.filter(r => r.startsWith('❌'));
     if (bad.length) fail('중복/유실 시나리오 실패:\n' + bad.join('\n'));
