@@ -3429,6 +3429,15 @@
             background: var(--primary);
             color: #fff;
         }
+        /* 금액 칩은 카테고리 칩과 구분되도록 테두리만 (배경 없음) */
+        .amount-chip { background: var(--bg-card); font-variant-numeric: tabular-nums; }
+        .chip-count {
+            margin-left: 5px;
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: var(--gray-500);
+        }
+        .cat-chip.active .chip-count { color: rgba(255, 255, 255, 0.85); }
 
         /* 필터 초기화 버튼 */
         .filter-reset-btn {
@@ -3470,7 +3479,10 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            /* left:50% 기준이라 기본 폭이 화면 절반으로 묶여 두 줄 문구가 좁게 꺾였다 → 내용 폭 사용 */
+            width: max-content;
             max-width: calc(100vw - 32px);
+            word-break: keep-all;
         }
 
         .toast.show {
@@ -3500,6 +3512,15 @@
             transition: background 0.2s;
         }
         .toast .undo-btn:hover { background: rgba(255,255,255,0.4); }
+        /* 저장 토스트 두 번째 줄: 예산 현황 */
+        .toast .toast-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+        .toast .toast-sub {
+            font-size: 0.8rem;
+            font-weight: 500;
+            opacity: 0.92;
+            word-break: keep-all;
+        }
+        .toast .toast-sub.warn { font-weight: 700; opacity: 1; }
 
         /* ===== 설정: 결제수단 결제일 ===== */
         .settings-item.pm-item {
@@ -3542,6 +3563,40 @@
             min-width: 100%;
             font-size: 0.72rem;
             color: var(--gray-500);
+        }
+
+        /* ===== 사람별 지출 ===== */
+        .person-row { padding: 12px 0; border-bottom: 1px solid var(--gray-300); }
+        .person-row:last-of-type { border-bottom: none; }
+        .person-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+        .person-name { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); }
+        .person-amount { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+        /* 이번 달(주 막대) vs 전달(얇은 기준 막대). 같은 측정값 비교 → 이번 달만 강조색 */
+        .person-bars { display: flex; flex-direction: column; gap: 3px; }
+        .person-bar { border-radius: 0 3px 3px 0; min-width: 2px; }
+        .person-bar.now { height: 8px; background: var(--primary); }
+        .person-bar.ref { height: 4px; background: var(--gray-500); }
+        .person-foot { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: 0.78rem; font-weight: 600; }
+        .person-delta { white-space: nowrap; color: var(--gray-500); }
+        .person-delta.up { color: var(--expense); }
+        .person-delta.down { color: var(--income); }
+        .person-ref { margin-top: 3px; font-size: 0.72rem; color: var(--text-secondary); word-break: keep-all; }
+        .person-legend {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
+            padding-top: 10px; font-size: 0.72rem; color: var(--text-secondary);
+        }
+        .legend-swatch { display: inline-block; width: 12px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+        .legend-swatch.now { height: 8px; background: var(--primary); }
+        .legend-swatch.ref { height: 4px; background: var(--gray-500); }
+        .person-legend-hint { flex-basis: 100%; word-break: keep-all; }
+        .pm-owner select {
+            height: 38px;
+            padding: 0 8px;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 16px;   /* iOS 확대 방지 */
         }
 
         /* ===== 카드 결제 예정 ===== */
@@ -4479,6 +4534,17 @@
                     </div>
                 </div>
 
+                <!-- 사람별 지출 (결제수단 사용자 기준, 전달·3개월 평균 비교) -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-team-fill"></i> 사람별 지출</h2>
+                        <span id="personSpendingSummary" style="font-size: 0.85rem; color: var(--gray-500);"></span>
+                    </div>
+                    <div class="section-body">
+                        <div id="personSpendingBody"></div>
+                    </div>
+                </div>
+
                 <!-- 카드 결제 예정 (통장에서 실제로 빠지는 시점) -->
                 <div class="section">
                     <div class="section-header">
@@ -4834,12 +4900,13 @@
                         <label><i class="ri-file-text-line"></i> 메모 (선택)</label>
                         <input type="text" id="inputDescription" placeholder="ex) 스타벅스, 편의점..." oninput="suggestCategory(this.value)">
                         <div class="cat-chips" id="categoryChips" hidden></div>
+                        <div class="cat-chips" id="amountChips" hidden></div>
                     </div>
                     <div class="input-form-group" id="installmentFormGroup">
                         <label><i class="ri-money-dollar-circle-line"></i> 금액</label>
                         <div class="amount-installment-row">
                             <div class="amount-input-wrapper">
-                                <input type="text" id="inputAmount" placeholder="0" required inputmode="numeric" oninput="formatAmountInput(this); updateInstallmentPreview();">
+                                <input type="text" id="inputAmount" placeholder="0" required inputmode="numeric" oninput="formatAmountInput(this); updateInstallmentPreview(); highlightAmountChip();">
                                 <span class="currency">원</span>
                             </div>
                             <select id="inputInstallment" class="installment-select" onchange="updateInstallmentPreview()">
@@ -5354,6 +5421,8 @@
         function renderCategorySelect() {
             const select = document.getElementById('inputCategory');
             if (!select || !appSettings) return;
+            // 입력 중에 설정이 백그라운드로 도착해 다시 그려져도 고른 값을 잃지 않도록
+            const prev = select.value;
 
             // 기본 옵션만 남기고 삭제
             select.innerHTML = '<option value="">카테고리 선택</option>';
@@ -5374,12 +5443,14 @@
                 option.textContent = '📦 기타';
                 select.appendChild(option);
             }
+            if (prev && [...select.options].some(o => o.value === prev)) select.value = prev;
         }
 
         // 결제수단 select 옵션 렌더링
         function renderPaymentSelect() {
             const select = document.getElementById('inputPayment');
             if (!select || !appSettings) return;
+            const prev = select.value;   // 다시 그려도 고른 값 유지
 
             // 기본 옵션만 남기고 삭제
             select.innerHTML = '<option value="">결제수단 선택</option>';
@@ -5391,6 +5462,7 @@
                 option.textContent = `${pm.emoji} ${pm.name}`;
                 select.appendChild(option);
             });
+            if (prev && [...select.options].some(o => o.value === prev)) select.value = prev;
         }
 
         // 수입 카테고리 select 렌더링
@@ -5413,7 +5485,7 @@
         function setInputType(type) {
             currentInputType = type;
             // 지출 추천 칩은 수입 입력에 맞지 않는다
-            if (typeof renderCategoryChips === 'function') renderCategoryChips([]);
+            if (typeof renderCategoryChips === 'function') { renderCategoryChips([]); renderAmountChips([]); }
             const paymentGroup = document.getElementById('paymentFormGroup');
             const categorySelect = document.getElementById('inputCategory');
             const submitBtn = document.getElementById('submitBtn');
@@ -5564,6 +5636,14 @@
                                    ${pm.billingDay ? '' : 'disabled'}>
                             <span>일</span>
                         </label>
+                        <label class="pm-owner">
+                            사용자
+                            <select onchange="updatePaymentOwner(${idx}, this.value)">
+                                ${[SHARED_OWNER, ...getKnownOwners()].map(o =>
+                                    `<option value="${escHtml(o)}" ${getPaymentOwner(pm.name) === o ? 'selected' : ''}>${escHtml(o)}</option>`
+                                ).join('')}
+                            </select>
+                        </label>
                         <span class="pm-billing-hint">${describeBilling(pm)}</span>
                     </div>
                 </div>
@@ -5692,6 +5772,19 @@
             if (typeof renderUpcomingBillings === 'function') renderUpcomingBillings();
         }
 
+        // 결제수단 사용자 변경 ('사람별 지출'에 쓰임)
+        function updatePaymentOwner(index, owner) {
+            const pm = appSettings.paymentMethods[index];
+            if (!pm) return;
+            // 이름 끝 '_이름'과 같으면 저장할 필요 없음 (기본값)
+            const m = String(pm.name).match(/_([^_]+)$/);
+            const def = m ? m[1] : SHARED_OWNER;
+            if (owner === def) delete pm.owner; else pm.owner = owner;
+            saveCardBillingLocal();
+            saveSettings();
+            if (typeof renderPersonSpending === 'function') renderPersonSpending();
+        }
+
         // 설정된 결제 주기를 사람 말로 설명 (설정 화면 힌트)
         function describeBilling(pm) {
             const b = Number(pm.billingDay) || 0;
@@ -5711,8 +5804,9 @@
             try {
                 const map = {};
                 (appSettings?.paymentMethods || []).forEach(pm => {
-                    if (pm.billingDay > 0) {
-                        map[pm.name] = { billingDay: pm.billingDay, closingDay: pm.closingDay || 0 };
+                    if (pm.billingDay > 0 || pm.owner) {
+                        map[pm.name] = { billingDay: pm.billingDay || 0, closingDay: pm.closingDay || 0 };
+                        if (pm.owner) map[pm.name].owner = pm.owner;   // 사람별 지출용 사용자
                     }
                 });
                 localStorage.setItem(CARD_BILLING_KEY, JSON.stringify(map));
@@ -5727,10 +5821,11 @@
                 (appSettings?.paymentMethods || []).forEach(pm => {
                     const saved = map[pm.name];
                     // 시트 쪽에 값이 있으면 그것을 우선 (Apps Script를 갱신한 경우)
-                    if (saved && !(pm.billingDay > 0)) {
+                    if (saved && !(pm.billingDay > 0) && saved.billingDay > 0) {
                         pm.billingDay = saved.billingDay;
                         pm.closingDay = saved.closingDay || 0;
                     }
+                    if (saved?.owner && !pm.owner) pm.owner = saved.owner;
                 });
             } catch (e) { console.warn('Card billing merge error:', e); }
         }
@@ -7349,6 +7444,7 @@
                 generateInsights();
                 updateExpenseSplit();
                 updatePaymentMethods();
+                renderPersonSpending();
                 renderUpcomingBillings();
                 renderInstallments();
                 updateCategoryComparison();
@@ -7784,6 +7880,109 @@
             }).join('') || '<div class="no-data">결제 내역 없음</div>';
 
             document.getElementById('paymentMethodCount').textContent = `${sorted.length}개 결제수단`;
+        }
+
+        // ===== 사람별 지출 =====
+        // 결제수단 → 사용자: 설정에서 고른 값(pm.owner) > 이름 끝 '_이름' > '공동'
+        const SHARED_OWNER = '공동';
+
+        function getPaymentOwner(name) {
+            const pm = appSettings?.paymentMethods?.find(p => p.name === name);
+            if (pm?.owner) return pm.owner;
+            const m = String(name || '').match(/_([^_]+)$/);
+            return m ? m[1] : SHARED_OWNER;
+        }
+
+        // 설정 화면에서 고를 수 있는 사용자 목록 (결제수단 이름 끝의 '_이름'에서 수집)
+        function getKnownOwners() {
+            const set = new Set();
+            (appSettings?.paymentMethods || []).forEach(p => {
+                const m = String(p.name).match(/_([^_]+)$/);
+                if (m) set.add(m[1]);
+                if (p.owner && p.owner !== SHARED_OWNER) set.add(p.owner);
+            });
+            return [...set];
+        }
+
+        /** monthKey 한 달의 사용자별 지출. maxDay가 있으면 1일~maxDay일만 */
+        function sumByOwner(monthKey, maxDay) {
+            const out = {};
+            const list = getMonthExpenses(monthKey);
+            for (let i = 0; i < list.length; i++) {
+                const e = list[i];
+                if (INCOME_CATEGORIES.has(e.category)) continue;
+                if (maxDay && parseInt(e.date.slice(8, 10)) > maxDay) continue;
+                const o = getPaymentOwner(e.payment_method);
+                out[o] = (out[o] || 0) + e.amount;
+            }
+            return out;
+        }
+
+        function renderPersonSpending() {
+            const wrap = document.getElementById('personSpendingBody');
+            const summaryEl = document.getElementById('personSpendingSummary');
+            if (!wrap || !selectedMonth) return;
+
+            const key = getSelectedKey();
+            // 진행 중인 이번 달은 '같은 기간'끼리 비교한다 (3일치 vs 한 달 전체 비교 방지)
+            const isCurrent = key === currentMonthKey();
+            const maxDay = isCurrent ? new Date().getDate() : 0;
+            const prevKeys = [1, 2, 3].map(i => {
+                const s = shiftMonth(selectedMonth.year, selectedMonth.month, -i);
+                return ymd(s.y, s.m, 1).slice(0, 7);
+            });
+
+            const cur = sumByOwner(key, maxDay);
+            const prevs = prevKeys.map(k => sumByOwner(k, maxDay));
+            const owners = new Set([...Object.keys(cur), ...prevs.flatMap(p => Object.keys(p))]);
+            if (owners.size === 0) {
+                summaryEl.textContent = '';
+                wrap.innerHTML = `<div class="no-data">이번 달 지출이 없습니다</div>`;
+                return;
+            }
+
+            summaryEl.textContent = isCurrent ? `1~${maxDay}일 기준` : '';
+
+            const rows = [...owners].map(o => {
+                const now = cur[o] || 0;
+                const last = prevs[0][o] || 0;
+                // 3개월 평균: 기록이 있는 달만 평균 (데이터 없는 달을 0으로 세면 평균이 낮아진다)
+                const vals = prevs.map(p => p[o] || 0).filter((v, i) => getMonthExpenses(prevKeys[i]).length > 0);
+                const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+                return { owner: o, now, last, avg };
+            }).sort((a, b) => (a.owner === SHARED_OWNER) - (b.owner === SHARED_OWNER) || b.now - a.now);
+
+            const max = Math.max(...rows.map(r => Math.max(r.now, r.last, r.avg)), 1);
+            const delta = (now, base, label) => {
+                if (!base) return `<span class="person-delta flat">${label} 기록 없음</span>`;
+                const pct = Math.round(((now - base) / base) * 100);
+                if (Math.abs(pct) < 5) return `<span class="person-delta flat"><i class="ri-subtract-line"></i> ${label} 비슷</span>`;
+                const up = pct > 0;
+                return `<span class="person-delta ${up ? 'up' : 'down'}"><i class="ri-arrow-${up ? 'up' : 'down'}-line"></i> ${label} ${up ? '+' : '−'}${Math.abs(pct)}%</span>`;
+            };
+
+            const lastLabel = isCurrent ? '전달 같은 기간' : '전달';
+            wrap.innerHTML = rows.map(r => `
+                <div class="person-row">
+                    <div class="person-head">
+                        <span class="person-name">${escHtml(r.owner)}</span>
+                        <span class="person-amount">${formatCurrency(r.now)}</span>
+                    </div>
+                    <div class="person-bars" aria-hidden="true">
+                        <div class="person-bar now" style="width:${(r.now / max) * 100}%"></div>
+                        <div class="person-bar ref" style="width:${(r.last / max) * 100}%"></div>
+                    </div>
+                    <div class="person-foot">
+                        ${delta(r.now, r.last, lastLabel)}
+                        ${delta(r.now, r.avg, '3개월 평균')}
+                    </div>
+                    <div class="person-ref">${lastLabel} ${formatCurrency(r.last)} · 3개월 평균 ${formatCurrency(Math.round(r.avg))}</div>
+                </div>`).join('') + `
+                <div class="person-legend">
+                    <span><i class="legend-swatch now"></i>이번 달</span>
+                    <span><i class="legend-swatch ref"></i>${lastLabel}</span>
+                    <span class="person-legend-hint">사용자는 설정 → 결제수단에서 바꿀 수 있어요</span>
+                </div>`;
         }
 
         // ===== 카드 결제 예정 =====
@@ -9052,6 +9251,9 @@
                         <td>${e.payment_method || '-'}</td>
                         <td>
                             <div class="action-btns">
+                                <button class="edit-btn" onclick="repeatByIndex(${idx})" title="다시 입력" aria-label="다시 입력">
+                                    <i class="ri-file-copy-line"></i>
+                                </button>
                                 <button class="edit-btn" onclick="editByIndex(${idx})" title="수정">
                                     <i class="ri-edit-line"></i>
                                 </button>
@@ -9090,6 +9292,9 @@
                                 <span class="memo">${(() => { const p = parseInstallmentDesc(e.description); return p.text + p.badge; })()}</span>
                                 <div class="right">
                                     <span class="payment">${e.payment_method || ''}</span>
+                                    <button class="edit-btn" onclick="repeatByIndex(${idx})" title="다시 입력" aria-label="다시 입력">
+                                        <i class="ri-file-copy-line"></i>
+                                    </button>
                                     <button class="edit-btn" onclick="editByIndex(${idx})" title="수정">
                                         <i class="ri-edit-line"></i>
                                     </button>
@@ -9451,6 +9656,7 @@
             if (!description || description.trim().length < 2) {
                 if (hintEl && !_categoryTouched) hintEl.textContent = '';
                 renderCategoryChips([]);
+                renderAmountChips([]);
                 return;
             }
 
@@ -9477,7 +9683,9 @@
             }
 
             // 수입 입력에는 추천하지 않는다 (카테고리 체계가 다르다)
-            if (currentInputType !== 'expense') { renderCategoryChips([]); return; }
+            if (currentInputType !== 'expense') { renderCategoryChips([]); renderAmountChips([]); return; }
+
+            renderAmountChips(suggestAmounts(description));
 
             const available = new Set(Array.from(categorySelect.options).map(o => o.value).filter(Boolean));
             const dateVal = document.getElementById('inputDate')?.value || '';
@@ -9530,6 +9738,7 @@
                 return _categoryModel;
             }
             const exact = new Map(), tok = new Map(), byDate = new Map();
+            const amounts = new Map();   // 메모 → Map(금액 → {n, last}) : 금액 추천 칩용
             const now = Date.now();
             const add = (map, key, cat, w) => {
                 let d = map.get(key);
@@ -9543,14 +9752,27 @@
                     if (!a) byDate.set(e.date, a = []);
                     a.push(e.category);
                 }
-                if (!e.description || CATEGORY_LEARN_SKIP.has(e.category)) continue;
+                if (!e.description) continue;
+                // 할부 행은 월 할부금이라 '평소 금액'이 아니다 → 금액 추천에서 제외
+                if (e.amount > 0 && !/\(\d+\/\d+\)\s*$/.test(e.description)) {
+                    const ak = normMemo(e.description).replace(/\s+/g, '');
+                    if (ak) {
+                        let m = amounts.get(ak);
+                        if (!m) amounts.set(ak, m = new Map());
+                        const a = m.get(e.amount) || { n: 0, last: '' };
+                        a.n++;
+                        if (e.date > a.last) a.last = e.date;
+                        m.set(e.amount, a);
+                    }
+                }
+                if (CATEGORY_LEARN_SKIP.has(e.category)) continue;
                 const age = Math.max(0, (now - new Date(e.date + 'T00:00:00').getTime()) / 86400000);
                 const w = Math.pow(0.5, (age || 0) / CATEGORY_HALF_LIFE_DAYS);
                 const key = normMemo(e.description).replace(/\s+/g, '');
                 if (key) add(exact, key, e.category, w);
                 for (const t of new Set(memoTokens(e.description))) add(tok, t, e.category, w);
             }
-            _categoryModel = { exact, tok, byDate, size: src?.length || 0 };
+            _categoryModel = { exact, tok, byDate, amounts, size: src?.length || 0 };
             _categoryModelSrc = src;
             return _categoryModel;
         }
@@ -9665,6 +9887,48 @@
             const cur = document.getElementById('inputCategory')?.value;
             document.querySelectorAll('#categoryChips .cat-chip').forEach(b => {
                 b.classList.toggle('active', b.dataset.cat === cur);
+            });
+        }
+
+        // ===== 금액 추천 칩 =====
+        // 같은 메모로 전에 쓴 금액을 많이 쓴 순(같으면 최근 순)으로 최대 3개.
+        // 자동으로 채우지는 않는다 — 탭하면 채워지고, 직접 입력해도 된다
+        function suggestAmounts(description) {
+            const key = normMemo(description).replace(/\s+/g, '');
+            if (key.length < 2) return [];
+            const m = getCategoryModel().amounts.get(key);
+            if (!m) return [];
+            return [...m.entries()]
+                .sort((a, b) => b[1].n - a[1].n || b[1].last.localeCompare(a[1].last))
+                .slice(0, 3)
+                .map(([amount, a]) => ({ amount, n: a.n }));
+        }
+
+        function renderAmountChips(list) {
+            const wrap = document.getElementById('amountChips');
+            if (!wrap) return;
+            if (!list || list.length === 0) { wrap.innerHTML = ''; wrap.hidden = true; return; }
+            wrap.hidden = false;
+            wrap.innerHTML = list.map(a => `
+                <button type="button" class="cat-chip amount-chip" data-amount="${a.amount}"
+                        onclick="pickAmountChip(${a.amount})">
+                    ${a.amount.toLocaleString()}원${a.n > 1 ? `<span class="chip-count">${a.n}회</span>` : ''}
+                </button>`).join('');
+            highlightAmountChip();
+        }
+
+        function pickAmountChip(amount) {
+            const el = document.getElementById('inputAmount');
+            if (!el) return;
+            el.value = Number(amount).toLocaleString();
+            if (typeof updateInstallmentPreview === 'function') updateInstallmentPreview();
+            highlightAmountChip();
+        }
+
+        function highlightAmountChip() {
+            const cur = parseInt((document.getElementById('inputAmount')?.value || '').replace(/,/g, '')) || 0;
+            document.querySelectorAll('#amountChips .amount-chip').forEach(b => {
+                b.classList.toggle('active', Number(b.dataset.amount) === cur);
             });
         }
 
@@ -9818,6 +10082,7 @@
             // 카테고리 추천 상태 초기화
             _categoryTouched = false;
             renderCategoryChips([]);
+            renderAmountChips([]);
             const hintEl = document.getElementById('autoSuggestHint');
             if (hintEl) hintEl.textContent = '';
 
@@ -10020,6 +10285,7 @@
             document.getElementById('inputCategory').value = pattern.category;
             _categoryTouched = true;   // 자주 쓰는 지출의 카테고리를 추천이 덮어쓰지 않도록
             renderCategoryChips([]);
+            renderAmountChips([]);
             document.getElementById('inputPayment').value = pattern.payment_method;
             document.getElementById('inputDescription').value = pattern.description;
             document.getElementById('inputAmount').value = Number(pattern.avgAmount || pattern.amount).toLocaleString();
@@ -10072,6 +10338,7 @@
             document.getElementById('expenseForm').reset();
             _categoryTouched = false;
             renderCategoryChips([]);
+            renderAmountChips([]);
 
             // 입력 타입 초기화
             currentInputType = 'expense';
@@ -10080,10 +10347,15 @@
             _editingOriginalData = null;
         }
 
-        function showToast(message, type = 'success', showUndo = false) {
+        // sub: 두 번째 줄 {text, warn} (저장 시 예산 현황 등)
+        function showToast(message, type = 'success', showUndo = false, sub = null) {
             const toast = document.getElementById('toast');
             const undoBtn = showUndo ? `<button class="undo-btn" onclick="undoDelete()">되돌리기</button>` : '';
-            toast.innerHTML = `<i class="ri-${type === 'success' ? 'check' : 'error-warning'}-line"></i> ${message} ${undoBtn}`;
+            const subHtml = sub?.text
+                ? `<span class="toast-sub ${sub.warn ? 'warn' : ''}">${sub.warn ? '⚠️ ' : ''}${escHtml(sub.text)}</span>`
+                : '';
+            toast.innerHTML = `<i class="ri-${type === 'success' ? 'check' : 'error-warning'}-line"></i>
+                <span class="toast-body"><span>${message}</span>${subHtml}</span> ${undoBtn}`;
             toast.className = `toast ${type} show`;
 
             // 기존 타이머 취소
@@ -10092,7 +10364,46 @@
             undoTimeout = setTimeout(() => {
                 toast.classList.remove('show');
                 if (showUndo) lastDeletedExpense = null; // 되돌리기 기회 만료
-            }, showUndo ? 5000 : 3000); // 되돌리기 있으면 5초
+            }, showUndo ? 5000 : (subHtml ? 4500 : 3000)); // 되돌리기 5초, 예산 줄이 있으면 읽을 시간 더
+        }
+
+        /**
+         * 저장 직후 보여줄 예산 현황 한 줄 (patchSummary 반영 후 호출)
+         * 1) 그 카테고리에 예산이 있으면 카테고리 예산 기준
+         * 2) 없으면 이번 달 변동비 예산(수입 - 고정비) 기준
+         * 3) 둘 다 없으면 그 카테고리 이번 달 누적
+         */
+        function getBudgetStatusLine(category, date) {
+            if (!category || !date) return null;
+            const key = date.slice(0, 7);
+            const mt = expenseData.summary?.monthly_totals?.[key];
+            const spent = mt?.categories?.[category] || 0;
+            const won = v => `${Math.round(v / 1000).toLocaleString()}천원`;
+            const money = v => v >= 10000 ? `${Math.round(v / 10000).toLocaleString()}만원` : won(v);
+
+            const budget = CATEGORY_BUDGETS?.[category] || 0;
+            if (budget > 0) {
+                const pct = Math.round((spent / budget) * 100);
+                const rest = budget - spent;
+                return {
+                    text: `${category} 예산 ${pct}% 사용 · ${rest >= 0 ? `${money(rest)} 남음` : `${money(-rest)} 초과`}`,
+                    warn: pct >= 80
+                };
+            }
+
+            const income = MONTHLY_INCOME?.[key] || 0;
+            const fixed = FIXED_EXPENSES?.[key]?.total || 0;
+            const variableBudget = income - fixed;
+            if (income > 0 && variableBudget > 0) {
+                const used = mt?.total || 0;
+                const pct = Math.round((used / variableBudget) * 100);
+                const rest = variableBudget - used;
+                return {
+                    text: `이번 달 변동비 ${pct}% 사용 · ${rest >= 0 ? `${money(rest)} 남음` : `${money(-rest)} 초과`} (${category} 누적 ${money(spent)})`,
+                    warn: pct >= 80
+                };
+            }
+            return spent > 0 ? { text: `이번 달 ${category} 누적 ${money(spent)}`, warn: false } : null;
         }
 
         // 삭제 되돌리기
@@ -10373,7 +10684,8 @@
                         calculateSummary();
                         updateDashboard();
                         setCachedData(expenseData.expenses);
-                        showToast(amount.toLocaleString() + '원 → ' + months + '개월 할부로 저장되었습니다 (월 ' + monthlyAmount.toLocaleString() + '원)');
+                        showToast(amount.toLocaleString() + '원 → ' + months + '개월 할부로 저장되었습니다 (월 ' + monthlyAmount.toLocaleString() + '원)',
+                            'success', false, getBudgetStatusLine(category, date));
                         closeInputModal();
                         renderExpenseTable();
                         return;
@@ -10413,7 +10725,7 @@
                     : (isIncome
                         ? `${formatCurrency(amount)} 수입이 기록되었습니다${isRecurring ? ' (고정수입 등록됨)' : ''}`
                         : `${formatCurrency(amount)} 지출이 기록되었습니다`);
-                showToast(toastMsg);
+                showToast(toastMsg, 'success', false, isIncome ? null : getBudgetStatusLine(category, date));
                 closeInputModal();
 
                 // 필터 드롭다운 갱신 (다른 월 입력 시 옵션 추가)
@@ -10440,6 +10752,129 @@
         function deleteByIndex(idx) {
             const data = _tableDeleteData[idx];
             if (data) deleteExpenseByData(data);
+        }
+
+        // 지난 내역을 오늘 날짜로 다시 입력 (메모·금액·카테고리·결제수단 복사, 저장은 사용자가)
+        function repeatByIndex(idx) {
+            const data = _tableDeleteData[idx];
+            if (!data) return;
+            openInputModal();
+            if (data.isIncome) setInputType('income');
+            selectCalendarDate(new Date());   // 지난 달 탭을 보고 있어도 오늘로
+
+            const desc = String(data.description || '').replace(/\s*\(\d+\/\d+\)\s*$/, '');  // 할부 표기 제거
+            document.getElementById('inputDescription').value = desc;
+            document.getElementById('inputCategory').value = data.category;
+            _categoryTouched = true;
+            if (!data.isIncome) document.getElementById('inputPayment').value = data.payment_method || '';
+
+            // 할부 행은 월 할부금이라 금액은 비워두고 금액 칩으로 고르게 한다
+            const isInstallment = /\(\d+\/\d+\)\s*$/.test(data.description || '');
+            document.getElementById('inputAmount').value = isInstallment ? '' : Number(data.amount).toLocaleString();
+            if (!data.isIncome) renderAmountChips(suggestAmounts(desc));
+            showToast('날짜를 오늘로 바꿔 채웠습니다. 확인 후 저장하세요');
+        }
+
+        // ===== 결제 알림 → 입력창 자동 채우기 (iPhone 단축어 자동화용) =====
+        // Apple Pay(Wallet 결제 시)·카드 승인 문자(메시지 수신 시) 자동화가 아래 주소를 연다:
+        //   ?memo=가맹점&amount=14300&payment=현대카드_시리
+        //   ?sms=<승인 문자 전문>&payment=현대카드_상민
+        // 입력창만 채우고 저장은 사용자가 확인 후 누른다 (카테고리는 학습 추천이 채움)
+
+        /** 카드 승인 문자 해석 (현대카드 등 국내 카드사 공통 형식) */
+        function parseCardSms(text) {
+            const raw = String(text || '').replace(/\r/g, '');
+            if (!raw.trim()) return null;
+            if (/취소|거절|승인\s*불가/.test(raw)) return { cancel: true };
+
+            // 누적/잔액/한도 금액은 결제 금액이 아니다
+            const cleaned = raw.replace(/(누적|잔액|한도|사용가능)[^\n\d]*[\d,]+\s*원/g, ' ');
+            const amt = cleaned.match(/([\d]{1,3}(?:,\d{3})+|\d+)\s*원/);
+            const amount = amt ? parseInt(amt[1].replace(/,/g, '')) : 0;
+
+            const inst = raw.match(/(\d{1,2})\s*개월/);
+            const months = inst ? parseInt(inst[1]) : 1;
+
+            // 날짜 MM/DD HH:mm → 연도 추정 (내일보다 뒤면 작년 문자)
+            let date = '';
+            const dm = raw.match(/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})/);
+            if (dm) {
+                const now = new Date();
+                let y = now.getFullYear();
+                const cand = new Date(y, parseInt(dm[1]) - 1, parseInt(dm[2]));
+                if (cand.getTime() - now.getTime() > 86400000) y--;
+                date = ymd(y, parseInt(dm[1]), parseInt(dm[2]));
+            }
+
+            // 가맹점: 날짜·시간 줄 다음 줄 (한 줄짜리 문자면 시간 뒤 텍스트)
+            let memo = '';
+            const lines = raw.split('\n').map(s => s.trim())
+                .filter(s => s && !/^\[?web\s*발신\]?$/i.test(s));
+            const di = lines.findIndex(s => /\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{2}/.test(s));
+            if (di >= 0) {
+                const after = lines[di].replace(/.*\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{2}/, '').trim();
+                memo = after || lines[di + 1] || '';
+            }
+            memo = memo.replace(/(누적|잔액).*/, '').trim();
+
+            return { amount, months, date, memo };
+        }
+
+        let _launchParamsApplied = false;
+
+        function applyLaunchParams() {
+            if (_launchParamsApplied) return;
+            const q = new URLSearchParams(location.search);
+            if (!['memo', 'amount', 'sms', 'payment'].some(k => q.has(k))) return;
+            _launchParamsApplied = true;
+
+            // 새로고침해도 다시 열리지 않도록 주소에서 지운다
+            try { history.replaceState(null, '', location.pathname); } catch (e) {}
+
+            let memo = q.get('memo') || '';
+            let amount = parseInt(String(q.get('amount') || '').replace(/[^\d]/g, '')) || 0;
+            let date = '', months = 1;
+            const smsText = q.get('sms');
+            if (smsText) {
+                const p = parseCardSms(smsText);
+                if (p?.cancel) { showToast('취소·거절 문자라 입력하지 않았습니다', 'error'); return; }
+                if (p) { memo = memo || p.memo; amount = amount || p.amount; date = p.date; months = p.months; }
+            }
+
+            openInputModal();
+            if (date) selectCalendarDate(new Date(date + 'T00:00:00'));
+
+            const descEl = document.getElementById('inputDescription');
+            descEl.value = memo;
+            if (amount) document.getElementById('inputAmount').value = amount.toLocaleString();
+            const instEl = document.getElementById('inputInstallment');
+            if (instEl && months > 1 && [...instEl.options].some(o => o.value === String(months))) {
+                instEl.value = String(months);
+                if (typeof updateInstallmentPreview === 'function') updateInstallmentPreview();
+            }
+
+            // 결제수단: 정확히 일치하는 이름만. 없으면 문자에 나온 카드사로 하나만 맞을 때 선택
+            const paySel = document.getElementById('inputPayment');
+            const opts = [...paySel.options].map(o => o.value).filter(Boolean);
+            const want = q.get('payment') || '';
+            if (opts.includes(want)) {
+                paySel.value = want;
+            } else if (smsText) {
+                const issuer = ['현대', '국민', '삼성', '신한', '롯데', '하나', '우리', 'BC', '농협'].find(k => smsText.includes(k));
+                const hits = issuer ? opts.filter(o => o.includes(issuer)) : [];
+                if (hits.length === 1) paySel.value = hits[0];
+            }
+
+            // 카테고리 추천: 데이터가 아직 로드 중이면 도착 후 다시 계산
+            const runSuggest = () => { if (descEl.value) suggestCategory(descEl.value); };
+            runSuggest();
+            let tries = 0;
+            const wait = setInterval(() => {
+                if ((expenseData?.expenses?.length || 0) > 0 || ++tries > 20) {
+                    clearInterval(wait);
+                    runSuggest();
+                }
+            }, 500);
         }
 
         // 인덱스 기반 수정
@@ -10492,6 +10927,7 @@
             document.getElementById('inputCategory').value = data.category;
             _categoryTouched = true;   // 수정 모드: 메모를 고쳐도 기존 카테고리를 유지
             renderCategoryChips([]);
+            renderAmountChips([]);
             if (!isIncome) {
                 document.getElementById('inputPayment').value = data.payment_method || '';
             }
@@ -10815,8 +11251,14 @@
                 });
             } else {
                 // 캐시 부족 (최초 실행 등): 기존 흐름 유지
-                Promise.all([loadSettings(), loadSheetList()]).then(() => loadData());
+                Promise.all([loadSettings(), loadSheetList()]).then(() => {
+                    loadData();
+                    // 결제 알림으로 열린 경우: 설정(카테고리·결제수단 옵션)이 생긴 뒤 입력창을 채운다
+                    applyLaunchParams();
+                });
             }
+            // 설정 캐시가 있으면 옵션이 이미 있으므로 바로 입력창을 연다
+            if (hasSettings) applyLaunchParams();
 
             // 미전송 큐가 남아 있으면 앱 시작 시 이어서 전송
             updatePendingBadge();

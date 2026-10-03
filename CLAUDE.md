@@ -249,6 +249,29 @@ powershell -ExecutionPolicy Bypass -File scripts\push.ps1
   기존 키워드 자동선택 정답 60.7% / 오답 12.5% → 학습형 64.3% / **9.4%**, 칩 3개 안 정답 81%
   — 평가 시 **index.html의 해당 블록을 vm으로 그대로 떼어 와서** 돌릴 것 (복사본 금지)
 
+## 입력 편의 기능 (2026-10-03)
+- **금액 추천 칩** `suggestAmounts(memo)` — 같은 메모의 과거 금액을 많이 쓴 순(동률이면 최근) 3개.
+  자동으로 채우지 않는다(탭하면 채움). 할부 행 `(n/m)`은 월 할부금이라 제외.
+  모델의 `amounts` 인덱스에 들어 있다 (`getCategoryModel`)
+- **다시 입력** `repeatByIndex(idx)` — 상세 내역 카드/행의 복사 버튼. 날짜는 항상 오늘,
+  할부 행이면 금액은 비우고 금액 칩으로 고르게 한다
+- **저장 토스트 예산 줄** `getBudgetStatusLine(category, date)` — 카테고리 예산 > 변동비 예산(수입-고정비)
+  > 카테고리 누적 순. `showToast(msg, type, undo, sub)` 의 4번째 인자
+- **결제 알림 → 입력창** `applyLaunchParams()` / `parseCardSms(text)`
+  - `?memo=&amount=&payment=` (Apple Pay: 단축어 'Wallet 결제 시' 자동화)
+  - `?sms=<승인 문자 전문>&payment=` (실물 카드: 단축어 '메시지 수신 시' 자동화)
+  - 취소/거절 문자는 무시, `누적/잔액/한도` 금액은 제외, `MM/DD HH:mm` 으로 날짜, `N개월` 로 할부
+  - 결제수단은 정확히 같은 이름만. 없으면 문자의 카드사로 **하나만** 맞을 때 선택
+  - 열린 뒤 `history.replaceState` 로 파라미터를 지운다 (새로고침 시 재입력 방지)
+  - 저장은 하지 않는다. 입력창만 채움
+- `renderCategorySelect` / `renderPaymentSelect` 는 **다시 그려도 고른 값을 유지**한다
+  (입력 중 설정이 백그라운드로 도착하면 카테고리·결제수단이 지워지던 버그)
+
+## 사람별 지출 (2026-10-03)
+- 결제수단 → 사용자: `pm.owner`(설정 화면) > 이름 끝 `_이름` > `공동` (`getPaymentOwner`)
+- `owner`도 Apps Script가 저장하지 않으므로 `smss_card_billing` 에 결제일과 함께 보관 (기기별)
+- 진행 중인 이번 달은 **같은 기간(1일~오늘)** 끼리 비교. 3개월 평균은 기록 있는 달만 평균
+
 ## 카테고리 키워드 매핑 (CATEGORY_KEYWORDS) — 학습형 추천의 보조 사전
 ```javascript
 카페: 스타벅스, 메가커피, 폴바셋, 커피, 라떼...
