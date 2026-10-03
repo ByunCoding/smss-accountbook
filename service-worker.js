@@ -1,7 +1,7 @@
 // SMSS 가계부 서비스워커
 // 전략: 앱 셸은 캐시 우선(stale-while-revalidate) → 즉시 렌더, 백그라운드 갱신
 //       새 버전이 준비되면 페이지에 알려서 '새 버전' 토스트를 띄운다.
-const CACHE_NAME = 'smss-accountbook-v24';   // v24: 자주 쓰는 지출 매번 갱신 (v23: 입력창 한 화면, v22: 중복 방지)
+const CACHE_NAME = 'smss-accountbook-v25';   // v25: 자주 쓰는 지출에서 쿠팡 내역 전부 제외 (v24: 매번 갱신, v23: 입력창 한 화면)
 
 // 앱 셸 (없으면 앱이 아예 안 뜨는 것들)
 const SHELL_URLS = [
