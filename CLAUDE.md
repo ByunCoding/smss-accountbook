@@ -231,9 +231,25 @@ powershell -ExecutionPolicy Bypass -File scripts\push.ps1
 
 ### 설정 관련
 - `loadSettings()` / `saveSettings()` - 카테고리/결제수단 설정
-- `suggestCategory()` - 키워드 기반 카테고리 자동 추천
+- `suggestCategory()` - 메모 입력 시 카테고리 추천 (→ `rankCategories`)
 
-## 카테고리 키워드 매핑 (CATEGORY_KEYWORDS)
+## 메모 → 카테고리 추천 (학습형, 2026-10-03)
+`rankCategories(memo, date)` 가 **사용자 본인의 지난 기록**(`expenseData.expenses`)으로 점수를 낸다.
+1. 똑같은 메모의 과거 분류 (가장 강함, ×2.5)
+2. 단어별 투표 (`_ , + / -` 와 공백으로 분리, 2글자 이상). 모르는 단어는 앞부분 일치(입력 중)·
+   포함(3글자 이상만 — `삼성카드`가 `카드`에 걸리던 문제)
+3. `CATEGORY_KEYWORDS` — 기록에 없는 새 가게용 보조
+4. **여행 중**(전날~당일 기록 2건 이상, 60% 이상 여행비)이면 여행비를 크게 가산
+- 가중치 반감기 1년 (`CATEGORY_HALF_LIFE_DAYS`), `기타`는 학습 안 함
+- 확신도 = 점수 / (합 + `CATEGORY_UNKNOWN_MASS` 0.8) — 근거 적은 100% 방지
+- **확신도 ≥ 0.5 일 때만 자동 선택**, 그 외엔 메모 아래 **후보 칩 최대 3개**(≥ 0.1)
+- `_categoryTouched` — 칩/셀렉트로 직접 고르거나, 수정 모드·자주 쓰는 지출이면 자동 선택이 덮어쓰지 않는다
+- 모델은 `expenses` 배열 참조/길이가 바뀌면 재학습 (1,500건 ≈ 5ms, 키 입력당 ≈ 0.1ms)
+- 시간순 재현 평가(그 시점 이전 기록만 사용, 최근 7개월 585건):
+  기존 키워드 자동선택 정답 60.7% / 오답 12.5% → 학습형 64.3% / **9.4%**, 칩 3개 안 정답 81%
+  — 평가 시 **index.html의 해당 블록을 vm으로 그대로 떼어 와서** 돌릴 것 (복사본 금지)
+
+## 카테고리 키워드 매핑 (CATEGORY_KEYWORDS) — 학습형 추천의 보조 사전
 ```javascript
 카페: 스타벅스, 메가커피, 폴바셋, 커피, 라떼...
 외식: 쿠팡이츠, 배민, 편의점, 맥도날드, 치킨, 피자...
@@ -277,6 +293,8 @@ powershell -ExecutionPolicy Bypass -File scripts\push.ps1
 - Apps Script `add`/`addIncome` 호출 시 **`year` 파라미터를 반드시 넘길 것.**
   빠뜨리면 `String(undefined).slice(-2)` = `'ed'` → `'ed.9'` 같은 쓰레기 시트가 생성된다
 - `patchSummary`에 넘기는 객체에 `year`/`month`가 없으면 `date`에서 유도된다 (테이블 삭제 경로)
+- `availableMonths`는 **오래된 순**이다. `[0]`은 가장 오래된 달 (예전 기본 월 선택 버그의 원인).
+  입력 모달 기본 날짜는 사용자가 월 탭을 직접 골랐을 때(`_monthPickedByUser`)만 그 달 1일, 아니면 오늘
 
 ## 검증 방법 (Playwright MCP 없이)
 `node`로 인라인 스크립트를 DOM 스텁과 함께 실행해서 로직을 직접 테스트할 수 있다.

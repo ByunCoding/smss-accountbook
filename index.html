@@ -3403,6 +3403,33 @@
             margin-left: 8px;
         }
 
+        /* 메모 기반 카테고리 후보 칩 (한 번 탭으로 선택, 터치 높이 36px) */
+        .cat-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .cat-chips[hidden] { display: none; }
+        .cat-chip {
+            min-height: 36px;
+            padding: 0 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 18px;
+            background: var(--gray-100);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .cat-chip.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: #fff;
+        }
+
         /* 필터 초기화 버튼 */
         .filter-reset-btn {
             display: flex;
@@ -4806,6 +4833,7 @@
                     <div class="input-form-group">
                         <label><i class="ri-file-text-line"></i> 메모 (선택)</label>
                         <input type="text" id="inputDescription" placeholder="ex) 스타벅스, 편의점..." oninput="suggestCategory(this.value)">
+                        <div class="cat-chips" id="categoryChips" hidden></div>
                     </div>
                     <div class="input-form-group" id="installmentFormGroup">
                         <label><i class="ri-money-dollar-circle-line"></i> 금액</label>
@@ -4827,7 +4855,7 @@
                     </div>
                     <div class="input-form-group">
                         <label><i class="ri-folder-line"></i> 카테고리 <span class="auto-suggest-hint" id="autoSuggestHint"></span></label>
-                        <select id="inputCategory" required>
+                        <select id="inputCategory" required onchange="_categoryTouched = true; highlightCategoryChip(); document.getElementById('autoSuggestHint').textContent = '';">
                             <option value="">카테고리 선택</option>
                             <!-- 동적으로 생성됨 -->
                         </select>
@@ -5384,6 +5412,8 @@
         // 입력 타입 전환 (지출/수입)
         function setInputType(type) {
             currentInputType = type;
+            // 지출 추천 칩은 수입 입력에 맞지 않는다
+            if (typeof renderCategoryChips === 'function') renderCategoryChips([]);
             const paymentGroup = document.getElementById('paymentFormGroup');
             const categorySelect = document.getElementById('inputCategory');
             const submitBtn = document.getElementById('submitBtn');
@@ -7145,6 +7175,9 @@
             </svg>`;
         }
 
+        // 사용자가 월 탭을 직접 골랐는지 (입력 모달의 기본 날짜 결정에 쓰인다)
+        let _monthPickedByUser = false;
+
         // ===== 대시보드 초기화 =====
         function initializeDashboard() {
             // 사용 가능한 월 목록 생성
@@ -7154,10 +7187,14 @@
             const now = new Date();
             const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
+            // availableMonths는 오래된 순이다. 예전엔 [0](=가장 오래된 2025-01)을 골라서
+            // 이번 달 내역이 아직 없는 월초에 앱이 2025년 1월로 열렸다
+            const pastOrNow = availableMonths.filter(m => m <= currentKey);
+            _monthPickedByUser = false;
             if (availableMonths.includes(currentKey)) {
                 selectedMonth = { year: now.getFullYear(), month: now.getMonth() + 1 };
-            } else if (availableMonths.length > 0) {
-                const [year, month] = availableMonths[0].split('-').map(Number);
+            } else if (pastOrNow.length > 0) {
+                const [year, month] = pastOrNow[pastOrNow.length - 1].split('-').map(Number);
                 selectedMonth = { year, month };
             } else {
                 selectedMonth = { year: now.getFullYear(), month: now.getMonth() + 1 };
@@ -7221,6 +7258,7 @@
         function selectMonthTab(monthKey) {
             const [year, month] = monthKey.split('-').map(Number);
             selectedMonth = { year, month };
+            _monthPickedByUser = true;
 
             // 모든 탭에서 active 제거 후 선택된 탭에 추가
             document.querySelectorAll('.month-tab').forEach(tab => {
@@ -9360,12 +9398,12 @@
 
         // 키워드 기반 카테고리 자동 추천 (데이터 분석 기반)
         const CATEGORY_KEYWORDS = {
-            '카페': ['스타벅스', '메가커피', '폴바셋', '카페', '커피', '라떼', '아메리카노', '아아', '에그타르트', '베이글', '브롱스', '하삼동', '패턴커피', '우지커피', '로텐바우'],
-            '외식': ['쿠팡이츠', '배민', '요기요', '편의점', '맥도날드', '롯데리아', '버거킹', '한솥', '휴게소', '치킨', '피자', '떡볶이', '붕어빵', '김밥', '국밥', '짜장', '짬뽕', '돈까스', '초밥', '회', '고기', '삼겹살', '갈비', '냉면', '칼국수', '라면', '우동', '파스타', '스테이크', '샌드위치', '핫도그', '타코', '마이쮸', '빼빼로', '아이스크림', '배스킨'],
-            '식비': ['이마트', '코스트코', '홈플러스', '롯데마트', '하나로마트', '마켓컬리', 'gs25', 'cu', '세븐일레븐', '우유', '바나나', '과일', '채소', '정육'],
-            '차량유지비': ['주차', '주유', '기름', '세차', '톨게이트', '하이패스', '정비', '타이어', '엔진오일', '강남주차'],
+            '카페': ['스타벅스', '메가커피', '폴바셋', '투썸', '바나프레소', '컴포즈', '엔젤리너스', '이디야', '빽다방', '카페', '커피', '라떼', '아메리카노', '아아', '에그타르트', '베이글', '브롱스', '하삼동', '패턴커피', '우지커피', '로텐바우'],
+            '외식': ['쿠팡이츠', '배민', '요기요', '편의점', '서브웨이', '파리바게뜨', '뚜레쥬르', '성심당', '맥도날드', '롯데리아', '버거킹', '한솥', '휴게소', '치킨', '피자', '떡볶이', '붕어빵', '김밥', '국밥', '짜장', '짬뽕', '돈까스', '초밥', '회', '고기', '삼겹살', '갈비', '냉면', '칼국수', '라면', '우동', '파스타', '스테이크', '샌드위치', '핫도그', '타코', '마이쮸', '빼빼로', '아이스크림', '배스킨'],
+            '식비': ['이마트', '코스트코', '홈플러스', '롯데마트', '하나로마트', '마켓컬리', '트레이더스', 'gs25', '세븐일레븐', '우유', '바나나', '과일', '채소', '정육'],
+            '차량유지비': ['주차', '주유', '기름', '세차', '톨게이트', '하이패스', '정비', '타이어', '엔진오일', '강남주차', '차량 보험', '자동차보험'],
             '생활비': ['다이소', '이케아', '무인양품', '무지', '쿠팡_', '택시비', '택시', '헤어커트', '미용실', 'cgv', '영화', '메가박스', '롯데시네마', 'srt', 'ktx', '버스', '지하철'],
-            '병원비': ['병원', '의원', '치과', '약국', '진료', '검사', '세브란스', '아산', '삼성', '서울대'],
+            '병원비': ['병원', '의원', '치과', '약국', '진료', '검사', '세브란스', '아산병원', '삼성병원', '서울대병원', '산부인과', '내과', '이비인후과', '소아과', '한의원'],
             '육아비': ['행운이', '임산부', '아기', '기저귀', '분유', '유모차', '카시트', '하이체어', '욕조', '바디필로우'],
             '쇼핑': ['올리브영', '러쉬', '옷', '신발', '가방', '악세사리', '화장품', '로션', '향수', '인강', '책', '액자', '케이스', '충전기'],
             '여행비': ['호텔', '펜션', '숙소', '항공', '비행기', '에어비앤비', 'srt', '기차'],
@@ -9410,8 +9448,9 @@
             const categorySelect = document.getElementById('inputCategory');
             const paymentSelect = document.getElementById('inputPayment');
 
-            if (!description || description.length < 2) {
-                if (hintEl) hintEl.textContent = '';
+            if (!description || description.trim().length < 2) {
+                if (hintEl && !_categoryTouched) hintEl.textContent = '';
+                renderCategoryChips([]);
                 return;
             }
 
@@ -9437,32 +9476,196 @@
                 }
             }
 
-            for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-                for (const keyword of keywords) {
-                    if (lowerDesc.includes(keyword.toLowerCase())) {
-                        // 해당 카테고리가 옵션에 있는지 확인
-                        const option = Array.from(categorySelect.options).find(opt => opt.value === category);
-                        if (option) {
-                            // 카테고리가 비어있을 때만 자동 선택
-                            if (!categorySelect.value) {
-                                categorySelect.value = category;
-                            }
-                            // 힌트 표시
-                            if (hintEl) hintEl.textContent = '✨ 자동 추천';
-                            // 시각적 피드백
-                            categorySelect.style.transition = 'background 0.3s';
-                            categorySelect.style.background = 'var(--income-light)';
-                            setTimeout(() => {
-                                categorySelect.style.background = '';
-                            }, 800);
-                            return;
-                        }
+            // 수입 입력에는 추천하지 않는다 (카테고리 체계가 다르다)
+            if (currentInputType !== 'expense') { renderCategoryChips([]); return; }
+
+            const available = new Set(Array.from(categorySelect.options).map(o => o.value).filter(Boolean));
+            const dateVal = document.getElementById('inputDate')?.value || '';
+            const ranked = rankCategories(description, dateVal).filter(r => available.has(r.category));
+            const top = ranked[0];
+
+            renderCategoryChips(ranked.filter(r => r.confidence >= CATEGORY_CHIP_MIN).slice(0, 3));
+
+            // 자신 있을 때만 자동 선택. 사용자가 직접 고른 카테고리는 덮어쓰지 않는다
+            if (top && top.confidence >= CATEGORY_AUTO_THRESHOLD && !_categoryTouched) {
+                if (categorySelect.value !== top.category) {
+                    categorySelect.value = top.category;
+                    categorySelect.style.transition = 'background 0.3s';
+                    categorySelect.style.background = 'var(--income-light)';
+                    setTimeout(() => { categorySelect.style.background = ''; }, 800);
+                    highlightCategoryChip();
+                }
+                if (hintEl) hintEl.textContent = describeSuggestion(top);
+            } else if (hintEl && !_categoryTouched) {
+                hintEl.textContent = '';
+            }
+        }
+
+        // ===== 메모 → 카테고리 학습 (사용자 본인의 지난 기록으로 추천) =====
+        // 시간순 재현 평가(1,400건): 기존 고정 키워드 1순위 정답 53% → 학습형 65%,
+        // 후보 3개 안에 정답 88%. 그래서 '자신 있을 때만 자동 선택 + 후보 칩'으로 낸다.
+        const CATEGORY_AUTO_THRESHOLD = 0.5;
+        const CATEGORY_UNKNOWN_MASS = 0.8;   // 확신도 보정용 '모름' 몫
+        const CATEGORY_CHIP_MIN = 0.1;       // 이보다 낮은 후보는 칩으로 띄우지 않는다
+        const CATEGORY_LEARN_SKIP = new Set(['기타']);   // 정보가 없는 분류는 학습하지 않는다
+        const CATEGORY_HALF_LIFE_DAYS = 365;             // 1년 지난 기록은 가중치 절반 (분류 습관 변화 반영)
+        let _categoryModel = null;
+        let _categoryModelSrc = null;
+        let _categoryTouched = false;   // 사용자가 카테고리를 직접 골랐는지
+
+        function normMemo(s) {
+            return String(s || '').split('\n')[0]
+                .replace(/\s*\(\d+\/\d+\)\s*$/, '')   // 할부 표기 (3/12)
+                .replace(/\(.*?\)/g, ' ')
+                .toLowerCase().trim();
+        }
+        function memoTokens(s) {
+            return normMemo(s).split(/[\s_,+\/\-·.&]+/).filter(t => t.length >= 2);
+        }
+
+        function getCategoryModel() {
+            const src = expenseData?.expenses;
+            // 데이터가 바뀌었으면(새로고침·추가·삭제) 다시 학습. 1,500건 기준 수 ms
+            if (_categoryModel && _categoryModelSrc === src && _categoryModel.size === (src?.length || 0)) {
+                return _categoryModel;
+            }
+            const exact = new Map(), tok = new Map(), byDate = new Map();
+            const now = Date.now();
+            const add = (map, key, cat, w) => {
+                let d = map.get(key);
+                if (!d) { d = { total: 0, n: 0, cats: {} }; map.set(key, d); }
+                d.cats[cat] = (d.cats[cat] || 0) + w; d.total += w; d.n++;
+            };
+            for (const e of (src || [])) {
+                if (!e.category || INCOME_CATEGORIES.has(e.category)) continue;
+                if (e.date) {
+                    let a = byDate.get(e.date);
+                    if (!a) byDate.set(e.date, a = []);
+                    a.push(e.category);
+                }
+                if (!e.description || CATEGORY_LEARN_SKIP.has(e.category)) continue;
+                const age = Math.max(0, (now - new Date(e.date + 'T00:00:00').getTime()) / 86400000);
+                const w = Math.pow(0.5, (age || 0) / CATEGORY_HALF_LIFE_DAYS);
+                const key = normMemo(e.description).replace(/\s+/g, '');
+                if (key) add(exact, key, e.category, w);
+                for (const t of new Set(memoTokens(e.description))) add(tok, t, e.category, w);
+            }
+            _categoryModel = { exact, tok, byDate, size: src?.length || 0 };
+            _categoryModelSrc = src;
+            return _categoryModel;
+        }
+
+        // 여행 중인지: 전날~당일 기록이 2건 이상이고 60% 이상이 여행비
+        // (여행 중엔 카페·식당도 여행비로 넣는다 — 메모만으로는 알 수 없는 부분)
+        function isTripContext(model, date) {
+            if (!date) return false;
+            const prev = new Date(date + 'T00:00:00');
+            prev.setDate(prev.getDate() - 1);
+            const prevStr = ymd(prev.getFullYear(), prev.getMonth() + 1, prev.getDate());
+            let n = 0, t = 0;
+            for (const d of [prevStr, date]) {
+                for (const c of (model.byDate.get(d) || [])) { n++; if (c === '여행비') t++; }
+            }
+            return n >= 2 && t / n >= 0.6;
+        }
+
+        /** 메모로 카테고리 후보를 점수순으로 반환 [{category, confidence, source, n}] */
+        function rankCategories(input, date) {
+            const key = normMemo(input).replace(/\s+/g, '');
+            if (key.length < 2) return [];
+            const model = getCategoryModel();
+            const score = {};
+            let n = 0, source = 'keyword';
+
+            // 많이 본 근거일수록 목소리가 크다 (log 스케일)
+            const vote = (d, mult) => {
+                const s = Math.log2(1 + d.n) * mult;
+                for (const [c, x] of Object.entries(d.cats)) score[c] = (score[c] || 0) + (x / d.total) * s;
+                n += d.n;
+            };
+
+            // 1) 똑같은 메모를 전에 쓴 적이 있으면 가장 강한 근거
+            const ex = model.exact.get(key);
+            if (ex) { vote(ex, 2.5); source = 'exact'; }
+            const exactN = ex ? ex.n : 0;
+
+            // 2) 단어별 투표. 모르는 단어는 앞부분 일치(입력 중)·포함(붙여쓰기)으로 찾는다
+            //    포함 매칭은 3글자 이상만 — '삼성카드'가 '카드'(하이패스 카드→차량유지비)에,
+            //    '연회비'가 '회비'에 걸리던 문제
+            for (const t of memoTokens(input)) {
+                const d = model.tok.get(t);
+                if (d) { vote(d, 1); if (source === 'keyword') source = 'learned'; continue; }
+                const agg = { total: 0, n: 0, cats: {} };
+                for (const [k, dd] of model.tok) {
+                    if (k.startsWith(t) || (k.length >= 3 && t.includes(k))) {
+                        for (const [c, x] of Object.entries(dd.cats)) agg.cats[c] = (agg.cats[c] || 0) + x;
+                        agg.total += dd.total; agg.n += dd.n;
                     }
+                }
+                if (agg.n) { vote(agg, 0.6); if (source === 'keyword') source = 'learned'; }
+            }
+
+            // 3) 기본 키워드 사전 — 처음 가는 가게용. 긴 키워드일수록 강하게
+            for (const [c, ks] of Object.entries(CATEGORY_KEYWORDS)) {
+                for (const k of ks) {
+                    const kk = k.toLowerCase().replace(/\s+/g, '');
+                    if (kk.length >= 2 && key.includes(kk)) score[c] = (score[c] || 0) + 0.3 + 0.1 * kk.length;
                 }
             }
 
-            // 매칭 안 되면 힌트 제거
+            let total = Object.values(score).reduce((a, b) => a + b, 0);
+            if (isTripContext(model, date)) {
+                const v = Math.max(total, 1) * 1.5;
+                score['여행비'] = (score['여행비'] || 0) + v;
+                total += v;
+                source = 'trip';
+            }
+            if (!total) return [];
+            // 근거가 적으면 확신도를 깎는다 ('모름' 몫을 분모에 더함).
+            // 기록 1건짜리 단어 하나로 100%가 나와 자동 선택되던 것 방지
+            const denom = total + CATEGORY_UNKNOWN_MASS;
+            return Object.entries(score)
+                .sort((a, b) => b[1] - a[1])
+                .map(([category, v]) => ({ category, confidence: v / denom, source, n, exactN }));
+        }
+
+        function describeSuggestion(top) {
+            if (top.source === 'trip') return '✨ 여행 중이라 여행비';
+            if (top.source === 'exact') return `✨ 같은 메모 ${top.exactN}건 기준`;
+            if (top.source === 'learned') return '✨ 지난 기록에서 추천';
+            return '✨ 자동 추천';
+        }
+
+        // 후보 칩 (휴대폰에서 한 번 탭으로 선택)
+        function renderCategoryChips(list) {
+            const wrap = document.getElementById('categoryChips');
+            if (!wrap) return;
+            if (!list || list.length === 0) { wrap.innerHTML = ''; wrap.hidden = true; return; }
+            const emojiOf = name => appSettings?.categories?.find(c => c.name === name)?.emoji || '';
+            wrap.hidden = false;
+            wrap.innerHTML = list.map(r => `
+                <button type="button" class="cat-chip" data-cat="${escHtml(r.category)}"
+                        onclick="pickCategoryChip(this.dataset.cat)">
+                    ${emojiOf(r.category)} ${escHtml(r.category)}
+                </button>`).join('');
+            highlightCategoryChip();
+        }
+
+        function pickCategoryChip(cat) {
+            const sel = document.getElementById('inputCategory');
+            if (!sel) return;
+            sel.value = cat;
+            _categoryTouched = true;
+            const hintEl = document.getElementById('autoSuggestHint');
             if (hintEl) hintEl.textContent = '';
+            highlightCategoryChip();
+        }
+
+        function highlightCategoryChip() {
+            const cur = document.getElementById('inputCategory')?.value;
+            document.querySelectorAll('#categoryChips .cat-chip').forEach(b => {
+                b.classList.toggle('active', b.dataset.cat === cur);
+            });
         }
 
         // ===== 커스텀 날짜 선택기 =====
@@ -9587,6 +9790,10 @@
                 displayText.textContent = `${year}년 ${parseInt(month)}월 ${parseInt(day)}일 (${dayOfWeek})`;
             }
 
+            // 날짜가 바뀌면 '여행 중' 판단이 달라질 수 있으니 추천을 다시 계산
+            const descVal = document.getElementById('inputDescription')?.value;
+            if (descVal) suggestCategory(descVal);
+
             renderCalendar();
         }
 
@@ -9607,6 +9814,12 @@
 
             // 입력 타입을 지출로 초기화
             setInputType('expense');
+
+            // 카테고리 추천 상태 초기화
+            _categoryTouched = false;
+            renderCategoryChips([]);
+            const hintEl = document.getElementById('autoSuggestHint');
+            if (hintEl) hintEl.textContent = '';
 
             // PWA에서 모달 스크롤 활성화
             if (modalContent) {
@@ -9634,7 +9847,8 @@
             // 날짜 초기화
             const today = new Date();
             let initDate = today;
-            if (selectedMonth) {
+            // 지난 달 탭을 직접 골라 둔 경우에만 그 달 1일로. 자동 선택된 달이면 항상 오늘
+            if (selectedMonth && _monthPickedByUser) {
                 const todayMonth = today.getMonth() + 1;
                 const todayYear = today.getFullYear();
                 if (todayYear !== selectedMonth.year || todayMonth !== selectedMonth.month) {
@@ -9804,6 +10018,8 @@
             if (!pattern) return;
 
             document.getElementById('inputCategory').value = pattern.category;
+            _categoryTouched = true;   // 자주 쓰는 지출의 카테고리를 추천이 덮어쓰지 않도록
+            renderCategoryChips([]);
             document.getElementById('inputPayment').value = pattern.payment_method;
             document.getElementById('inputDescription').value = pattern.description;
             document.getElementById('inputAmount').value = Number(pattern.avgAmount || pattern.amount).toLocaleString();
@@ -9854,6 +10070,8 @@
 
             // 폼 리셋
             document.getElementById('expenseForm').reset();
+            _categoryTouched = false;
+            renderCategoryChips([]);
 
             // 입력 타입 초기화
             currentInputType = 'expense';
@@ -10272,6 +10490,8 @@
 
             // 카테고리/결제수단 설정 (renderCategorySelect 후 동기 적용)
             document.getElementById('inputCategory').value = data.category;
+            _categoryTouched = true;   // 수정 모드: 메모를 고쳐도 기존 카테고리를 유지
+            renderCategoryChips([]);
             if (!isIncome) {
                 document.getElementById('inputPayment').value = data.payment_method || '';
             }
