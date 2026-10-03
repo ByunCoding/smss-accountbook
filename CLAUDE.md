@@ -303,6 +303,25 @@ GET 쓰기 요청을 통신망이 자동 재전송 + Apps Script에 중복 방�
 - **테스트 브라우저로 앱을 열 때는 쓰기 요청을 막을 것.** 고정수입이 자동으로 시트에 써진다:
   `context.route(/script\.google\.com/, r => /action=(add|addIncome|delete|deleteIncome|saveSettings)\b/.test(r.request().url()) ? r.abort() : r.continue())`
 
+## 임대·세금 재분류 + 임대 사업 카드 (2026-10-03)
+- 역삼 = 삼삼엠투 단기임대, 디센터 = 임대 (사용자 확인). 둘 다 '임대 사업'
+- `reclassifyCategory(e)`: 메모에 `역삼|삼삼|디센터` → **임대**, 세금 키워드(재산세·부가세·종소세…) → **세금**.
+  역삼 재산세·디센터 토지세는 임대(사업 비용). **시트는 안 바꾸고 불러올 때만** 재분류
+- 원래 시트 카테고리는 `e.sheetCategory`. **지출 삭제·수정·되돌리기 요청은 `sheetCat(e)`로 보낼 것**
+  (재분류된 '임대'로 보내면 시트에서 행을 못 찾는다). `_tableDeleteData`도 sheetCategory를 싣는다
+- 재분류는 `expenseData.expenses = reclassifyAll(...)` 세 곳(캐시·1단계·전체 로드)에서
+- `applySettings`가 임대·세금 카테고리를 메모리에만 보장 (시트 설정엔 안 씀)
+- `renderRental()` / `getRentalMonth(key)`: 수입 = 디센터 카테고리 + 메모 역삼·삼삼·디센터, 지출 = '임대'
+- 재분류 결과(2026 1~9월): 기타 11% → 25만원, 세금 339만, 임대 295만
+
+## 설정 저장 — 고정수입 목록 유실 주의 (2026-10-03)
+- 서버 `saveSettingsData`는 SETTINGS 시트를 **통째로 지우고 받은 것만 다시 쓴다** (v20 기준)
+- 예전엔 `loadSettings`가 fixedExpenses 마이그레이션 때문에 **앱을 열 때마다 saveSettings**를 불렀고,
+  `saveSettings`는 고정수입을 **그 기기 로컬 목록**으로 채웠다 → 로컬이 빈 기기가 저장하면 서버 고정수입 전부 삭제 (실제 발생, 복구함)
+- 지금: `_settingsLoadedFromServer` 전엔 서버 저장 안 함(미뤄서 병합 후 저장), fixedExpenses 마이그레이션은 로컬만.
+  check-write-safety가 이 가드를 검사한다
+- App Script.md에 서버 쪽 보존 패치(미적용, 선택) 있음
+
 ## 사람별 지출 (2026-10-03)
 - 결제수단 → 사용자: `pm.owner`(설정 화면) > 이름 끝 `_이름` > `공동` (`getPaymentOwner`)
 - `owner`도 Apps Script가 저장하지 않으므로 `smss_card_billing` 에 결제일과 함께 보관 (기기별)

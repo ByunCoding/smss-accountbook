@@ -2,6 +2,10 @@
 
 > **✅ 적용 완료 — 2026-10-03 19:21, 배포 버전 20** (응답에 `idem: true` 확인)
 >
+> **🔸 미적용 (선택) — 2026-10-03 밤**: `saveSettingsData`가 `recurringIncomes`가 없는 설정을 받으면
+> 기존 고정수입 행을 보존. 앱이 이미 막고 있으므로(서버 설정을 받기 전엔 저장 안 함) 급하지 않다.
+> 다음에 Apps Script를 고칠 때 같이 붙여넣고 새 버전으로 배포할 것.
+>
 > 아래는 이 버전의 변경 내용. **코드를 고치면 다시 붙여넣고 "기존 배포 편집 → 새 버전"으로 배포해야 한다.**
 >
 > **2026-10-03: 중복 기록 방지**
@@ -364,8 +368,16 @@ function saveSettingsData(settings) {
       sheet.getRange('A1:D1').setValues([['type', 'name', 'emoji', 'color']]);
     }
     var lastRow = sheet.getLastRow();
+    // ⚠️ 설정에 recurringIncomes가 아예 없으면 기존 고정수입 행을 보존한다
+    //    (예전엔 시트를 통째로 지워서, 고정수입을 모르는 기기가 저장하면 목록이 사라졌다 — 2026-10-03)
+    var keepRecurring = [];
+    if (settings.recurringIncomes === undefined && lastRow > 1) {
+      var old = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+      for (var o = 0; o < old.length; o++) { if (old[o][0] === 'recurring') { keepRecurring.push(old[o]); } }
+    }
     if (lastRow > 1) { sheet.deleteRows(2, lastRow - 1); }
     var rows = [];
+    for (var kr = 0; kr < keepRecurring.length; kr++) { rows.push(keepRecurring[kr]); }
     for (var i = 0; i < settings.categories.length; i++) {
       var cat = settings.categories[i];
       rows.push(['category', cat.name, cat.emoji, cat.color]);

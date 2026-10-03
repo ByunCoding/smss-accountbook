@@ -34,6 +34,9 @@ if (writeFetches.length !== 1) {
 }
 if (!/rid:\s*item\.id/.test(html)) fail('쓰기 요청에 rid(고유번호)가 빠졌다. 재전송 시 중복 기록된다.');
 if (!/function countSheetMatches/.test(html)) fail('countSheetMatches(보내기 전/후 시트 확인)가 없다.');
+// 설정 저장: 서버 설정을 받기 전엔 서버에 저장하지 않는다 (고정수입 목록 통째 유실 사고 2026-10-03)
+const saveFn = (html.match(/async function saveSettings\(\)[\s\S]*?\n        \}/) || [''])[0];
+if (!/_settingsLoadedFromServer/.test(saveFn)) fail('saveSettings에 "서버 설정 로드 전 저장 금지" 가드(_settingsLoadedFromServer)가 없다. 고정수입 목록이 지워질 수 있다.');
 
 // ---- 2) 실제 큐 코드로 시나리오 검증 ----
 const start = html.indexOf('const OUTBOX_KEY');

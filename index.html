@@ -3580,6 +3580,36 @@
             color: var(--gray-500);
         }
 
+        /* ===== 임대 사업 ===== */
+        .rental-top { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+        .rental-stat { padding: 10px; border-radius: 10px; background: var(--gray-100); border: 1px solid var(--gray-300); min-width: 0; }
+        .rental-stat .label { font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 3px; }
+        .rental-stat .value { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+        .rental-stat .value.income { color: var(--income); }
+        .rental-stat .value.expense { color: var(--expense); }
+        .rental-props { margin-bottom: 14px; }
+        .rental-prop { display: grid; grid-template-columns: 52px repeat(3, minmax(0, 1fr)); gap: 6px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--gray-300); font-size: 0.8rem; }
+        .rental-prop:last-child { border-bottom: none; }
+        .rental-prop-head { font-size: 0.7rem; color: var(--text-secondary); padding-top: 0; }
+        .rental-prop-head span, .rental-prop-val { text-align: right; }
+        .rental-prop-name { font-weight: 700; color: var(--text-primary); }
+        .rental-prop-val { white-space: nowrap; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; }
+        .rental-prop-val.income { color: var(--income); }
+        .rental-prop-val.expense { color: var(--expense); }
+        .rental-prop-val.net { font-weight: 700; color: var(--text-primary); }
+        .rental-prop-val.net.neg { color: var(--expense); }
+        .rental-trend-title { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+        .rental-trend { display: flex; gap: 6px; align-items: flex-end; }
+        .rental-col { flex: 1; min-width: 0; text-align: center; opacity: 0.7; }
+        .rental-col.current { opacity: 1; }
+        .rental-bar-area { height: 56px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 4px; }
+        .rental-bar { width: 100%; max-width: 26px; min-height: 2px; background: var(--income); border-radius: 4px 4px 0 0; }
+        .rental-bar.neg { background: var(--expense); }
+        .rental-col-v { font-size: 0.7rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+        .rental-col-m { font-size: 0.7rem; color: var(--text-secondary); }
+        .rental-col.current .rental-col-m { font-weight: 700; color: var(--text-primary); }
+        .rental-note { margin-top: 10px; font-size: 0.7rem; color: var(--text-secondary); word-break: keep-all; }
+
         /* ===== 사람별 지출 ===== */
         .person-row { padding: 12px 0; border-bottom: 1px solid var(--gray-300); }
         .person-row:last-of-type { border-bottom: none; }
@@ -4629,6 +4659,17 @@
                     </div>
                 </div>
 
+                <!-- 임대 사업 (역삼 = 삼삼엠투 단기임대, 디센터) -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="ri-community-fill"></i> 임대 사업</h2>
+                        <span id="rentalSummary" style="font-size: 0.85rem; color: var(--gray-500);"></span>
+                    </div>
+                    <div class="section-body">
+                        <div id="rentalBody"></div>
+                    </div>
+                </div>
+
                 <!-- 카드 결제 예정 (통장에서 실제로 빠지는 시점) -->
                 <div class="section">
                     <div class="section-header">
@@ -5403,16 +5444,19 @@
                             saveSettings();
                         }
                     }
-                    // 고정비 마이그레이션: fixedExpenses 필드가 없거나 기존 2개 항목만 있으면 전체 목록으로 업데이트
+                    // 고정비: 서버(SETTINGS 시트)는 fixedExpenses를 저장·반환하지 않는다 → 로컬 기본값만 채운다.
+                    // (예전엔 여기서 매번 saveSettings()를 불러 앱을 열 때마다 설정 전체를 덮어썼다)
                     if (!appSettings.fixedExpenses || appSettings.fixedExpenses.length <= 2) {
                         appSettings.fixedExpenses = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.fixedExpenses));
-                        saveSettings();
                     }
                     // localStorage의 구 예산 키 정리
                     localStorage.removeItem('smss_budgets');
                     // localStorage에 캐시 저장
                     localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
                     applySettings();
+                    _settingsLoadedFromServer = true;
+                    // 서버 설정을 받기 전에 미뤄둔 저장이 있으면 이제 (병합된 값으로) 저장
+                    if (_pendingSettingsSave) { _pendingSettingsSave = false; saveSettings(); }
                     console.log('설정 로드 완료 (Google Sheets)');
                 }
             } catch (e) {
@@ -5446,6 +5490,16 @@
             // 모든 로드 경로(캐시·시트·오프라인 폴백)가 이 함수를 거치므로 여기서 합친다.
             mergeCardBillingLocal();
 
+            // 임대·세금 카테고리 보장 (reclassifyCategory가 쓰는 분류). 시트 설정엔 쓰지 않고 메모리에만 —
+            // 사용자가 설정을 저장하면 그때 함께 저장된다
+            if (Array.isArray(appSettings.categories)) {
+                const ensure = (name, emoji, color) => {
+                    if (!appSettings.categories.some(c => c.name === name)) appSettings.categories.push({ name, emoji, color });
+                };
+                ensure(RENTAL_CATEGORY, '🏘️', '#0E7490');
+                ensure(TAX_CATEGORY, '🧾', '#78350F');
+            }
+
             // categoryColors 업데이트
             categoryColors = {};
             appSettings.categories.forEach(cat => {
@@ -5477,6 +5531,12 @@
         }
 
         // 설정 저장 (Google Sheets에)
+        // ★ 서버 설정을 이번 실행에서 아직 못 받았으면 서버에 저장하지 않는다.
+        //   서버 saveSettings는 SETTINGS 시트를 통째로 지우고 받은 것만 다시 쓰므로,
+        //   고정수입 목록을 모르는 기기(새 브라우저·옛 캐시)가 저장하면 고정수입이 전부 사라졌다 (2026-10-03).
+        let _settingsLoadedFromServer = false;
+        let _pendingSettingsSave = false;
+
         async function saveSettings() {
             try {
                 // 고정수입 데이터를 appSettings에 동기화
@@ -5484,6 +5544,11 @@
                 // localStorage에 즉시 저장 (빠른 반영)
                 localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
                 applySettings();
+
+                if (!_settingsLoadedFromServer) {
+                    _pendingSettingsSave = true;   // 서버 설정을 받은 뒤(병합 후) 저장한다
+                    return;
+                }
 
                 // Google Sheets에 저장
                 const params = new URLSearchParams({
@@ -6446,7 +6511,7 @@
                     MONTHLY_INCOME = cached.monthlyIncome || {};
                     FIXED_EXPENSES = cached.fixedExpenses || {};
                     incomeEntries = cached.incomeData || [];
-                    expenseData.expenses = cached.data;
+                    expenseData.expenses = reclassifyAll(cached.data);
                     calculateSummary();
                     initializeDashboard();
                     updateCountDisplay();
@@ -6544,7 +6609,7 @@
                         ok: preloadOk
                     };
 
-                    expenseData.expenses = currentMonthData;
+                    expenseData.expenses = reclassifyAll(currentMonthData);
                     calculateSummary();
                     if (appSettings?.fixedExpenses?.length > 0) rebuildFixedExpenses();
                     initializeDashboard();
@@ -6564,7 +6629,7 @@
             console.log(`[성능] 전체 데이터 로드: ${Math.round(performance.now() - t0)}ms`);
             _preloadedCurrentMonth = null; // 사용 완료 후 초기화
 
-            expenseData.expenses = expensesResult;
+            expenseData.expenses = reclassifyAll(expensesResult);
 
             // 시트/JSON 데이터로 교체된 뒤, 아직 전송되지 않은 입력을 화면에 되살린다
             // (안 하면 오프라인에서 입력한 항목이 새로고침 때 사라져 보인다)
@@ -6645,6 +6710,35 @@
         }
 
         // 현재 월 이후(할부로 미래 월 시트가 생기는 경우)인지 — 아카이브가 없으므로 시트에서 읽어야 함
+        // ===== 카테고리 재분류: 임대(역삼·디센터) / 세금 (2026-10-03) =====
+        // 과거 기록에서 임대·세금이 기타·생활비·관리비·공과금 등에 흩어져 있어 생활비 분석이 흐려졌다.
+        // 시트는 그대로 두고 불러올 때 분류만 다시 매긴다. 원래 카테고리는 sheetCategory에 남겨
+        // 수정·삭제 요청은 시트에 적힌 값으로 보낸다 (안 그러면 시트에서 행을 못 찾는다).
+        const RENTAL_RE = /역삼|삼삼|디센터/;   // 역삼 = 삼삼엠투 단기임대, 디센터 = 임대
+        const TAX_RE = /세금|재산세|부가세|토지세|종소세|종합소득|지방세|자동차세|종부세|취득세|등록세|주민세|양도세/;
+        const RENTAL_CATEGORY = '임대';
+        const TAX_CATEGORY = '세금';
+
+        function reclassifyCategory(e) {
+            if (!e || !e.category || INCOME_CATEGORIES.has(e.category)) return;
+            if (e.sheetCategory !== undefined) return;                     // 이미 처리됨
+            const memo = e.description || '';
+            let next = null;
+            if (RENTAL_RE.test(memo)) next = RENTAL_CATEGORY;               // 역삼 재산세·디센터 토지세도 임대 비용
+            else if (TAX_RE.test(memo)) next = TAX_CATEGORY;
+            if (next && next !== e.category) {
+                e.sheetCategory = e.category;
+                e.category = next;
+                e.isFixed = FIXED_CATEGORIES.includes(next);
+            }
+        }
+        function reclassifyAll(list) {
+            if (Array.isArray(list)) for (let i = 0; i < list.length; i++) reclassifyCategory(list[i]);
+            return list;
+        }
+        // 시트로 보낼 카테고리 (재분류 전 원래 값)
+        const sheetCat = e => (e && e.sheetCategory) || (e && e.category);
+
         function isCurrentOrFutureMonth(monthKey) {
             return monthKey >= currentMonthKey(); // 'YYYY-MM' 문자열 비교로 충분
         }
@@ -7572,6 +7666,7 @@
                 updateExpenseSplit();
                 updatePaymentMethods();
                 renderPersonSpending();
+                renderRental();
                 renderUpcomingBillings();
                 renderInstallments();
                 updateCategoryComparison();
@@ -8110,6 +8205,87 @@
                     <span><i class="legend-swatch ref"></i>${lastLabel}</span>
                     <span class="person-legend-hint">사용자는 설정 → 결제수단에서 바꿀 수 있어요</span>
                 </div>`;
+        }
+
+        // ===== 임대 사업 (역삼·디센터) =====
+        // 수입: 디센터 카테고리 / 메모에 역삼·삼삼·디센터 (삼삼엠투, 1박 추가비용, 연장 비용 등)
+        // 지출: 재분류된 '임대' 카테고리 (청소비·관리비·침구·역삼 재산세·디센터 토지세 등)
+        const rentalProperty = text => /디센터/.test(text || '') ? '디센터' : '역삼';
+
+        function getRentalMonth(monthKey) {
+            const inc = { 역삼: 0, 디센터: 0 }, exp = { 역삼: 0, 디센터: 0 };
+            let incCount = 0, expCount = 0;
+            incomeEntries.forEach(e => {
+                if (`${e.year}-${String(e.month).padStart(2, '0')}` !== monthKey) return;
+                const memo = e.description || '';
+                if (e.category === '디센터' || RENTAL_RE.test(memo)) {
+                    inc[e.category === '디센터' ? '디센터' : rentalProperty(memo)] += e.amount;
+                    incCount++;
+                }
+            });
+            getMonthExpenses(monthKey).forEach(e => {
+                if (e.category !== RENTAL_CATEGORY) return;
+                exp[rentalProperty(e.description)] += e.amount;
+                expCount++;
+            });
+            const income = inc.역삼 + inc.디센터, expense = exp.역삼 + exp.디센터;
+            return { inc, exp, income, expense, net: income - expense, incCount, expCount };
+        }
+
+        function renderRental() {
+            const wrap = document.getElementById('rentalBody');
+            const summaryEl = document.getElementById('rentalSummary');
+            if (!wrap || !selectedMonth) return;
+            const key = getSelectedKey();
+            const m = getRentalMonth(key);
+
+            // 최근 6개월 순수익 (선택 월 포함)
+            const months = [];
+            for (let i = 5; i >= 0; i--) {
+                const s = shiftMonth(selectedMonth.year, selectedMonth.month, -i);
+                const k = ymd(s.y, s.m, 1).slice(0, 7);
+                months.push({ k, ...getRentalMonth(k) });
+            }
+            const active = months.filter(x => x.incCount || x.expCount);
+            if (!m.incCount && !m.expCount && active.length === 0) {
+                summaryEl.textContent = '';
+                wrap.innerHTML = `<div class="no-data">임대 관련 내역이 없습니다</div>`;
+                return;
+            }
+            const sum6 = active.reduce((s, x) => s + x.net, 0);
+            summaryEl.textContent = active.length ? `최근 ${active.length}개월 순수익 ${formatCurrency(sum6)}` : '';
+
+            const row = (name) => `
+                <div class="rental-prop">
+                    <span class="rental-prop-name">${name}</span>
+                    <span class="rental-prop-val income">+${formatCurrency(m.inc[name])}</span>
+                    <span class="rental-prop-val expense">−${formatCurrency(m.exp[name])}</span>
+                    <span class="rental-prop-val net ${m.inc[name] - m.exp[name] < 0 ? 'neg' : ''}">${formatCurrency(m.inc[name] - m.exp[name])}</span>
+                </div>`;
+            const maxAbs = Math.max(...months.map(x => Math.abs(x.net)), 1);
+
+            wrap.innerHTML = `
+                <div class="rental-top">
+                    <div class="rental-stat"><div class="label">수입</div><div class="value income">${formatCurrency(m.income)}</div></div>
+                    <div class="rental-stat"><div class="label">지출</div><div class="value expense">${formatCurrency(m.expense)}</div></div>
+                    <div class="rental-stat"><div class="label">순수익</div><div class="value ${m.net < 0 ? 'expense' : ''}">${formatCurrency(m.net)}</div></div>
+                </div>
+                <div class="rental-props">
+                    <div class="rental-prop rental-prop-head"><span></span><span>수입</span><span>지출</span><span>순수익</span></div>
+                    ${row('역삼')}${row('디센터')}
+                </div>
+                <div class="rental-trend-title">최근 6개월 순수익</div>
+                <div class="rental-trend" role="img" aria-label="${months.map(x => `${Number(x.k.slice(5))}월 ${Math.round(x.net / 10000)}만원`).join(', ')}">
+                    ${months.map(x => `
+                        <div class="rental-col ${x.k === key ? 'current' : ''}">
+                            <div class="rental-bar-area">
+                                <div class="rental-bar ${x.net < 0 ? 'neg' : ''}" style="height:${Math.round(Math.abs(x.net) / maxAbs * 100)}%"></div>
+                            </div>
+                            <div class="rental-col-v">${Math.round(x.net / 10000)}만</div>
+                            <div class="rental-col-m">${Number(x.k.slice(5))}월</div>
+                        </div>`).join('')}
+                </div>
+                <div class="rental-note">임대 지출 = 메모에 역삼·삼삼·디센터가 들어간 지출 (청소비·관리비·재산세 등)</div>`;
         }
 
         // ===== 카드 결제 예정 =====
@@ -9354,6 +9530,7 @@
             // 삭제 데이터 저장소 (inline onclick XSS 방지)
             _tableDeleteData = sliced.map(e => ({
                 date: e.date, category: e.category,
+                sheetCategory: e.sheetCategory,   // 재분류 전 시트 값 (삭제·수정 요청용)
                 description: e.description || '', amount: e.amount,
                 payment_method: e.payment_method || '',
                 isIncome: e.isIncome || false
@@ -9909,6 +10086,8 @@
             '식비': ['이마트', '코스트코', '홈플러스', '롯데마트', '하나로마트', '마켓컬리', '트레이더스', 'gs25', '세븐일레븐', '우유', '바나나', '과일', '채소', '정육'],
             '차량유지비': ['주차', '주유', '기름', '세차', '톨게이트', '하이패스', '정비', '타이어', '엔진오일', '강남주차', '차량 보험', '자동차보험'],
             '생활비': ['다이소', '이케아', '무인양품', '무지', '쿠팡_', '택시비', '택시', '헤어커트', '미용실', 'cgv', '영화', '메가박스', '롯데시네마', 'srt', 'ktx', '버스', '지하철'],
+            '임대': ['역삼', '삼삼', '디센터'],
+            '세금': ['재산세', '부가세', '토지세', '종소세', '종합소득세', '지방세', '자동차세', '종부세', '세금'],
             '병원비': ['병원', '의원', '치과', '약국', '진료', '검사', '세브란스', '아산병원', '삼성병원', '서울대병원', '산부인과', '내과', '이비인후과', '소아과', '한의원'],
             '육아비': ['행운이', '임산부', '아기', '기저귀', '분유', '유모차', '카시트', '하이체어', '욕조', '바디필로우'],
             '쇼핑': ['올리브영', '러쉬', '옷', '신발', '가방', '악세사리', '화장품', '로션', '향수', '인강', '책', '액자', '케이스', '충전기'],
@@ -10798,7 +10977,7 @@
                     enqueueApi({
                         action: 'add',
                         date: data.date,
-                        category: data.category,
+                        category: sheetCat(data),   // 시트에는 원래 카테고리로 되돌린다
                         item: data.description || '',
                         amount: data.amount.toString(),
                         person: data.payment_method || '',
@@ -10925,7 +11104,7 @@
                         enqueueApi({
                             action: 'delete',
                             date: originalData.date,
-                            category: originalData.category,
+                            category: sheetCat(originalData),   // 재분류(임대·세금) 전 시트 값
                             item: originalData.description || '',
                             person: originalData.payment_method || '',
                             amount: originalData.amount.toString()
@@ -11255,7 +11434,7 @@
                     enqueueApi({
                         action: 'delete',
                         date: data.date,
-                        category: data.category,
+                        category: sheetCat(data),   // 재분류(임대·세금) 전 시트 값
                         item: data.description || '',
                         person: data.payment_method || '',
                         amount: data.amount.toString()
