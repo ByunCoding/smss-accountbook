@@ -1,7 +1,7 @@
 // SMSS 가계부 서비스워커
 // 전략: 앱 셸은 캐시 우선(stale-while-revalidate) → 즉시 렌더, 백그라운드 갱신
 //       새 버전이 준비되면 페이지에 알려서 '새 버전' 토스트를 띄운다.
-const CACHE_NAME = 'smss-accountbook-v26';   // v26: 임대·세금 분류, 임대 사업 카드, 설정 저장 가드 (v25: 쿠팡 추천 제외)
+const CACHE_NAME = 'smss-accountbook-v27';   // v27: 예산 자동 제안 (v26: 임대·세금 분류, 설정 저장 가드)
 
 // 앱 셸 (없으면 앱이 아예 안 뜨는 것들)
 const SHELL_URLS = [

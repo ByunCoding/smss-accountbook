@@ -4455,6 +4455,43 @@
             background: var(--bg-card);
         }
         #inputModal #submitBtn { padding: 13px; min-height: 48px; }
+
+        /* ===== 예산 수정 창: 위·아래 고정 + 가운데 스크롤, 자동 제안 (2026-10-03) ===== */
+        #budgetModal .input-modal {
+            display: flex !important;
+            flex-direction: column;
+            max-height: min(88vh, calc(100% - 8px)) !important;
+            overflow: hidden !important;
+        }
+        #budgetModal .input-modal-header,
+        #budgetModal .input-modal-footer { flex: 0 0 auto; }
+        #budgetModal .input-modal-header { position: static; padding: 12px 16px; }
+        #budgetModal .input-modal-body {
+            flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+            padding: 8px 16px !important;
+        }
+        #budgetModal .input-modal-footer { padding: 10px 16px max(10px, env(safe-area-inset-bottom)); background: var(--bg-card); }
+        .budget-suggest-bar { padding: 6px 0 12px; border-bottom: 1px solid var(--gray-300); margin-bottom: 4px; }
+        .budget-suggest-btn {
+            width: 100%; min-height: 44px; border-radius: 10px;
+            border: 1px solid var(--primary); background: transparent; color: var(--primary);
+            font-size: 0.92rem; font-weight: 700; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .budget-suggest-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .budget-suggest-note { margin-top: 6px; font-size: 0.72rem; color: var(--text-secondary); word-break: keep-all; }
+        .budget-suggest-note.done { color: var(--income); font-weight: 600; }
+        #budgetModal .budget-input-group { gap: 10px; padding: 10px 0; }
+        .budget-label { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .budget-label label { font-weight: 600; color: var(--text-primary); }
+        .budget-hint { font-size: 0.72rem; color: var(--text-secondary); word-break: keep-all; }
+        .budget-input-group.suggested .budget-hint { color: var(--primary); font-weight: 600; }
+        .budget-input-group.suggested input { border-color: var(--primary) !important; }
+        /* 16px 미만이면 iOS가 포커스 시 확대 */
+        #budgetModal .budget-input-wrapper input {
+            width: 120px; min-height: 40px; font-size: 16px;
+            background: var(--bg-card); color: var(--text-primary);
+        }
     </style>
 </head>
 <body>
@@ -4948,7 +4985,7 @@
 
     <!-- 예산 수정 모달 -->
     <div class="input-modal-overlay" id="budgetModal" onclick="closeBudgetModal(event)">
-        <div class="input-modal" onclick="event.stopPropagation()" style="max-height: 80vh; overflow-y: auto;">
+        <div class="input-modal" onclick="event.stopPropagation()">
             <div class="input-modal-header">
                 <h3><i class="ri-settings-3-line"></i> 예산 수정</h3>
                 <button class="input-modal-close" onclick="closeBudgetModal()">
@@ -9668,25 +9705,104 @@
         }
 
         // ===== 예산 수정 모달 =====
+        // ===== 예산 자동 제안 (2026-10-03) =====
+        // 최근 3개월(이번 달 제외, 다 끝난 달만) 평균을 올림해서 제안한다.
+        //  - 3개월 중 2개월 이상 쓴 카테고리만 (가끔 나가는 관리비·약속·기타가 예산을 부풀리지 않게)
+        //  - 임대·세금은 생활비가 아니므로 제외
+        //  - 10만원 미만은 1만원 단위, 그 이상은 5만원 단위로 올림
+        const BUDGET_SUGGEST_EXCLUDE = new Set(['기타', RENTAL_CATEGORY, TAX_CATEGORY]);
+
+        function getBudgetSuggestions() {
+            const now = new Date();
+            const keys = [1, 2, 3].map(i => {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            });
+            const mt = expenseData.summary?.monthly_totals || {};
+            const cats = new Set();
+            keys.forEach(k => Object.keys(mt[k]?.categories || {}).forEach(c => cats.add(c)));
+            const roundUp = v => v < 100000 ? Math.ceil(v / 10000) * 10000 : Math.ceil(v / 50000) * 50000;
+            const out = {};
+            cats.forEach(cat => {
+                if (INCOME_CATEGORIES.has(cat)) return;
+                const vals = keys.map(k => mt[k]?.categories?.[cat] || 0);
+                const active = vals.filter(v => v > 0).length;
+                const avg = vals.reduce((a, b) => a + b, 0) / keys.length;
+                out[cat] = {
+                    avg,
+                    suggest: (!BUDGET_SUGGEST_EXCLUDE.has(cat) && active >= 2 && avg > 0) ? roundUp(avg) : 0,
+                    active
+                };
+            });
+            return { keys, byCat: out };
+        }
+
+        const manwon = v => v >= 10000 ? `${Math.round(v / 10000).toLocaleString()}만` : `${Math.round(v).toLocaleString()}원`;
+
         function openBudgetModal() {
             const modal = document.getElementById('budgetModal');
             const body = document.getElementById('budgetFormBody');
 
             // 설정에서 카테고리 목록 가져오기
             const allCategories = appSettings ? appSettings.categories.map(c => c.name) : Object.keys(DEFAULT_BUDGETS);
+            const { keys, byCat } = getBudgetSuggestions();
+            const range = `${Number(keys[2].slice(5))}~${Number(keys[0].slice(5))}월`;
+            const suggestCount = Object.values(byCat).filter(s => s.suggest > 0).length;
 
-            body.innerHTML = allCategories.map(cat => `
-                <div class="budget-input-group">
-                    <label>${cat}</label>
-                    <div class="budget-input-wrapper">
-                        <input type="number" id="budget_${cat}" value="${CATEGORY_BUDGETS[cat] || 0}" min="0" step="10000">
-                        <span>원</span>
-                    </div>
-                </div>
-            `).join('');
+            // 최근 3개월 평균이 큰 순서 (자주 쓰는 카테고리가 위로)
+            const ordered = [...allCategories].sort((a, b) => (byCat[b]?.avg || 0) - (byCat[a]?.avg || 0));
+
+            body.innerHTML = `
+                <div class="budget-suggest-bar">
+                    <button type="button" class="budget-suggest-btn" onclick="applyBudgetSuggestions()" ${suggestCount ? '' : 'disabled'}>
+                        <i class="ri-magic-line"></i> 최근 3개월 평균으로 채우기
+                    </button>
+                    <div class="budget-suggest-note">${range} 중 2개월 이상 쓴 카테고리만 · 임대·세금·기타 제외 · 저장은 직접</div>
+                </div>` +
+                ordered.map(cat => {
+                    const s = byCat[cat];
+                    const hint = s && s.avg > 0 ? `${range} 평균 ${manwon(s.avg)}` : '최근 3개월 지출 없음';
+                    return `
+                    <div class="budget-input-group" data-cat="${escHtml(cat)}">
+                        <div class="budget-label">
+                            <label for="budget_${escHtml(cat)}">${escHtml(cat)}</label>
+                            <span class="budget-hint">${hint}</span>
+                        </div>
+                        <div class="budget-input-wrapper">
+                            <input type="number" inputmode="numeric" id="budget_${escHtml(cat)}" value="${CATEGORY_BUDGETS[cat] || 0}" min="0" step="10000">
+                            <span>원</span>
+                        </div>
+                    </div>`;
+                }).join('');
 
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
+            body.scrollTop = 0;
+        }
+
+        // 제안값으로 입력칸만 채운다 (저장은 사용자가). 바뀐 칸은 강조 + "기존 → 제안" 표시
+        function applyBudgetSuggestions() {
+            const { byCat } = getBudgetSuggestions();
+            let changed = 0;
+            Object.entries(byCat).forEach(([cat, s]) => {
+                if (!s.suggest) return;
+                const input = document.getElementById(`budget_${cat}`);
+                if (!input) return;
+                const before = parseInt(input.value) || 0;
+                if (before === s.suggest) return;
+                input.value = s.suggest;
+                changed++;
+                const row = input.closest('.budget-input-group');
+                row.classList.add('suggested');
+                const hint = row.querySelector('.budget-hint');
+                if (hint) hint.textContent = `평균 ${manwon(s.avg)} · 기존 ${before ? manwon(before) : '없음'} → ${manwon(s.suggest)}`;
+            });
+            // 토스트는 모달 뒤에 가려지므로 버튼 아래 안내 문구로 알린다
+            const note = document.querySelector('#budgetFormBody .budget-suggest-note');
+            if (note) {
+                note.textContent = changed ? `✅ ${changed}개 카테고리를 채웠습니다. 확인 후 아래 '저장하기'를 누르세요` : '이미 제안값과 같습니다';
+                note.classList.toggle('done', changed > 0);
+            }
         }
 
         function closeBudgetModal(event) {
