@@ -1,7 +1,7 @@
 // SMSS 가계부 서비스워커
 // 전략: 앱 셸은 캐시 우선(stale-while-revalidate) → 즉시 렌더, 백그라운드 갱신
 //       새 버전이 준비되면 페이지에 알려서 '새 버전' 토스트를 띄운다.
-const CACHE_NAME = 'smss-accountbook-v22';   // v22: 중복 기록 방지 코드를 휴대폰에 확실히 내려보내기
+const CACHE_NAME = 'smss-accountbook-v23';   // v23: 입력창 한 화면 + 저장 버튼 고정 (v22: 중복 기록 방지)
 
 // 앱 셸 (없으면 앱이 아예 안 뜨는 것들)
 const SHELL_URLS = [

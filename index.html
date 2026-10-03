@@ -4356,6 +4356,75 @@
                 min-width: 100%;
             }
         }
+
+        /* ===== 지출 입력창: 위·아래 고정, 가운데만 스크롤, 한 화면에 (2026-10-03) =====
+           - 제목·지출/수입 토글·저장하기는 고정, 입력 칸 + 자주 쓰는 지출만 스크롤
+           - 키보드가 올라오면 fitInputModalToViewport()가 높이를 키보드 위 공간에 맞춘다
+           - 글자는 16px 유지 (iOS 포커스 확대 방지), 터치 높이 44px 이상 */
+        #inputModal .input-modal {
+            display: flex !important;
+            flex-direction: column;
+            max-height: min(92vh, calc(100% - 8px)) !important;
+            overflow: hidden !important;
+        }
+        @supports (height: 100dvh) {
+            #inputModal .input-modal { max-height: min(92dvh, calc(100% - 8px)) !important; }
+        }
+        #inputModal .input-modal-header,
+        #inputModal .input-type-toggle,
+        #inputModal .input-modal-footer { flex: 0 0 auto; }
+        #inputModal .input-modal-header { padding: 12px 16px; position: static; }
+        #inputModal .input-modal-header h3 { font-size: 1rem; }
+        #inputModal .input-modal-close { width: 34px; height: 34px; }
+        #inputModal .input-type-toggle { padding: 8px 16px; }
+        #inputModal .input-type-toggle .toggle-btn { padding: 8px 12px; }
+        #inputModal .input-modal-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            padding: 12px 16px !important;
+        }
+        /* 칸 이름을 왼쪽에 붙여 세로 공간 절약 (이름 줄 5개 ≈ 115px) */
+        #inputModal .input-form-group {
+            margin-bottom: 10px;
+            display: grid;
+            grid-template-columns: 76px minmax(0, 1fr);
+            column-gap: 8px;
+            align-items: center;
+        }
+        #inputModal .input-form-group > label {
+            grid-column: 1;
+            margin: 0;
+            font-size: 0.82rem;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        #inputModal .input-form-group > :not(label) { grid-column: 2; }
+        #inputModal .input-form-group > input[type="hidden"] { display: none; }
+        #inputModal #recurringIncomeGroup > * { grid-column: 1 / -1; }
+        /* 추천 근거 문구는 좁은 이름 칸에 안 들어간다 — 칩과 자동 선택 강조로 충분 */
+        #inputModal .auto-suggest-hint { display: none; }
+        /* 다크모드에서 '일시불' 글자가 흐리던 문제 */
+        #inputModal .installment-select { color: var(--text-primary); background: var(--bg-card); }
+        #inputModal .input-form-group input:not([type="checkbox"]),
+        #inputModal .input-form-group select:not(.installment-select) {
+            padding: 10px 12px !important;
+            min-height: 44px;
+            font-size: 16px;
+        }
+        #inputModal .amount-installment-row .installment-select { min-height: 44px; padding: 8px !important; }
+        #inputModal .date-display { padding: 10px 12px; min-height: 44px; font-size: 16px; }
+        #inputModal .cat-chips { margin-top: 6px; }
+        #inputModal .quick-suggestions { margin-top: 4px; padding-top: 10px; }
+        #inputModal .quick-suggestions-title { margin-bottom: 8px; }
+        #inputModal .quick-suggestion-btn { min-height: 36px; }
+        #inputModal .input-modal-footer {
+            padding: 10px 16px max(10px, env(safe-area-inset-bottom));
+            background: var(--bg-card);
+        }
+        #inputModal #submitBtn { padding: 13px; min-height: 48px; }
     </style>
 </head>
 <body>
@@ -4913,8 +4982,8 @@
                         </div>
                     </div>
                     <div class="input-form-group">
-                        <label><i class="ri-file-text-line"></i> 메모 (선택)</label>
-                        <input type="text" id="inputDescription" placeholder="ex) 스타벅스, 편의점..." oninput="suggestCategory(this.value)">
+                        <label><i class="ri-file-text-line"></i> 메모</label>
+                        <input type="text" id="inputDescription" placeholder="(선택) 스타벅스, 편의점..." oninput="suggestCategory(this.value)">
                         <div class="cat-chips" id="categoryChips" hidden></div>
                         <div class="cat-chips" id="amountChips" hidden></div>
                     </div>
@@ -4960,15 +5029,17 @@
                         </div>
                     </div>
                 </form>
+                <!-- 자주 쓰는 지출: 스크롤 영역 안 (저장 버튼 아래에 있으면 스크롤해야 보였다) -->
+                <div class="quick-suggestions" id="quickSuggestions">
+                    <!-- 자주 쓰는 지출 패턴이 여기에 표시됨 -->
+                </div>
             </div>
+            <!-- 저장하기는 항상 화면 아래에 고정 (키보드가 올라오면 키보드 바로 위) -->
             <div class="input-modal-footer">
                 <button type="submit" class="submit-btn" id="submitBtn" onclick="submitExpense(event)"
                     style="background-color: #2563EB !important; color: #FFFFFF !important;">
                     <i class="ri-save-line" style="color: #FFFFFF !important;"></i> 저장하기
                 </button>
-                <div class="quick-suggestions" id="quickSuggestions">
-                    <!-- 자주 쓰는 지출 패턴이 여기에 표시됨 -->
-                </div>
             </div>
         </div>
     </div>
@@ -10329,15 +10400,10 @@
             const hintEl = document.getElementById('autoSuggestHint');
             if (hintEl) hintEl.textContent = '';
 
-            // PWA에서 모달 스크롤 활성화
-            if (modalContent) {
-                modalContent.scrollTop = 0;
-                // iOS PWA 스크롤 강제 활성화
-                setTimeout(() => {
-                    modalContent.style.overflow = 'auto';
-                    modalContent.style.webkitOverflowScrolling = 'touch';
-                }, 100);
-            }
+            // 스크롤은 가운데 입력 영역(.input-modal-body)이 담당한다 — 열 때마다 맨 위로
+            const bodyEl = modal.querySelector('.input-modal-body');
+            if (bodyEl) bodyEl.scrollTop = 0;
+            fitInputModalToViewport();
 
             // FAB 버튼 숨기기 (모달과 겹치지 않도록)
             if (fab) {
@@ -10567,12 +10633,45 @@
             if (catEl && !catEl.value) catEl.value = shortcut.category;
         }
 
+        // ===== 지출 입력창: 키보드가 올라와도 저장하기가 보이게 =====
+        // iOS는 키보드가 올라와도 레이아웃 높이는 그대로라 화면 아래 고정 요소가 키보드 뒤로 숨는다.
+        // 실제로 보이는 영역(visualViewport)에 입력창 바깥 틀을 맞추면, 저장하기가 키보드 바로 위에 온다.
+        function fitInputModalToViewport() {
+            const ov = document.getElementById('inputModal');
+            const vv = window.visualViewport;
+            if (!ov) return;
+            const clear = () => { ov.style.top = ''; ov.style.height = ''; ov.style.bottom = ''; };
+            // 키보드가 실제로 올라와 보이는 영역이 줄었을 때만 맞춘다 (평소엔 CSS 기본 배치)
+            const keyboardOpen = vv && vv.height < window.innerHeight - 80;
+            if (!ov.classList.contains('active') || !keyboardOpen) { clear(); return; }
+            ov.style.top = `${vv.offsetTop}px`;
+            ov.style.height = `${vv.height}px`;
+            ov.style.bottom = 'auto';
+        }
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', fitInputModalToViewport);
+            window.visualViewport.addEventListener('scroll', fitInputModalToViewport);
+        }
+        window.addEventListener('resize', fitInputModalToViewport);
+
+        // 입력 칸을 누르면 그 칸이 스크롤 영역 가운데로 (키보드에 가려지지 않게)
+        document.addEventListener('focusin', (e) => {
+            const body = e.target.closest?.('#inputModal .input-modal-body');
+            if (!body || !e.target.matches('input, select, textarea')) return;
+            // 키보드가 다 올라온 뒤(약 0.3초) 위치를 잡는다
+            setTimeout(() => {
+                fitInputModalToViewport();
+                e.target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }, 300);
+        });
+
         function closeInputModal(event) {
             if (event && event.target !== event.currentTarget) return;
             const modal = document.getElementById('inputModal');
             const fab = document.getElementById('fabButton');
             modal.classList.remove('active');
             document.body.style.overflow = '';
+            fitInputModalToViewport();   // 키보드용 높이 조정 해제
 
             // FAB 버튼 다시 보이기
             if (fab) {
@@ -11099,14 +11198,10 @@
             const previewEl = document.getElementById('installmentPreview');
             if (previewEl) previewEl.style.display = 'none';
 
-            // PWA 스크롤 활성화
-            if (modalContent) {
-                modalContent.scrollTop = 0;
-                setTimeout(() => {
-                    modalContent.style.overflow = 'auto';
-                    modalContent.style.webkitOverflowScrolling = 'touch';
-                }, 100);
-            }
+            // 스크롤은 가운데 입력 영역이 담당 — 맨 위로
+            const bodyEl = modal.querySelector('.input-modal-body');
+            if (bodyEl) bodyEl.scrollTop = 0;
+            fitInputModalToViewport();
         }
 
         // 지출/수입 삭제 함수 (데이터 기반)
