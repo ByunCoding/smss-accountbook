@@ -11,7 +11,8 @@
 >   예전엔 같은 행 H~K열의 **수입까지 함께 사라졌다** (2026-10 수입 전부 유실, 9/8 수입 유실)
 > - 응답에 `idem: true` → 앱이 "서버가 중복을 막아준다"고 인식해 시트 재확인을 생략한다
 >
-> 9/29의 **카드 결제일 저장**(`getSettings` / `saveSettingsData`)도 함께 들어 있습니다.
+> 9/29의 **카드 결제일 저장**과 10/3의 **결제수단 사용자(상민/시리/공동)** 저장도
+> (`getSettings` / `saveSettingsData`, SETTINGS 시트 D열 JSON) 함께 들어 있습니다 → 기기 간 동기화.
 >
 > **이 파일은 문서일 뿐이라 자동 반영되지 않습니다.** 적용하려면:
 > 1. [Apps Script 편집기](https://script.google.com) 열기
@@ -322,6 +323,7 @@ function getSettings() {
               pm.billingDay = Number(meta.billingDay) || 0;
               pm.closingDay = Number(meta.closingDay) || 0;
             }
+            if (meta && meta.owner) { pm.owner = String(meta.owner); }   // 사람별 지출용 사용자
           } catch (ex) {}
         }
         paymentMethods.push(pm);
@@ -368,8 +370,10 @@ function saveSettingsData(settings) {
       var pm = settings.paymentMethods[j];
       // 카드 결제일이 설정돼 있으면 D열에 JSON으로 저장 (없으면 빈 칸)
       var pmMeta = '';
-      if (pm.billingDay) {
-        pmMeta = JSON.stringify({billingDay: Number(pm.billingDay) || 0, closingDay: Number(pm.closingDay) || 0});
+      if (pm.billingDay || pm.owner) {
+        var metaObj = {billingDay: Number(pm.billingDay) || 0, closingDay: Number(pm.closingDay) || 0};
+        if (pm.owner) { metaObj.owner = String(pm.owner); }
+        pmMeta = JSON.stringify(metaObj);
       }
       rows.push(['payment', pm.name, pm.emoji, pmMeta]);
     }
