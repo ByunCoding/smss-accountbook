@@ -110,7 +110,8 @@ powershell -ExecutionPolicy Bypass -File scripts\push.ps1
 2. Google Sheets에서 읽는 월 = 다음 중 하나라도 해당되는 월만
    - `forceSheets === true` (헤더 새로고침 버튼)
    - 아카이브가 아직 없는 월 (`!archivedSet.has(month)`)
-   - 현재 월 또는 미래 월 (`isCurrentOrFutureMonth`) — 할부가 미래 월 시트를 만든다
+   - **지난달**·현재 월·미래 월 (`isLiveMonth`) — 할부가 미래 월 시트를 만든다.
+     지난달은 월초에 몰아서 입력하므로 3일 아카이브 후에도 시트에서 읽는다 (캐시도 안 씀)
 3. 나머지 아카이브된 월은 전부 `data/<월>.json` 에서 읽는다
 4. 과거 월: localStorage 캐시 히트 시 네트워크 스킵 (30일 유효)
 

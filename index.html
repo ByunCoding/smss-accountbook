@@ -6578,6 +6578,16 @@
             return monthKey >= currentMonthKey(); // 'YYYY-MM' 문자열 비교로 충분
         }
 
+        // 지난달 + 이번 달 + 미래 월 = 시트에서 항상 새로 읽는 달 (캐시·아카이브 무시)
+        // 지난달 내역을 월초에 몰아서 입력하는데, 매달 3일 아카이브 후엔 지난달을 JSON에서만 읽어
+        // 새로 넣은 내역이 앱에 안 보였다 (2026-10-03)
+        function isLiveMonth(monthKey) {
+            const now = new Date();
+            const p = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const prevKey = `${p.getFullYear()}-${String(p.getMonth() + 1).padStart(2, '0')}`;
+            return monthKey >= prevKey;
+        }
+
         // 모든 지출 데이터 병렬 로드 (월별 캐싱 적용)
         // forceSheets=true 이면 아카이브된 월도 Google Sheets에서 다시 읽는다 (수동 새로고침)
         async function loadAllExpenses(forceSheets = false) {
@@ -6619,7 +6629,7 @@
             const sheetEntries = Object.entries(GOOGLE_SHEETS).filter(([month]) =>
                 forceSheets ||                     // 수동 새로고침: 전부 시트에서
                 !archivedSet.has(month) ||         // 아카이브가 없는 월
-                isCurrentOrFutureMonth(month)      // 현재 월 + 할부로 생긴 미래 월
+                isLiveMonth(month)                 // 지난달·현재 월 + 할부로 생긴 미래 월
             );
             const sheetTargets = new Set(sheetEntries.map(([month]) => month));
             // 시트에서 읽는 월은 JSON에서 제외 (중복 방지)
@@ -6664,7 +6674,7 @@
                     return Promise.resolve(_preloadedCurrentMonth.data);
                 }
                 const cached = monthCache[month];
-                if (!forceSheets && !isCurrentMonth(month) && cached && cached.data && (Date.now() - cached.timestamp < MONTH_CACHE_EXPIRY)) {
+                if (!forceSheets && !isLiveMonth(month) && cached && cached.data && (Date.now() - cached.timestamp < MONTH_CACHE_EXPIRY)) {
                     // 캐시에 수입 데이터가 있으면 복원
                     if (cached.income && cached.income.length > 0) {
                         incomeEntries.push(...cached.income);
