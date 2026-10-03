@@ -147,6 +147,8 @@ GET 쓰기 요청을 통신망이 자동 재전송 + Apps Script에 중복 방�
   앱은 지출 삭제 전후 수입 목록을 비교해 사라진 수입을 다시 넣는다 (`restoreLostIncomes`).
   **스크립트로 지출을 대량 삭제할 때도 반드시 enqueueApi를 거칠 것** (2026-10-03 9월 정리 중 수입 1건 유실)
 - Apps Script 쪽 수정본은 `App Script.md` (rid 중복 무시 + LockService + 정확한 행 삭제 + A~F만 비움).
+  **2026-10-03 19:21 배포 버전 20으로 적용 완료** — 확인 방법(시트 영향 없음):
+  `?action=deleteIncome&date=1999-01-01&category=probe&item=probe&amount=1&rid=probe_x` → 응답에 `idem: true`
   **사용자가 붙여넣고 재배포해야 적용된다** — 적용되면 응답에 `idem: true`
 
 ### 전송 큐 (outbox) — 데이터 유실 방지
