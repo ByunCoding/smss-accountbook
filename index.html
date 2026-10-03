@@ -10443,7 +10443,7 @@
         }
 
         // 자주 쓰는 지출 캐시 키
-        const QUICK_SUGGESTIONS_CACHE_KEY = 'smss_quick_suggestions_cache_v2';
+        const QUICK_SUGGESTIONS_CACHE_KEY = 'smss_quick_suggestions_cache_v3';   // v3: 날짜 단위·감쇠 가중, 쿠팡 계열 제외
         const QUICK_CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24시간
 
         // HTML 특수문자 이스케이프 (XSS 방지)
@@ -10456,43 +10456,61 @@
             const expenses = expenseData.expenses;
             if (!expenses || expenses.length === 0) return;
 
+            // ===== 자주 쓰는 지출: 누적 기록에서 매번 새로 계산 (2026-10-03) =====
+            //  - 같은 날 여러 행은 1번 (중복 기록·여행 중 몰아쓰기가 순위를 왜곡하지 않게)
+            //  - 최근일수록 크게: 반감기 90일 / 오늘과 같은 요일에 쓴 날은 ×1.3
+            //  - 쿠팡이츠_/쿠팡_ 는 고정 버튼(PREFIX_SHORTCUTS)이 따로 있으므로 제외
+            //  - 할부·여행비·미래 날짜 제외, 3일 이상 쓴 것만
+            //  - 금액은 최근 90일 최빈값 (없으면 전체 최빈값, 같으면 최근 금액)
+            const QUICK_HALF_LIFE_DAYS = 90, QUICK_MIN_DAYS = 3, QUICK_TOP = 5;
             const now = new Date();
-            const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+            const todayKey = todayStr();
+            const dayMs = 86400000;
+            const recentCut = new Date(now.getTime() - 90 * dayMs).toISOString().slice(0, 10);
 
-            // key: 메모|카테고리|결제수단 (금액 제외 → 같은 항목 묶기)
             const patternMap = new Map();
             expenses.forEach(e => {
-                if (!e.category || !e.payment_method || !e.amount) return;
-                if (INCOME_CATEGORIES.has(e.category)) return;
+                if (!e.category || !e.payment_method || !e.amount || !e.date) return;
+                if (INCOME_CATEGORIES.has(e.category) || e.category === '여행비') return;
+                if (e.date > todayKey) return;                                   // 미래 할부 행
+                const desc = (e.description || e.category).trim();
+                if (/^쿠팡(이츠)?(_|$)/.test(desc)) return;                       // 고정 버튼과 중복
+                if (/\(\d+\/\d+\)\s*$/.test(desc)) return;                        // 할부
 
-                const desc = e.description || e.category;
                 const key = `${desc}|${e.category}|${e.payment_method}`;
-                const expDate = new Date(e.date);
-                const score = expDate >= threeMonthsAgo ? 2 : 1; // 최근 3개월 2배 가중치
-
-                if (!patternMap.has(key)) {
-                    patternMap.set(key, { score: 0, count: 0, amounts: [], latestDate: '' });
+                let entry = patternMap.get(key);
+                if (!entry) {
+                    entry = { score: 0, days: new Set(), amounts: [], latestDate: '' };
+                    patternMap.set(key, entry);
                 }
-                const entry = patternMap.get(key);
-                entry.score += score;
-                entry.count += 1;
-                entry.amounts.push(e.amount);
-                if (!entry.latestDate || e.date > entry.latestDate) entry.latestDate = e.date;
+                entry.amounts.push({ a: e.amount, d: e.date });
+                if (e.date > entry.latestDate) entry.latestDate = e.date;
+                if (entry.days.has(e.date)) return;                              // 같은 날은 1번
+                entry.days.add(e.date);
+
+                const dt = new Date(e.date + 'T00:00:00');
+                const age = Math.max(0, (now - dt) / dayMs);
+                let w = Math.pow(0.5, age / QUICK_HALF_LIFE_DAYS);
+                if (dt.getDay() === now.getDay()) w *= 1.3;
+                entry.score += w;
             });
 
-            // count >= 2 이상만 (진짜 반복 패턴), 스코어 내림차순, 상위 5개
+            const modeOf = list => {
+                const f = {};
+                list.forEach(x => { f[x.a] = f[x.a] || { n: 0, last: '' }; f[x.a].n++; if (x.d > f[x.a].last) f[x.a].last = x.d; });
+                return Number(Object.entries(f).sort((p, q) => q[1].n - p[1].n || q[1].last.localeCompare(p[1].last))[0][0]);
+            };
+
             const topPatterns = [...patternMap.entries()]
-                .filter(([_, v]) => v.count >= 2)
+                .filter(([, v]) => v.days.size >= QUICK_MIN_DAYS)
                 .sort((a, b) => b[1].score - a[1].score)
-                .slice(0, 5)
+                .slice(0, QUICK_TOP)
                 .map(([key, v]) => {
                     const [description, category, payment_method] = key.split('|');
                     const cat = appSettings?.categories?.find(c => c.name === category);
-                    // 가장 많이 기록된 금액 (최빈값)
-                    const freqMap = {};
-                    v.amounts.forEach(a => { freqMap[a] = (freqMap[a] || 0) + 1; });
-                    const modeAmount = parseInt(Object.entries(freqMap).sort((a, b) => b[1] - a[1])[0][0]);
-                    return { description, category, payment_method, avgAmount: modeAmount, emoji: cat?.emoji || '📝', score: v.score, count: v.count };
+                    const recent = v.amounts.filter(x => x.d >= recentCut);
+                    const amount = modeOf(recent.length ? recent : v.amounts);
+                    return { description, category, payment_method, avgAmount: amount, emoji: cat?.emoji || '📝', score: v.score, count: v.days.size };
                 });
 
             try {
@@ -10508,35 +10526,16 @@
             const container = document.getElementById('quickSuggestions');
             if (!container) return;
 
-            // 캐시 확인 (24시간 유효)
+            // 입력창을 열 때마다 누적 기록으로 새로 계산 (1,500건 기준 수 ms) → 오늘 입력도 바로 반영.
+            // 데이터가 아직 안 들어온 순간(앱 시작 직후)에만 마지막 계산 결과를 쓴다.
             let topPatterns = null;
+            if (expenseData.expenses && expenseData.expenses.length > 0) buildQuickSuggestionsCache();
             try {
                 const cached = localStorage.getItem(QUICK_SUGGESTIONS_CACHE_KEY);
-                if (cached) {
-                    const parsed = JSON.parse(cached);
-                    if (Date.now() - parsed.builtAt < QUICK_CACHE_EXPIRY) {
-                        topPatterns = parsed.data;
-                    }
-                }
+                if (cached) topPatterns = JSON.parse(cached).data;
             } catch (e) {}
-
-            // 캐시 미스 시 즉석 계산
-            if (!topPatterns) {
-                if (!expenseData.expenses || expenseData.expenses.length === 0) {
-                    container.innerHTML = '';
-                    return;
-                }
-                buildQuickSuggestionsCache();
-                try {
-                    const cached = localStorage.getItem(QUICK_SUGGESTIONS_CACHE_KEY);
-                    topPatterns = cached ? JSON.parse(cached).data : [];
-                } catch (e) { topPatterns = []; }
-            }
-
-            if (!topPatterns || topPatterns.length === 0) {
-                container.innerHTML = '';
-                return;
-            }
+            if (!topPatterns) topPatterns = [];
+            // 고정 버튼(쿠팡이츠_/쿠팡_)은 추천이 없어도 항상 보여준다
 
             // 전역에 패턴 저장 (클릭 시 사용)
             window._quickSuggestions = topPatterns;
