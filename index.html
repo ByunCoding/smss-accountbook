@@ -9153,7 +9153,11 @@
                     e.isFixed = false;
                 }
             }
-            let filtered = expenseData.expenses.concat(incomeEntries);
+            // 상세 내역 = 직접 입력한 지출·수입만. 고정수입([고정], 매달 자동 생성)과
+            // 고정지출(설정 목록에서 계산)은 목록에 넣지 않는다 — 합계·대시보드에는 그대로 반영된다
+            let filtered = expenseData.expenses.concat(
+                incomeEntries.filter(e => !String(e.description || '').startsWith('[고정]'))
+            );
 
             if (month) filtered = filtered.filter(e => `${e.year}-${String(e.month).padStart(2, '0')}` === month);
             if (category) filtered = filtered.filter(e => e.category === category);

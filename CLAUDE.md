@@ -142,7 +142,10 @@ GET 쓰기 요청을 통신망이 자동 재전송 + Apps Script에 중복 방�
 - "실패하면 다시 보낸다"를 추가 요청에 쓰지 말 것. 반드시 위 확인을 거친다
 - **자동 검사**: `index.html` 을 고치면 PostToolUse 훅이 `node scripts/check-write-safety.js` 를 돌린다
   (직접 fetch 개수, rid, 응답 유실·앱 종료·오프라인 시나리오). 실패하면 exit 2 — **통과할 때까지 커밋 금지**
-- Apps Script 쪽 수정본은 `App Script.md` (rid 중복 무시 + LockService + 정확한 행 삭제).
+- **구버전 Apps Script의 지출 삭제는 `deleteRow`(행 전체)라 같은 행의 수입(H~K)까지 지운다.**
+  앱은 지출 삭제 전후 수입 목록을 비교해 사라진 수입을 다시 넣는다 (`restoreLostIncomes`).
+  **스크립트로 지출을 대량 삭제할 때도 반드시 enqueueApi를 거칠 것** (2026-10-03 9월 정리 중 수입 1건 유실)
+- Apps Script 쪽 수정본은 `App Script.md` (rid 중복 무시 + LockService + 정확한 행 삭제 + A~F만 비움).
   **사용자가 붙여넣고 재배포해야 적용된다** — 적용되면 응답에 `idem: true`
 
 ### 전송 큐 (outbox) — 데이터 유실 방지
@@ -240,6 +243,10 @@ GET 쓰기 요청을 통신망이 자동 재전송 + Apps Script에 중복 방�
 
 ### UI 관련
 - `renderExpenseTable()` - 상세내역 테이블 렌더링
+  - **표시 기준 (사용자 결정 2026-10-03)**: 직접 입력한 지출(A~F) + 직접 입력한 수입(H~K)만.
+    **고정수입(`[고정]` 메모, 매달 자동 생성)과 고정지출(설정 목록 계산값)은 목록에 넣지 않는다.**
+    합계·대시보드·카드에는 그대로 반영된다
+  - 할부는 앞으로 갚을 달까지 전부 표시된다 (입력 시 m개월치 행을 만드는 구조)
 - `updateDashboard()` - 대시보드 전체 업데이트
 - `showToast()` - 토스트 알림 표시
 - `openInputModal()` / `closeInputModal()` - 입력 모달
