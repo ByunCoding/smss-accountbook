@@ -4456,6 +4456,8 @@
         }
         #inputModal #submitBtn { padding: 13px; min-height: 48px; }
 
+        .app-version { font-size: 0.72rem; font-weight: 500; color: var(--text-secondary); margin-left: 6px; }
+
         /* ===== 예산 수정 창: 위·아래 고정 + 가운데 스크롤, 자동 제안 (2026-10-03) ===== */
         #budgetModal .input-modal {
             display: flex !important;
@@ -5126,7 +5128,7 @@
     <div class="input-modal-overlay" id="settingsModal" onclick="closeSettingsModal(event)">
         <div class="input-modal" onclick="event.stopPropagation()">
             <div class="input-modal-header">
-                <h3><i class="ri-settings-3-line"></i> 설정</h3>
+                <h3><i class="ri-settings-3-line"></i> 설정 <span class="app-version" id="appVersionLabel"></span></h3>
                 <button class="input-modal-close" onclick="closeSettingsModal()">
                     <i class="ri-close-line"></i>
                 </button>
@@ -5739,6 +5741,21 @@
             // 첫 번째 탭으로 초기화
             switchSettingsTab('category');
             renderSettingsLists();
+            showAppVersion();
+        }
+
+        // 지금 쓰고 있는 앱 버전 = 이 페이지를 담당하는 서비스워커의 CACHE_NAME (smss-accountbook-vNN).
+        // 따로 숫자를 적어두면 안 올리는 실수가 생기고, 캐시 목록으로 보면 '설치만 된 새 버전'이 섞인다
+        function showAppVersion() {
+            const el = document.getElementById('appVersionLabel');
+            const ctrl = navigator.serviceWorker && navigator.serviceWorker.controller;
+            if (!el || !ctrl) { if (el) el.textContent = ''; return; }
+            const ch = new MessageChannel();
+            ch.port1.onmessage = e => {
+                const m = String(e.data || '').match(/-v(\d+)$/);
+                el.textContent = m ? `앱 버전 v${m[1]}` : '';
+            };
+            try { ctrl.postMessage({ type: 'GET_VERSION' }, [ch.port2]); } catch (e) { el.textContent = ''; }
         }
 
         // 설정 모달 닫기
@@ -11703,6 +11720,15 @@
 
                     // 앱을 열 때마다 백그라운드로 업데이트 확인 (렌더를 막지 않음)
                     setTimeout(() => reg.update().catch(() => {}), 3000);
+                    // iPhone 홈 화면 앱은 백그라운드에서 돌아올 때 페이지를 다시 읽지 않는다 →
+                    // 다시 보일 때마다 확인해야 '새 버전' 안내가 뜬다 (최소 1분 간격)
+                    let _lastUpdateCheck = Date.now();
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState !== 'visible' || Date.now() - _lastUpdateCheck < 60000) return;
+                        _lastUpdateCheck = Date.now();
+                        reg.update().catch(() => {});
+                        if (reg.waiting && navigator.serviceWorker.controller) showUpdateToast(reg.waiting);
+                    });
                 })
                 .catch(err => console.log('Service Worker 등록 실패:', err));
         }

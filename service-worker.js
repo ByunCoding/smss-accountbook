@@ -1,7 +1,7 @@
 // SMSS 가계부 서비스워커
 // 전략: 앱 셸은 캐시 우선(stale-while-revalidate) → 즉시 렌더, 백그라운드 갱신
 //       새 버전이 준비되면 페이지에 알려서 '새 버전' 토스트를 띄운다.
-const CACHE_NAME = 'smss-accountbook-v27';   // v27: 예산 자동 제안 (v26: 임대·세금 분류, 설정 저장 가드)
+const CACHE_NAME = 'smss-accountbook-v28';   // v28: 설정에 앱 버전 표시, 복귀 시 업데이트 확인 (v27: 예산 자동 제안)
 
 // 앱 셸 (없으면 앱이 아예 안 뜨는 것들)
 const SHELL_URLS = [
@@ -51,6 +51,10 @@ self.addEventListener('activate', event => {
 self.addEventListener('message', event => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
         self.skipWaiting();
+    }
+    // 설정 화면의 '앱 버전' 표시용 — 지금 페이지를 담당하는 워커의 버전
+    if (event.data && event.data.type === 'GET_VERSION' && event.ports && event.ports[0]) {
+        event.ports[0].postMessage(CACHE_NAME);
     }
 });
 
