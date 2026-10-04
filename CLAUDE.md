@@ -327,7 +327,7 @@ GET 쓰기 요청을 통신망이 자동 재전송 + Apps Script에 중복 방�
   `saveSettings`는 고정수입을 **그 기기 로컬 목록**으로 채웠다 → 로컬이 빈 기기가 저장하면 서버 고정수입 전부 삭제 (실제 발생, 복구함)
 - 지금: `_settingsLoadedFromServer` 전엔 서버 저장 안 함(미뤄서 병합 후 저장), fixedExpenses 마이그레이션은 로컬만.
   check-write-safety가 이 가드를 검사한다
-- App Script.md에 서버 쪽 보존 패치(미적용, 선택) 있음
+- 서버 쪽 보존 패치도 **2026-10-04 적용 완료** (recurringIncomes 없는 저장 → 기존 고정수입 보존, 실측 확인)
 
 ## 사람별 지출 (2026-10-03)
 - 결제수단 → 사용자: `pm.owner`(설정 화면) > 이름 끝 `_이름` > `공동` (`getPaymentOwner`)
